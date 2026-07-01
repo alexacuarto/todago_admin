@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { supabase } from "../../lib/supabase";
 
 interface LoginViewProps {
   loginEmail: string;
@@ -28,48 +27,14 @@ export default function LoginView({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!loginEmail || !loginPassword) {
-      setLoginError("Please enter both email and password.");
-      return;
-    }
-    if (!loginEmail.includes("@")) {
-      setLoginError("Please enter a valid email address.");
-      return;
-    }
-
     setIsLoading(true);
     setLoginError("");
 
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: loginEmail,
-        password: loginPassword,
-      });
+    // Simulate a short loading delay
+    await new Promise((resolve) => setTimeout(resolve, 200));
 
-      if (error) {
-        // Handle specific Supabase auth errors
-        if (error.message.includes("Invalid login credentials")) {
-          setLoginError("Invalid credentials. Please check your email and password.");
-        } else if (error.message.includes("Email not confirmed")) {
-          setLoginError("Email not confirmed. Please verify your email first.");
-        } else {
-          setLoginError(error.message || "Authentication failed. Please try again.");
-        }
-        return;
-      }
-
-      // Only navigate to dashboard if we have a valid session and user
-      if (data?.session && data?.user) {
-        setIsLoggedIn(true);
-      } else {
-        setLoginError("Login failed. No valid session returned.");
-      }
-    } catch (err: any) {
-      setLoginError("An unexpected error occurred. Please try again.");
-      console.error("Login error:", err);
-    } finally {
-      setIsLoading(false);
-    }
+    setIsLoggedIn(true);
+    setIsLoading(false);
   };
 
   return (

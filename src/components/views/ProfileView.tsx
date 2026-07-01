@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { supabase } from "../../lib/supabase";
 
 interface AdminProfile {
   name: string;
@@ -179,9 +178,8 @@ export default function ProfileView({
 
           {/* Logout Button */}
           <button
-            onClick={async () => {
+            onClick={() => {
               if (confirm("Are you sure you want to log out?")) {
-                await supabase.auth.signOut();
                 setIsLoggedIn(false);
                 setActiveTab("dashboard");
                 if (setLoginEmail) setLoginEmail("");

@@ -1,6 +1,5 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { createDriverAccount } from "./lib/driverService";
-import { supabase } from "./lib/supabase";
 
 // Mock Data & Types
 import {
@@ -38,33 +37,11 @@ import StatBreakdownModal from "./components/modals/StatBreakdownModal";
 
 export default function App() {
   // Authentication & Navigation State
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [sessionChecked, setSessionChecked] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(true);
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-
-  // Check for existing Supabase session on mount and listen for auth changes
-  useEffect(() => {
-    // Check if there's an active session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsLoggedIn(!!session);
-      setSessionChecked(true);
-    });
-
-    // Listen for auth state changes (sign in, sign out, token refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setIsLoggedIn(!!session);
-      }
-    );
-
-    // Cleanup subscription on unmount
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
 
   const [activeTab, setActiveTab] = useState<"dashboard" | "ride-requests" | "earnings" | "users" | "profile" | "create-driver">("dashboard");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -447,16 +424,6 @@ export default function App() {
       return matchToda && matchDriver;
     });
   }, [earningsRecords, earningsTodaFilter, earningsDriverFilter]);
-
-  // Show loading screen while checking for existing session
-  if (!sessionChecked) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#f3f8fc] font-sans">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#091b6f] border-t-transparent"></div>
-        <p className="text-[#091b6f] font-semibold mt-4 text-sm">Loading...</p>
-      </div>
-    );
-  }
 
   // Login View render condition
   if (!isLoggedIn) {

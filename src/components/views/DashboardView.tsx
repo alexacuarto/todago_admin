@@ -1,4 +1,4 @@
-import { Driver, RideRequest } from "../../data/mockData";
+import { Driver, RideRequest } from "../../types";
 
 interface DashboardViewProps {
   rideRequests: RideRequest[];

@@ -1,5 +1,5 @@
 import React from "react";
-import { Driver } from "../../data/mockData";
+import { Driver } from "../../types";
 
 interface AddRequestModalProps {
   isOpen: boolean;

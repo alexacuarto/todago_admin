@@ -1,4 +1,4 @@
-import { EarningsRecord } from "../../data/mockData";
+import { EarningsRecord } from "../../types";
 
 interface ViewEarningsModalProps {
   isOpen: boolean;
@@ -53,26 +53,12 @@ export default function ViewEarningsModal({
                 ₱{viewingEarningsRecord.totalEarnings.toLocaleString()}
               </p>
             </div>
-            <div>
-              <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Platform Commission Fee (15%)</p>
-              <p className="font-extrabold text-[#091b6f] text-lg mt-0.5">
-                ₱{viewingEarningsRecord.commissionEarned.toLocaleString()}
-              </p>
-            </div>
           </div>
 
           <div className="flex flex-col gap-2">
             <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider">Breakdown of Services</h4>
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col gap-2.5 text-xs font-semibold text-slate-600">
-              <div className="flex justify-between">
-                <span>Base Fare Volume (85% Driver share)</span>
-                <span>₱{(viewingEarningsRecord.totalEarnings * 0.85).toFixed(0)}</span>
-              </div>
-              <div className="flex justify-between border-t border-slate-200/50 pt-2">
-                <span>Platform Commission (15% TODA share)</span>
-                <span>₱{viewingEarningsRecord.commissionEarned.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between border-t border-slate-200/50 pt-2 font-bold text-slate-800">
+              <div className="flex justify-between font-bold text-slate-800">
                 <span>Total Transacted Amount</span>
                 <span>₱{viewingEarningsRecord.totalEarnings.toLocaleString()}</span>
               </div>

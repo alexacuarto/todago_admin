@@ -1,4 +1,4 @@
-import { Driver, Passenger } from "../../data/mockData";
+import { Driver, Passenger } from "../../types";
 
 interface ViewUserModalProps {
   isOpen: boolean;

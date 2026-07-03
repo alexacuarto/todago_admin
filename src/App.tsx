@@ -3,13 +3,13 @@ import { getCurrentAdminProfile } from "./lib/authService";
 import { fetchAdminDashboardData, subscribeAdminOperationalData } from "./lib/adminDataService";
 import { createDriverAccount } from "./lib/driverService";
 
-// Mock Data & Types
+// Types
 import {
   Driver,
   Passenger,
   RideRequest,
   EarningsRecord,
-} from "./data/mockData";
+} from "./types";
 
 // Layout components
 import Header from "./components/Layout/Header";
@@ -446,9 +446,9 @@ export default function App() {
   };
 
   const handleDownloadReport = () => {
-    const headers = "Date,TODA Association,Completed Rides,Total Earnings,Commission Earned,Driver Assigned\n";
+    const headers = "Date,TODA Association,Completed Rides,Total Earnings,Driver Assigned\n";
     const rows = earningsRecords.map(r =>
-      `"${r.date}","${r.toda}",${r.completedRides},${r.totalEarnings},${r.commissionEarned},"${r.driverName || 'N/A'}"`
+      `"${r.date}","${r.toda}",${r.completedRides},${r.totalEarnings},"${r.driverName || 'N/A'}"`
     ).join("\n");
     const blob = new Blob([headers + rows], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);

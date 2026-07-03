@@ -1,4 +1,4 @@
-import { RideRequest } from "../../data/mockData";
+import { RideRequest } from "../../types";
 
 interface ViewRequestModalProps {
   isOpen: boolean;

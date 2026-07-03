@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import { Driver, EarningsRecord, Passenger, RideRequest } from "../data/mockData";
+import { Driver, EarningsRecord, Passenger, RideRequest } from "../types";
 
 type ProfileRow = {
   id: string;
@@ -43,7 +43,6 @@ type DriverEarningRow = {
   ride_id: string;
   created_at: string;
   gross_fare: number;
-  platform_fee: number;
 };
 
 function statusToAdmin(status: string): RideRequest["status"] {
@@ -84,7 +83,7 @@ export async function fetchAdminDashboardData() {
       .select("id, passenger_id, driver_id, pickup_address, dropoff_address, status, fare_amount, requested_at"),
     supabase
       .from("driver_earnings")
-      .select("id, driver_id, ride_id, created_at, gross_fare, platform_fee"),
+      .select("id, driver_id, ride_id, created_at, gross_fare"),
   ]);
 
   assertNoError("profiles", profilesResult.error);
@@ -165,7 +164,6 @@ export async function fetchAdminDashboardData() {
       toda: driver?.tricycle_body_number ?? "-",
       completedRides: ride?.status === "completed" ? 1 : 0,
       totalEarnings: Number(row.gross_fare ?? 0),
-      commissionEarned: Number(row.platform_fee ?? 0),
       driverName: driverProfile?.full_name ?? "Driver",
     };
   });

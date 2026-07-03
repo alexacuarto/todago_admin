@@ -1,5 +1,5 @@
 import React from "react";
-import { Driver, EarningsRecord } from "../../data/mockData";
+import { Driver, EarningsRecord } from "../../types";
 
 interface EarningsViewProps {
   drivers: Driver[];
@@ -37,7 +37,6 @@ export default function EarningsView({
   const itemsPerPage = 9;
   const totalEarnings = filteredEarnings.reduce((sum, record) => sum + record.totalEarnings, 0);
   const totalCompletedRides = filteredEarnings.reduce((sum, record) => sum + record.completedRides, 0);
-  const totalCommission = filteredEarnings.reduce((sum, record) => sum + record.commissionEarned, 0);
 
   return (
     <div className="flex flex-col gap-8 max-w-7xl mx-auto">
@@ -61,16 +60,6 @@ export default function EarningsView({
           <p className="text-sky-200 font-bold text-xs uppercase tracking-wider">Total Completed Rides</p>
           <p className="text-4xl font-extrabold mt-3 font-sans">{totalCompletedRides.toLocaleString()}</p>
           <span className="text-[11px] text-sky-200/60 font-semibold mt-6">Total completed ride records</span>
-        </div>
-
-        {/* Total Commission Earned */}
-        <div
-          onClick={() => setActiveStatModal("commission-earned")}
-          className="bg-[#091b6f] text-white p-8 rounded-3xl shadow-sm border border-blue-900/10 flex flex-col justify-between hover:shadow-md hover:scale-[1.02] hover:border-blue-700 transition-all duration-200 cursor-pointer text-left"
-        >
-          <p className="text-sky-200 font-bold text-xs uppercase tracking-wider">Total Commission Earned</p>
-          <p className="text-4xl font-extrabold mt-3 font-sans">₱ {totalCommission.toLocaleString()}</p>
-          <span className="text-[11px] text-sky-200/60 font-semibold mt-6">Platform fee records</span>
         </div>
       </div>
 
@@ -179,7 +168,6 @@ export default function EarningsView({
                 <th className="pb-5 px-3 text-left">TODA</th>
                 <th className="pb-5 px-3 text-left">Completed Rides</th>
                 <th className="pb-5 px-3 text-left">Total Earnings</th>
-                <th className="pb-5 px-3 text-left">Commission Earned</th>
                 <th className="pb-5 text-center pr-3">Actions</th>
               </tr>
             </thead>
@@ -199,9 +187,6 @@ export default function EarningsView({
                     <td className="py-6 px-3 text-left text-slate-800 font-bold">
                       ₱{r.totalEarnings.toLocaleString()}
                     </td>
-                    <td className="py-6 px-3 text-left text-[#091b6f] font-extrabold">
-                      ₱{r.commissionEarned.toLocaleString()}
-                    </td>
                     <td className="py-6 text-center pr-3">
                       <button
                         onClick={() => {
@@ -217,7 +202,7 @@ export default function EarningsView({
                 ))}
               {filteredEarnings.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400 font-medium">
+                  <td colSpan={5} className="py-12 text-center text-slate-400 font-medium">
                     No financial records found matching your filters.
                   </td>
                 </tr>

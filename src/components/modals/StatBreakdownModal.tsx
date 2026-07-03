@@ -1,4 +1,4 @@
-import { Driver, Passenger, RideRequest } from "../../data/mockData";
+import { Driver, Passenger, RideRequest } from "../../types";
 
 interface StatBreakdownModalProps {
   isOpen: boolean;
@@ -36,8 +36,7 @@ export default function StatBreakdownModal({
         return "Total Transacted Volume";
       case "completed-rides":
         return "Lifetime Completed Rides";
-      case "commission-earned":
-        return "Platform Commissions (15%)";
+
       case "active-passengers":
         return "Active Passengers";
       case "registered-passengers":
@@ -326,40 +325,7 @@ export default function StatBreakdownModal({
             </div>
           )}
 
-          {/* CONTENT FOR: commission-earned */}
-          {activeStatModal === "commission-earned" && (
-            <div className="flex flex-col gap-4">
-              <div className="bg-[#091b6f] text-white p-5 rounded-2xl text-center">
-                <p className="text-xs text-sky-200 font-bold uppercase tracking-wider">
-                  Total Platform Commission (15%)
-                </p>
-                <p className="text-4xl font-extrabold mt-1">₱ 10,000</p>
-              </div>
-              <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider">
-                commission breakdown by association
-              </h4>
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col gap-3 font-semibold text-slate-600 text-sm">
-                <div className="flex justify-between">
-                  <span>LHITC-TODA Commission Share</span>
-                  <span className="font-bold text-slate-800">₱ 4,500</span>
-                </div>
-                <div className="flex justify-between border-t border-slate-200/50 pt-2">
-                  <span>CHOT-TODA Commission Share</span>
-                  <span className="font-bold text-slate-800">₱ 3,000</span>
-                </div>
-                <div className="flex justify-between border-t border-slate-200/50 pt-2">
-                  <span>BYPASS ILAYANG BAGUIO-TODA Commission Share</span>
-                  <span className="font-bold text-slate-800">₱ 2,500</span>
-                </div>
-                <div className="flex justify-between border-t border-slate-200/50 pt-2 font-bold text-[#091b6f]">
-                  <span>Total Platform Earnings Share</span>
-                  <span>₱ 10,000</span>
-                </div>
-              </div>
-            </div>
-          )}
 
-          {/* CONTENT FOR: active-passengers */}
           {activeStatModal === "active-passengers" && (
             <div className="flex flex-col gap-3">
               <p className="text-sm text-slate-500 font-semibold">

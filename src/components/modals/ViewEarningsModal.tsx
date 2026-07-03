@@ -1,4 +1,3 @@
-import React from "react";
 import { EarningsRecord } from "../../data/mockData";
 
 interface ViewEarningsModalProps {

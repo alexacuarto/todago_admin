@@ -1,4 +1,3 @@
-import React from "react";
 import { Driver, Passenger, RideRequest } from "../../data/mockData";
 
 interface StatBreakdownModalProps {

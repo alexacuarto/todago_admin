@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { loginAdmin } from "../../lib/authService";
 
 interface LoginViewProps {
   loginEmail: string;
@@ -30,11 +31,14 @@ export default function LoginView({
     setIsLoading(true);
     setLoginError("");
 
-    // Simulate a short loading delay
-    await new Promise((resolve) => setTimeout(resolve, 200));
-
-    setIsLoggedIn(true);
-    setIsLoading(false);
+    try {
+      await loginAdmin(loginEmail, loginPassword);
+      setIsLoggedIn(true);
+    } catch (error) {
+      setLoginError(error instanceof Error ? error.message : "Login failed.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

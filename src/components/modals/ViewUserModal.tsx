@@ -1,4 +1,3 @@
-import React from "react";
 import { Driver, Passenger } from "../../data/mockData";
 
 interface ViewUserModalProps {
@@ -6,10 +5,10 @@ interface ViewUserModalProps {
   onClose: () => void;
   viewingUser: any;
   viewingUserType: "driver" | "passenger" | null;
-  onDeactivateDriverToggle: (id: number) => void;
-  onDeactivatePassengerToggle: (id: number) => void;
-  onIncrementCanceledTrips: (id: number) => void;
-  onResetCanceledTrips: (id: number) => void;
+  onDeactivateDriverToggle: (id: number | string) => void;
+  onDeactivatePassengerToggle: (id: number | string) => void;
+  onIncrementCanceledTrips: (id: number | string) => void;
+  onResetCanceledTrips: (id: number | string) => void;
 }
 
 export default function ViewUserModal({

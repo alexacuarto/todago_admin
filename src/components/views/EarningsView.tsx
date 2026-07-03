@@ -35,6 +35,9 @@ export default function EarningsView({
   setActiveStatModal,
 }: EarningsViewProps) {
   const itemsPerPage = 9;
+  const totalEarnings = filteredEarnings.reduce((sum, record) => sum + record.totalEarnings, 0);
+  const totalCompletedRides = filteredEarnings.reduce((sum, record) => sum + record.completedRides, 0);
+  const totalCommission = filteredEarnings.reduce((sum, record) => sum + record.commissionEarned, 0);
 
   return (
     <div className="flex flex-col gap-8 max-w-7xl mx-auto">
@@ -46,8 +49,8 @@ export default function EarningsView({
           className="bg-[#091b6f] text-white p-8 rounded-3xl shadow-sm border border-blue-900/10 flex flex-col justify-between hover:shadow-md hover:scale-[1.02] hover:border-blue-700 transition-all duration-200 cursor-pointer animate-fade-in"
         >
           <p className="text-sky-200 font-bold text-xs uppercase tracking-wider">Total Earnings</p>
-          <p className="text-4xl font-extrabold mt-3 font-sans">₱ 50,000</p>
-          <span className="text-[11px] text-sky-200/60 font-semibold mt-6">Active Volume baseline</span>
+          <p className="text-4xl font-extrabold mt-3 font-sans">₱ {totalEarnings.toLocaleString()}</p>
+          <span className="text-[11px] text-sky-200/60 font-semibold mt-6">From completed Supabase rides</span>
         </div>
 
         {/* Total Completed Rides */}
@@ -56,8 +59,8 @@ export default function EarningsView({
           className="bg-[#091b6f] text-white p-8 rounded-3xl shadow-sm border border-blue-900/10 flex flex-col justify-between hover:shadow-md hover:scale-[1.02] hover:border-blue-700 transition-all duration-200 cursor-pointer text-left"
         >
           <p className="text-sky-200 font-bold text-xs uppercase tracking-wider">Total Completed Rides</p>
-          <p className="text-4xl font-extrabold mt-3 font-sans">1,250</p>
-          <span className="text-[11px] text-sky-200/60 font-semibold mt-6">Total platform transactions</span>
+          <p className="text-4xl font-extrabold mt-3 font-sans">{totalCompletedRides.toLocaleString()}</p>
+          <span className="text-[11px] text-sky-200/60 font-semibold mt-6">Total completed ride records</span>
         </div>
 
         {/* Total Commission Earned */}
@@ -66,8 +69,8 @@ export default function EarningsView({
           className="bg-[#091b6f] text-white p-8 rounded-3xl shadow-sm border border-blue-900/10 flex flex-col justify-between hover:shadow-md hover:scale-[1.02] hover:border-blue-700 transition-all duration-200 cursor-pointer text-left"
         >
           <p className="text-sky-200 font-bold text-xs uppercase tracking-wider">Total Commission Earned</p>
-          <p className="text-4xl font-extrabold mt-3 font-sans">₱ 10,000</p>
-          <span className="text-[11px] text-sky-200/60 font-semibold mt-6">15% TODA commission margin</span>
+          <p className="text-4xl font-extrabold mt-3 font-sans">₱ {totalCommission.toLocaleString()}</p>
+          <span className="text-[11px] text-sky-200/60 font-semibold mt-6">Platform fee records</span>
         </div>
       </div>
 

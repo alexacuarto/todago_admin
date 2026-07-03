@@ -1,5 +1,5 @@
 export interface Driver {
-  id: number;
+  id: number | string;
   name: string;
   toda: string;
   status: "Active" | "Inactive";
@@ -14,7 +14,7 @@ export interface Driver {
 }
 
 export interface Passenger {
-  id: number;
+  id: number | string;
   name: string;
   contact: string;
   canceledTrips: number;
@@ -24,7 +24,7 @@ export interface Passenger {
 }
 
 export interface RideRequest {
-  id: number;
+  id: number | string;
   passenger: string;
   driver: string;
   location: string;
@@ -36,7 +36,7 @@ export interface RideRequest {
 }
 
 export interface EarningsRecord {
-  id: number;
+  id: number | string;
   date: string;
   toda: string;
   completedRides: number;

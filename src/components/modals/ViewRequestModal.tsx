@@ -1,4 +1,3 @@
-import React from "react";
 import { RideRequest } from "../../data/mockData";
 
 interface ViewRequestModalProps {

@@ -20,6 +20,9 @@ interface UsersViewProps {
   setViewingUserType: (val: "driver" | "passenger" | null) => void;
   setShowViewUserModal: (val: boolean) => void;
   setActiveStatModal: (val: string | null) => void;
+  activePassengerCount: number;
+  activeDriverCount: number;
+  registeredPassengerCount: number;
 }
 
 export default function UsersView({
@@ -41,6 +44,9 @@ export default function UsersView({
   setViewingUserType,
   setShowViewUserModal,
   setActiveStatModal,
+  activePassengerCount,
+  activeDriverCount,
+  registeredPassengerCount,
 }: UsersViewProps) {
   const itemsPerPage = 5;
 
@@ -62,7 +68,7 @@ export default function UsersView({
             </div>
             <div>
               <p className="text-sky-200/80 font-bold text-xs uppercase tracking-wider">Active Passengers</p>
-              <p className="text-3xl font-extrabold mt-0.5">2,308</p>
+              <p className="text-3xl font-extrabold mt-0.5">{activePassengerCount.toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -81,7 +87,7 @@ export default function UsersView({
             </div>
             <div>
               <p className="text-sky-200/80 font-bold text-xs uppercase tracking-wider">Active Drivers</p>
-              <p className="text-3xl font-extrabold mt-0.5">1,856</p>
+              <p className="text-3xl font-extrabold mt-0.5">{activeDriverCount.toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -101,7 +107,7 @@ export default function UsersView({
             </div>
             <div>
               <p className="text-sky-200/80 font-bold text-xs uppercase tracking-wider">Registered Passengers</p>
-              <p className="text-3xl font-extrabold mt-0.5">452</p>
+              <p className="text-3xl font-extrabold mt-0.5">{registeredPassengerCount.toLocaleString()}</p>
             </div>
           </div>
         </div>

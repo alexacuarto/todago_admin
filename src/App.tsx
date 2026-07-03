@@ -1,4 +1,6 @@
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { getCurrentAdminProfile } from "./lib/authService";
+import { fetchAdminDashboardData, subscribeAdminOperationalData } from "./lib/adminDataService";
 import { createDriverAccount } from "./lib/driverService";
 
 // Mock Data & Types
@@ -7,11 +9,6 @@ import {
   Passenger,
   RideRequest,
   EarningsRecord,
-  initialDrivers,
-  initialPassengers,
-  initialRideRequests,
-  initialEarningsRecords,
-  chartData,
 } from "./data/mockData";
 
 // Layout components
@@ -37,7 +34,8 @@ import StatBreakdownModal from "./components/modals/StatBreakdownModal";
 
 export default function App() {
   // Authentication & Navigation State
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
@@ -58,11 +56,82 @@ export default function App() {
     avatarUrl: ""
   });
 
+  useEffect(() => {
+    let isMounted = true;
+
+    getCurrentAdminProfile()
+      .then((profile) => {
+        if (!isMounted) return;
+        if (profile) {
+          setAdminProfile(prev => ({
+            ...prev,
+            name: profile.full_name,
+            email: profile.email ?? prev.email,
+            status: profile.is_active ? "Active" : "Inactive",
+          }));
+          setIsLoggedIn(true);
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsCheckingSession(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   // Drivers, Passengers, Ride Requests, Earnings List States
-  const [drivers, setDrivers] = useState<Driver[]>(initialDrivers);
-  const [passengers, setPassengers] = useState<Passenger[]>(initialPassengers);
-  const [rideRequests, setRideRequests] = useState<RideRequest[]>(initialRideRequests);
-  const [earningsRecords] = useState<EarningsRecord[]>(initialEarningsRecords);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [passengers, setPassengers] = useState<Passenger[]>([]);
+  const [rideRequests, setRideRequests] = useState<RideRequest[]>([]);
+  const [earningsRecords, setEarningsRecords] = useState<EarningsRecord[]>([]);
+  const [isLoadingOperationalData, setIsLoadingOperationalData] = useState(false);
+  const [operationalDataError, setOperationalDataError] = useState("");
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    let isMounted = true;
+
+    const loadOperationalData = async () => {
+      setIsLoadingOperationalData(true);
+      setOperationalDataError("");
+      try {
+        const data = await fetchAdminDashboardData();
+        if (!isMounted) return;
+        setDrivers(data.drivers);
+        setPassengers(data.passengers);
+        setRideRequests(data.rideRequests);
+        setEarningsRecords(data.earningsRecords);
+      } catch (error) {
+        console.error("Unable to load Supabase operational data", error);
+        if (isMounted) {
+          const message =
+            error instanceof Error
+              ? error.message
+              : typeof error === "object" && error !== null && "message" in error
+                ? String((error as { message?: unknown }).message)
+                : String(error || "Unable to load Supabase operational data.");
+          setOperationalDataError(message);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingOperationalData(false);
+        }
+      }
+    };
+
+    loadOperationalData();
+    const channel = subscribeAdminOperationalData(loadOperationalData);
+
+    return () => {
+      isMounted = false;
+      channel.unsubscribe();
+    };
+  }, [isLoggedIn]);
 
   // Modal display states
   const [showEditDriverModal, setShowEditDriverModal] = useState(false);
@@ -137,22 +206,56 @@ export default function App() {
   // Calculated derived statistics
   const totalDriversCount = drivers.length;
   const activeDriversCount = drivers.filter(d => d.status === "Active").length;
+  const activePassengersCount = passengers.filter(p => p.status === "Active").length;
+  const registeredPassengersCount = passengers.length;
   const usersCount = passengers.length + drivers.length;
-  const tripsCount = rideRequests.length + 206;
+  const tripsCount = rideRequests.length;
 
   const earningsToday = useMemo(() => {
+    const today = new Date().toDateString();
     return rideRequests
-      .filter(r => r.status === "Completed")
-      .reduce((sum, r) => sum + r.fare, 50000);
+      .filter(r => r.status === "Completed" && new Date(r.time).toDateString() === today)
+      .reduce((sum, r) => sum + r.fare, 0);
   }, [rideRequests]);
 
   const earningsWeekly = useMemo(() => {
-    return 18200 + (earningsToday - 50000);
-  }, [earningsToday]);
+    const now = new Date();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+
+    return rideRequests
+      .filter(r => r.status === "Completed" && new Date(r.time) >= weekStart)
+      .reduce((sum, r) => sum + r.fare, 0);
+  }, [rideRequests]);
 
   const earningsMonthly = useMemo(() => {
-    return 72500 + (earningsToday - 50000);
-  }, [earningsToday]);
+    const now = new Date();
+    return rideRequests
+      .filter(r => {
+        const rideDate = new Date(r.time);
+        return r.status === "Completed" &&
+          rideDate.getMonth() === now.getMonth() &&
+          rideDate.getFullYear() === now.getFullYear();
+      })
+      .reduce((sum, r) => sum + r.fare, 0);
+  }, [rideRequests]);
+
+  const chartData = useMemo(() => {
+    const hours = [8, 9, 10, 11, 12, 13];
+    return hours.map(hour => {
+      const labelDate = new Date();
+      labelDate.setHours(hour, 0, 0, 0);
+      return {
+        label: labelDate.toLocaleTimeString([], { hour: "numeric" }),
+        val: rideRequests.filter(r => {
+          const rideDate = new Date(r.time);
+          return rideDate.toDateString() === new Date().toDateString() &&
+            rideDate.getHours() === hour;
+        }).length,
+      };
+    });
+  }, [rideRequests]);
 
   // Handlers
   const handleAddDriver = async (e: React.FormEvent) => {
@@ -178,23 +281,6 @@ export default function App() {
         alert(`Failed to create driver account: ${result.error}`);
         return;
       }
-
-      // Add to local state so it shows in the UI immediately
-      const newDriver: Driver = {
-        id: Date.now(),
-        name: formData.name,
-        toda: formData.toda,
-        status: "Active",
-        phone: formData.phone,
-        license: "PENDING",
-        bodyNumber: "T-" + Math.floor(1000 + Math.random() * 9000),
-        trips: 0,
-        joinedDate: new Date().toISOString().split("T")[0],
-        email: formData.email,
-        plateNumber: formData.plateNumber,
-        licenseImageName: formData.licenseImageName || "driver_license.pdf"
-      };
-      setDrivers(prev => [newDriver, ...prev]);
 
       setFormData({
         name: "",
@@ -241,7 +327,7 @@ export default function App() {
     setEditingDriver(null);
   };
 
-  const handleDeactivateToggle = (id: number) => {
+  const handleDeactivateToggle = (id: number | string) => {
     setDrivers(prev =>
       prev.map(d => {
         if (d.id === id) {
@@ -257,7 +343,7 @@ export default function App() {
     }
   };
 
-  const handleDeactivatePassengerToggle = (id: number) => {
+  const handleDeactivatePassengerToggle = (id: number | string) => {
     setPassengers(prev =>
       prev.map(p => {
         if (p.id === id) {
@@ -281,7 +367,7 @@ export default function App() {
     }
   };
 
-  const handleIncrementCanceledTrips = (id: number) => {
+  const handleIncrementCanceledTrips = (id: number | string) => {
     setPassengers(prev =>
       prev.map(p => {
         if (p.id === id) {
@@ -307,7 +393,7 @@ export default function App() {
     }
   };
 
-  const handleResetCanceledTrips = (id: number) => {
+  const handleResetCanceledTrips = (id: number | string) => {
     setPassengers(prev =>
       prev.map(p => {
         if (p.id === id) {
@@ -426,6 +512,14 @@ export default function App() {
   }, [earningsRecords, earningsTodaFilter, earningsDriverFilter]);
 
   // Login View render condition
+  if (isCheckingSession) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#f3f8fc] text-[#091b6f] font-bold">
+        Loading...
+      </div>
+    );
+  }
+
   if (!isLoggedIn) {
     return (
       <LoginView
@@ -465,6 +559,18 @@ export default function App() {
 
         {/* MAIN PANEL CONTENT VIEW */}
         <main className="flex-1 p-6 overflow-y-auto z-0 relative">
+          {isLoadingOperationalData && (
+            <div className="mb-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-[#091b6f]">
+              Loading Supabase operational data...
+            </div>
+          )}
+
+          {operationalDataError && (
+            <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+              Supabase data load failed: {operationalDataError}
+            </div>
+          )}
+
           {activeTab === "dashboard" && (
             <DashboardView
               rideRequests={rideRequests}
@@ -546,6 +652,9 @@ export default function App() {
               setViewingUserType={setViewingUserType}
               setShowViewUserModal={setShowViewUserModal}
               setActiveStatModal={setActiveStatModal}
+              activePassengerCount={activePassengersCount}
+              activeDriverCount={activeDriversCount}
+              registeredPassengerCount={registeredPassengersCount}
             />
           )}
 

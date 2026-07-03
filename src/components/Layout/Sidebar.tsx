@@ -1,5 +1,3 @@
-import React from "react";
-
 interface SidebarProps {
   activeTab: "dashboard" | "ride-requests" | "earnings" | "users" | "profile" | "create-driver";
   setActiveTab: (tab: "dashboard" | "ride-requests" | "earnings" | "users" | "profile" | "create-driver") => void;
@@ -14,7 +12,6 @@ export default function Sidebar({
   setActiveTab,
   mobileMenuOpen,
   setMobileMenuOpen,
-  usersSubTab,
   setUsersSubTab,
 }: SidebarProps) {
   return (

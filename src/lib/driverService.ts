@@ -1,3 +1,6 @@
+import { supabase } from "./supabase";
+import { FunctionsHttpError, FunctionsRelayError, FunctionsFetchError } from "@supabase/supabase-js";
+
 export interface CreateDriverParams {
   fullName: string;
   email: string;
@@ -14,8 +17,8 @@ export interface CreateDriverResult {
 }
 
 /**
- * Local mock driver creation (no backend required).
- * Validates basic uniqueness against in-memory state is handled by the caller.
+ * Creates a driver through a Supabase Edge Function.
+ * The service role key must stay in the Edge Function, never in React.
  */
 export async function createDriverAccount(
   params: CreateDriverParams
@@ -26,8 +29,27 @@ export async function createDriverAccount(
     return { success: false, error: 'Please fill in all required fields.' };
   }
 
-  // Simulate a short async delay as if saving
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  const { data, error } = await supabase.functions.invoke("create-driver-account", {
+    body: params,
+  });
+
+  if (error) {
+    if (error instanceof FunctionsHttpError) {
+      const errorBody = await error.context.json().catch(() => null);
+      return {
+        success: false,
+        error: errorBody?.error ?? errorBody?.message ?? error.message,
+      };
+    }
+    if (error instanceof FunctionsRelayError || error instanceof FunctionsFetchError) {
+      return { success: false, error: error.message };
+    }
+    return { success: false, error: error.message };
+  }
+
+  if (data?.success === false) {
+    return { success: false, error: data.error ?? "Driver account creation failed." };
+  }
 
   return { success: true, driverName: fullName };
 }

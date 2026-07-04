@@ -1,5 +1,4 @@
-import React from "react";
-import { EarningsRecord } from "../../data/mockData";
+import { EarningsRecord } from "../../types";
 
 interface ViewEarningsModalProps {
   isOpen: boolean;

@@ -1,5 +1,5 @@
 import React from "react";
-import { Driver, Passenger } from "../../data/mockData";
+import { Driver, Passenger } from "../../types";
 
 interface UsersViewProps {
   filteredDrivers: Driver[];

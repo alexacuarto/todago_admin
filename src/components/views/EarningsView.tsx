@@ -1,5 +1,5 @@
 import React from "react";
-import { Driver, EarningsRecord } from "../../data/mockData";
+import { Driver, EarningsRecord } from "../../types";
 
 interface EarningsViewProps {
   drivers: Driver[];

@@ -1,5 +1,4 @@
-import React from "react";
-import { Driver, RideRequest } from "../../data/mockData";
+import { Driver, RideRequest } from "../../types";
 
 interface DashboardViewProps {
   rideRequests: RideRequest[];
@@ -10,7 +9,6 @@ interface DashboardViewProps {
   tripsCount: number;
   earningsToday: number;
   earningsWeekly: number;
-  earningsMonthly: number;
   chartData: { label: string; val: number }[];
   hoveredBarIndex: number | null;
   setHoveredBarIndex: (idx: number | null) => void;
@@ -21,7 +19,7 @@ interface DashboardViewProps {
   setShowEditDriverModal: (show: boolean) => void;
   setEditingDriver: (driver: Driver | null) => void;
   setEditFormData: (formData: any) => void;
-  handleDeactivateToggle: (id: number) => void;
+  handleDeactivateToggle: (id: string) => void;
   setActiveStatModal: (modal: string | null) => void;
 }
 
@@ -34,7 +32,6 @@ export default function DashboardView({
   tripsCount,
   earningsToday,
   earningsWeekly,
-  earningsMonthly,
   chartData,
   hoveredBarIndex,
   setHoveredBarIndex,

@@ -1,5 +1,4 @@
-import React from "react";
-import { Driver, Passenger, RideRequest } from "../../data/mockData";
+import { Driver, Passenger, RideRequest } from "../../types";
 
 interface StatBreakdownModalProps {
   isOpen: boolean;

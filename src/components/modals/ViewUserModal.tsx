@@ -1,15 +1,14 @@
-import React from "react";
-import { Driver, Passenger } from "../../data/mockData";
+import { Driver, Passenger } from "../../types";
 
 interface ViewUserModalProps {
   isOpen: boolean;
   onClose: () => void;
   viewingUser: any;
   viewingUserType: "driver" | "passenger" | null;
-  onDeactivateDriverToggle: (id: number) => void;
-  onDeactivatePassengerToggle: (id: number) => void;
-  onIncrementCanceledTrips: (id: number) => void;
-  onResetCanceledTrips: (id: number) => void;
+  onDeactivateDriverToggle: (id: string) => void;
+  onDeactivatePassengerToggle: (id: string) => void;
+  onIncrementCanceledTrips: (id: string) => void;
+  onResetCanceledTrips: (id: string) => void;
 }
 
 export default function ViewUserModal({

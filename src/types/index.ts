@@ -9,6 +9,7 @@ export interface Driver {
   name: string;
   toda: string;
   status: "Active" | "Inactive";
+  isVerified: boolean;
   phone: string;
   license: string;
   bodyNumber: string;
@@ -35,6 +36,10 @@ export interface RideRequest {
   driver: string;
   location: string;
   destination: string;
+  pickupLatitude: number | null;
+  pickupLongitude: number | null;
+  dropoffLatitude: number | null;
+  dropoffLongitude: number | null;
   status: "Pending" | "In Transit" | "Scheduled" | "Completed" | "Cancelled";
   fare: number;
   time: string;

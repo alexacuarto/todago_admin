@@ -414,6 +414,7 @@ export default function DashboardView({
                                 status: d.status,
                                 email: d.email || "",
                                 plateNumber: d.plateNumber || "",
+                                isVerified: d.isVerified,
                               });
                               setShowEditDriverModal(true);
                             }}

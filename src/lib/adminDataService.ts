@@ -17,6 +17,7 @@ type DriverRow = {
   tricycle_body_number: string | null;
   plate_number: string | null;
   status: "offline" | "online" | "busy" | "suspended";
+  is_verified: boolean;
   created_at: string;
 };
 
@@ -31,7 +32,11 @@ type RideRow = {
   passenger_id: string;
   driver_id: string | null;
   pickup_address: string;
+  pickup_latitude: number | null;
+  pickup_longitude: number | null;
   dropoff_address: string | null;
+  dropoff_latitude: number | null;
+  dropoff_longitude: number | null;
   status: string;
   fare_amount: number;
   requested_at: string;
@@ -74,13 +79,13 @@ export async function fetchAdminDashboardData() {
       .select("id, full_name, phone, email, role, is_active"),
     supabase
       .from("drivers")
-      .select("id, user_id, license_number, tricycle_body_number, plate_number, status, created_at"),
+      .select("id, user_id, license_number, tricycle_body_number, plate_number, status, is_verified, created_at"),
     supabase
       .from("passengers")
       .select("id, user_id, created_at"),
     supabase
       .from("rides")
-      .select("id, passenger_id, driver_id, pickup_address, dropoff_address, status, fare_amount, requested_at"),
+      .select("id, passenger_id, driver_id, pickup_address, pickup_latitude, pickup_longitude, dropoff_address, dropoff_latitude, dropoff_longitude, status, fare_amount, requested_at"),
     supabase
       .from("driver_earnings")
       .select("id, driver_id, ride_id, created_at, gross_fare"),
@@ -110,6 +115,7 @@ export async function fetchAdminDashboardData() {
       name: profile?.full_name ?? "Driver",
       toda: row.tricycle_body_number ?? "Unassigned",
       status: profile?.is_active === false || row.status === "suspended" ? "Inactive" : "Active",
+      isVerified: row.is_verified === true,
       phone: profile?.phone ?? "",
       license: row.license_number ?? "PENDING",
       bodyNumber: row.tricycle_body_number ?? "-",
@@ -146,6 +152,10 @@ export async function fetchAdminDashboardData() {
       driver: driverProfile?.full_name ?? "-",
       location: row.pickup_address ?? "",
       destination: row.dropoff_address ?? "",
+      pickupLatitude: row.pickup_latitude == null ? null : Number(row.pickup_latitude),
+      pickupLongitude: row.pickup_longitude == null ? null : Number(row.pickup_longitude),
+      dropoffLatitude: row.dropoff_latitude == null ? null : Number(row.dropoff_latitude),
+      dropoffLongitude: row.dropoff_longitude == null ? null : Number(row.dropoff_longitude),
       status: statusToAdmin(row.status),
       fare: Number(row.fare_amount ?? 0),
       time: row.requested_at ? new Date(row.requested_at).toLocaleString() : "",
@@ -171,12 +181,78 @@ export async function fetchAdminDashboardData() {
   return { drivers, passengers, rideRequests, earningsRecords };
 }
 
+export async function updateDriverVerification(
+  driverId: string | number,
+  isVerified: boolean,
+) {
+  const { error } = await supabase
+    .from("drivers")
+    .update({ is_verified: isVerified })
+    .eq("id", driverId);
+
+  assertNoError("update driver verification", error);
+}
+
+export async function updateDriverAccount(
+  driver: Driver,
+  updates: {
+    name: string;
+    phone: string;
+    license: string;
+    bodyNumber: string;
+    toda: string;
+    status: "Active" | "Inactive";
+    email: string;
+    plateNumber: string;
+    isVerified: boolean;
+  },
+) {
+  const driverId = String(driver.id);
+
+  const { data: driverRow, error: driverReadError } = await supabase
+    .from("drivers")
+    .select("user_id")
+    .eq("id", driverId)
+    .single();
+
+  assertNoError("read driver account", driverReadError);
+
+  const userId = (driverRow as { user_id: string }).user_id;
+
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .update({
+      full_name: updates.name,
+      phone: updates.phone,
+      email: updates.email || null,
+      is_active: updates.status === "Active",
+    })
+    .eq("id", userId);
+
+  assertNoError("update driver profile", profileError);
+
+  const { error: driverError } = await supabase
+    .from("drivers")
+    .update({
+      license_number: updates.license,
+      tricycle_body_number: updates.toda || updates.bodyNumber || null,
+      plate_number: updates.plateNumber || null,
+      status: updates.status === "Inactive" ? "suspended" : "offline",
+      is_verified: updates.isVerified,
+    })
+    .eq("id", driverId);
+
+  assertNoError("update driver record", driverError);
+}
+
 export function subscribeAdminOperationalData(onChange: () => void) {
   return supabase
     .channel("admin-operational-data")
     .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, onChange)
     .on("postgres_changes", { event: "*", schema: "public", table: "passengers" }, onChange)
     .on("postgres_changes", { event: "*", schema: "public", table: "rides" }, onChange)
+    .on("postgres_changes", { event: "*", schema: "public", table: "ride_location_logs" }, onChange)
+    .on("postgres_changes", { event: "*", schema: "public", table: "driver_locations" }, onChange)
     .on("postgres_changes", { event: "*", schema: "public", table: "drivers" }, onChange)
     .on("postgres_changes", { event: "*", schema: "public", table: "driver_earnings" }, onChange)
     .on("postgres_changes", { event: "*", schema: "public", table: "ride_ratings" }, onChange)

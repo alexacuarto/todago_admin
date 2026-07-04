@@ -6,6 +6,7 @@ interface ViewUserModalProps {
   viewingUser: any;
   viewingUserType: "driver" | "passenger" | null;
   onDeactivateDriverToggle: (id: number | string) => void;
+  onDriverVerificationToggle: (id: number | string) => void;
   onDeactivatePassengerToggle: (id: number | string) => void;
   onIncrementCanceledTrips: (id: number | string) => void;
   onResetCanceledTrips: (id: number | string) => void;
@@ -17,6 +18,7 @@ export default function ViewUserModal({
   viewingUser,
   viewingUserType,
   onDeactivateDriverToggle,
+  onDriverVerificationToggle,
   onDeactivatePassengerToggle,
   onIncrementCanceledTrips,
   onResetCanceledTrips,
@@ -77,6 +79,18 @@ export default function ViewUserModal({
               <div>
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">License Number</p>
                 <p className="font-bold text-slate-700 mt-0.5 font-mono">{(viewingUser as Driver).license}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Verification</p>
+                <span
+                  className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-extrabold border ${
+                    (viewingUser as Driver).isVerified
+                      ? "bg-blue-50 text-blue-600 border-blue-100"
+                      : "bg-amber-50 text-amber-600 border-amber-100"
+                  }`}
+                >
+                  {(viewingUser as Driver).isVerified ? "Verified" : "Unverified"}
+                </span>
               </div>
               <div>
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Tricycle Body Number</p>
@@ -141,14 +155,26 @@ export default function ViewUserModal({
             <div className="flex flex-wrap gap-2">
               {/* Status Toggle (Deactivate / Activate) */}
               {viewingUserType === "driver" ? (
-                <button
-                  onClick={() => onDeactivateDriverToggle(viewingUser.id)}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs ${
-                    viewingUser.status === "Active" ? "bg-rose-50 text-rose-600 hover:bg-rose-100" : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
-                  }`}
-                >
-                  {viewingUser.status === "Active" ? "Deactivate Driver" : "Activate Driver"}
-                </button>
+                <>
+                  <button
+                    onClick={() => onDriverVerificationToggle(viewingUser.id)}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs ${
+                      (viewingUser as Driver).isVerified
+                        ? "bg-amber-50 text-amber-600 hover:bg-amber-100"
+                        : "bg-blue-50 text-blue-600 hover:bg-blue-100"
+                    }`}
+                  >
+                    {(viewingUser as Driver).isVerified ? "Unverify Driver" : "Verify Driver"}
+                  </button>
+                  <button
+                    onClick={() => onDeactivateDriverToggle(viewingUser.id)}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs ${
+                      viewingUser.status === "Active" ? "bg-rose-50 text-rose-600 hover:bg-rose-100" : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                    }`}
+                  >
+                    {viewingUser.status === "Active" ? "Deactivate Driver" : "Activate Driver"}
+                  </button>
+                </>
               ) : (
                 <div className="flex gap-2 items-center flex-wrap">
                   <button

@@ -242,6 +242,7 @@ export default function UsersView({
                   <th className="pb-3">TODA</th>
                   <th className="pb-3">License</th>
                   <th className="pb-3">Status</th>
+                  <th className="pb-3">Verification</th>
                   <th className="pb-3 text-center pr-3">Actions</th>
                 </tr>
               </thead>
@@ -267,6 +268,17 @@ export default function UsersView({
                           {d.status}
                         </span>
                       </td>
+                      <td className="py-4 text-left">
+                        <span
+                          className={`inline-block px-3 py-0.5 rounded-full text-[10px] font-bold ${
+                            d.isVerified
+                              ? "bg-blue-50 text-blue-600 border border-blue-100"
+                              : "bg-amber-50 text-amber-600 border border-amber-100"
+                          }`}
+                        >
+                          {d.isVerified ? "Verified" : "Unverified"}
+                        </span>
+                      </td>
                       <td className="py-4 text-center pr-3">
                         <button
                           onClick={() => {
@@ -283,7 +295,7 @@ export default function UsersView({
                   ))}
                 {filteredDrivers.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="py-12 text-center text-slate-400 font-medium">
+                    <td colSpan={6} className="py-12 text-center text-slate-400 font-medium">
                       No drivers registered matching your search query.
                     </td>
                   </tr>

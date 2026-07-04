@@ -105,6 +105,21 @@ export default function EditDriverModal({
             </select>
           </div>
 
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Driver Verification</label>
+            <select
+              value={editFormData.isVerified ? "Verified" : "Unverified"}
+              onChange={(e) => setEditFormData((prev: any) => ({ ...prev, isVerified: e.target.value === "Verified" }))}
+              className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold bg-white outline-hidden focus:border-blue-500 transition-all cursor-pointer text-[#091b6f]"
+            >
+              <option value="Verified">Verified</option>
+              <option value="Unverified">Unverified</option>
+            </select>
+            <p className="text-[11px] text-slate-400 font-semibold">
+              Only verified drivers can accept passenger ride requests.
+            </p>
+          </div>
+
           <div className="flex items-center justify-end gap-3 mt-5 pt-5 border-t border-slate-100">
             <button
               type="button"

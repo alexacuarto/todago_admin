@@ -48,6 +48,22 @@ export default function ViewRequestModal({
               <p className="font-bold text-slate-700 mt-0.5">{viewingRequest.destination || "N/A"}</p>
             </div>
             <div>
+              <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Pickup Coordinates</p>
+              <p className="font-bold text-slate-700 mt-0.5">
+                {viewingRequest.pickupLatitude && viewingRequest.pickupLongitude
+                  ? `${viewingRequest.pickupLatitude.toFixed(5)}, ${viewingRequest.pickupLongitude.toFixed(5)}`
+                  : "N/A"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Drop-off Coordinates</p>
+              <p className="font-bold text-slate-700 mt-0.5">
+                {viewingRequest.dropoffLatitude && viewingRequest.dropoffLongitude
+                  ? `${viewingRequest.dropoffLatitude.toFixed(5)}, ${viewingRequest.dropoffLongitude.toFixed(5)}`
+                  : "N/A"}
+              </p>
+            </div>
+            <div>
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Fare Value</p>
               <p className="font-extrabold text-[#091b6f] text-lg mt-0.5">₱{viewingRequest.fare}</p>
             </div>

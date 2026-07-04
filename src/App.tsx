@@ -1,6 +1,11 @@
 import { useEffect, useState, useMemo } from "react";
 import { getCurrentAdminProfile } from "./lib/authService";
-import { fetchAdminDashboardData, subscribeAdminOperationalData } from "./lib/adminDataService";
+import {
+  fetchAdminDashboardData,
+  subscribeAdminOperationalData,
+  updateDriverAccount,
+  updateDriverVerification,
+} from "./lib/adminDataService";
 import { createDriverAccount } from "./lib/driverService";
 
 // Types
@@ -169,7 +174,8 @@ export default function App() {
     toda: "",
     status: "Active" as "Active" | "Inactive",
     email: "",
-    plateNumber: ""
+    plateNumber: "",
+    isVerified: false
   });
 
   const [newRequestData, setNewRequestData] = useState({
@@ -303,28 +309,52 @@ export default function App() {
     }
   };
 
-  const handleEditDriver = (e: React.FormEvent) => {
+  const handleEditDriver = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingDriver) return;
-    setDrivers(prev =>
-      prev.map(d =>
-        d.id === editingDriver.id
-          ? {
-              ...d,
-              name: editFormData.name,
-              phone: editFormData.phone,
-              license: editFormData.license,
-              bodyNumber: editFormData.bodyNumber,
-              toda: editFormData.toda,
-              status: editFormData.status,
-              email: editFormData.email,
-              plateNumber: editFormData.plateNumber
-            }
-          : d
-      )
-    );
-    setShowEditDriverModal(false);
-    setEditingDriver(null);
+    try {
+      await updateDriverAccount(editingDriver, editFormData);
+      setDrivers(prev =>
+        prev.map(d =>
+          d.id === editingDriver.id
+            ? {
+                ...d,
+                name: editFormData.name,
+                phone: editFormData.phone,
+                license: editFormData.license,
+                bodyNumber: editFormData.bodyNumber,
+                toda: editFormData.toda,
+                status: editFormData.status,
+                email: editFormData.email,
+                plateNumber: editFormData.plateNumber,
+                isVerified: editFormData.isVerified
+              }
+            : d
+        )
+      );
+      setShowEditDriverModal(false);
+      setEditingDriver(null);
+    } catch (error) {
+      alert(`Unable to update driver account: ${error instanceof Error ? error.message : error}`);
+    }
+  };
+
+  const handleDriverVerificationToggle = async (id: number | string) => {
+    const driver = drivers.find(d => d.id === id);
+    if (!driver) return;
+    const nextIsVerified = !driver.isVerified;
+
+    try {
+      await updateDriverVerification(id, nextIsVerified);
+      setDrivers(prev =>
+        prev.map(d => d.id === id ? { ...d, isVerified: nextIsVerified } : d)
+      );
+      if (viewingUser && viewingUser.id === id && viewingUserType === "driver") {
+        setViewingUser(prev => prev ? { ...prev, isVerified: nextIsVerified } as Driver : null);
+      }
+    } catch (error) {
+      alert(`Unable to update driver verification: ${error instanceof Error ? error.message : error}`);
+    }
   };
 
   const handleDeactivateToggle = (id: number | string) => {
@@ -427,6 +457,10 @@ export default function App() {
       driver: assignedDriverName,
       location: newRequestData.location,
       destination: newRequestData.destination,
+      pickupLatitude: null,
+      pickupLongitude: null,
+      dropoffLatitude: null,
+      dropoffLongitude: null,
       status: newRequestData.status,
       fare: Number(newRequestData.fare),
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -723,6 +757,7 @@ export default function App() {
         viewingUser={viewingUser}
         viewingUserType={viewingUserType}
         onDeactivateDriverToggle={handleDeactivateToggle}
+        onDriverVerificationToggle={handleDriverVerificationToggle}
         onDeactivatePassengerToggle={handleDeactivatePassengerToggle}
         onIncrementCanceledTrips={handleIncrementCanceledTrips}
         onResetCanceledTrips={handleResetCanceledTrips}

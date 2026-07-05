@@ -19,6 +19,12 @@ interface UsersViewProps {
   setViewingUser: (val: Driver | Passenger | null) => void;
   setViewingUserType: (val: "driver" | "passenger" | null) => void;
   setShowViewUserModal: (val: boolean) => void;
+  setEditingDriver: (driver: Driver | null) => void;
+  setEditFormData: (formData: any) => void;
+  setShowEditDriverModal: (val: boolean) => void;
+  setEditingPassenger: (passenger: Passenger | null) => void;
+  setPassengerEditFormData: (formData: any) => void;
+  setShowEditPassengerModal: (val: boolean) => void;
   setActiveStatModal: (val: string | null) => void;
   activePassengerCount: number;
   activeDriverCount: number;
@@ -43,6 +49,12 @@ export default function UsersView({
   setViewingUser,
   setViewingUserType,
   setShowViewUserModal,
+  setEditingDriver,
+  setEditFormData,
+  setShowEditDriverModal,
+  setEditingPassenger,
+  setPassengerEditFormData,
+  setShowEditPassengerModal,
   setActiveStatModal,
   activePassengerCount,
   activeDriverCount,
@@ -280,16 +292,41 @@ export default function UsersView({
                         </span>
                       </td>
                       <td className="py-4 text-center pr-3">
-                        <button
-                          onClick={() => {
-                            setViewingUser(d);
-                            setViewingUserType("driver");
-                            setShowViewUserModal(true);
-                          }}
-                          className="px-4 py-1.5 bg-[#4c75f2] hover:bg-blue-600 text-white rounded-lg text-xs font-bold shadow-xs hover:shadow-sm transition-all cursor-pointer"
-                        >
-                          View
-                        </button>
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => {
+                              setViewingUser(d);
+                              setViewingUserType("driver");
+                              setShowViewUserModal(true);
+                            }}
+                            className="px-4 py-1.5 bg-[#4c75f2] hover:bg-blue-600 text-white rounded-lg text-xs font-bold shadow-xs hover:shadow-sm transition-all cursor-pointer"
+                          >
+                            View
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingDriver(d);
+                              setEditFormData({
+                                name: d.name,
+                                phone: d.phone,
+                                license: d.license,
+                                bodyNumber: d.bodyNumber,
+                                toda: d.toda,
+                                status: d.status,
+                                email: d.email || "",
+                                password: "",
+                                plateNumber: d.plateNumber || "",
+                                isVerified: d.isVerified,
+                                licenseImage: null,
+                                licenseImageName: d.licenseImageName || "",
+                              });
+                              setShowEditDriverModal(true);
+                            }}
+                            className="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-[#091b6f] rounded-lg text-xs font-bold shadow-xs hover:shadow-sm transition-all cursor-pointer"
+                          >
+                            Edit
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -394,16 +431,34 @@ export default function UsersView({
                         </span>
                       </td>
                       <td className="py-4 text-center pr-3">
-                        <button
-                          onClick={() => {
-                            setViewingUser(p);
-                            setViewingUserType("passenger");
-                            setShowViewUserModal(true);
-                          }}
-                          className="px-4 py-1.5 bg-[#4c75f2] hover:bg-blue-600 text-white rounded-lg text-xs font-bold shadow-xs hover:shadow-sm transition-all cursor-pointer"
-                        >
-                          View
-                        </button>
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => {
+                              setViewingUser(p);
+                              setViewingUserType("passenger");
+                              setShowViewUserModal(true);
+                            }}
+                            className="px-4 py-1.5 bg-[#4c75f2] hover:bg-blue-600 text-white rounded-lg text-xs font-bold shadow-xs hover:shadow-sm transition-all cursor-pointer"
+                          >
+                            View
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingPassenger(p);
+                              setPassengerEditFormData({
+                                name: p.name,
+                                contact: p.contact,
+                                email: p.email || "",
+                                status: p.status,
+                                password: "",
+                              });
+                              setShowEditPassengerModal(true);
+                            }}
+                            className="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-[#091b6f] rounded-lg text-xs font-bold shadow-xs hover:shadow-sm transition-all cursor-pointer"
+                          >
+                            Edit
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

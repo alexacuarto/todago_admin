@@ -413,6 +413,7 @@ export default function DashboardView({
                                 toda: d.toda,
                                 status: d.status,
                                 email: d.email || "",
+                                password: "",
                                 plateNumber: d.plateNumber || "",
                                 isVerified: d.isVerified,
                                 licenseImage: null,

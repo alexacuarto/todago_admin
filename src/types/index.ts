@@ -26,6 +26,7 @@ export interface Passenger {
   id: number | string;
   name: string;
   contact: string;
+  email: string;
   canceledTrips: number;
   status: "Active" | "Inactive";
   joinedDate: string;

@@ -154,6 +154,7 @@ export async function fetchAdminDashboardData() {
       id: row.id,
       name: profile?.full_name ?? "Passenger",
       contact: profile?.phone ?? "",
+      email: profile?.email ?? "",
       canceledTrips: passengerRides.filter((ride) => ride.status === "cancelled").length,
       status: profile?.is_active === false ? "Inactive" : "Active",
       joinedDate: row.created_at?.split("T")[0] ?? "",
@@ -215,6 +216,37 @@ export async function updateDriverVerification(
   assertNoError("update driver verification", error);
 }
 
+export async function updateDriverActiveStatus(
+  driver: Driver,
+  status: "Active" | "Inactive",
+) {
+  const driverId = String(driver.id);
+
+  const { data: driverRow, error: driverReadError } = await supabase
+    .from("drivers")
+    .select("user_id")
+    .eq("id", driverId)
+    .single();
+
+  assertNoError("read driver account", driverReadError);
+
+  const userId = (driverRow as { user_id: string }).user_id;
+
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .update({ is_active: status === "Active" })
+    .eq("id", userId);
+
+  assertNoError("update driver active status", profileError);
+
+  const { error: driverError } = await supabase
+    .from("drivers")
+    .update({ status: status === "Inactive" ? "suspended" : "offline" })
+    .eq("id", driverId);
+
+  assertNoError("update driver availability status", driverError);
+}
+
 export async function updateDriverAccount(
   driver: Driver,
   updates: {
@@ -225,6 +257,7 @@ export async function updateDriverAccount(
     toda: string;
     status: "Active" | "Inactive";
     email: string;
+    password?: string;
     plateNumber: string;
     isVerified: boolean;
   },
@@ -240,6 +273,11 @@ export async function updateDriverAccount(
   assertNoError("read driver account", driverReadError);
 
   const userId = (driverRow as { user_id: string }).user_id;
+
+  await updateAuthAccount(userId, {
+    email: updates.email.trim() !== (driver.email ?? "").trim() ? updates.email : undefined,
+    password: updates.password,
+  });
 
   const { error: profileError } = await supabase
     .from("profiles")
@@ -265,6 +303,92 @@ export async function updateDriverAccount(
     .eq("id", driverId);
 
   assertNoError("update driver record", driverError);
+}
+
+export async function updatePassengerAccount(
+  passenger: Passenger,
+  updates: {
+    name: string;
+    contact: string;
+    email: string;
+    status: "Active" | "Inactive";
+    password?: string;
+  },
+) {
+  const passengerId = String(passenger.id);
+
+  const { data: passengerRow, error: passengerReadError } = await supabase
+    .from("passengers")
+    .select("user_id")
+    .eq("id", passengerId)
+    .single();
+
+  assertNoError("read passenger account", passengerReadError);
+
+  const userId = (passengerRow as { user_id: string }).user_id;
+
+  await updateAuthAccount(userId, {
+    email: updates.email.trim() !== (passenger.email ?? "").trim() ? updates.email : undefined,
+    password: updates.password,
+  });
+
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .update({
+      full_name: updates.name,
+      phone: updates.contact,
+      email: updates.email || null,
+      is_active: updates.status === "Active",
+    })
+    .eq("id", userId);
+
+  assertNoError("update passenger profile", profileError);
+}
+
+export async function updatePassengerActiveStatus(
+  passenger: Passenger,
+  status: "Active" | "Inactive",
+) {
+  const passengerId = String(passenger.id);
+
+  const { data: passengerRow, error: passengerReadError } = await supabase
+    .from("passengers")
+    .select("user_id")
+    .eq("id", passengerId)
+    .single();
+
+  assertNoError("read passenger account", passengerReadError);
+
+  const userId = (passengerRow as { user_id: string }).user_id;
+
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .update({ is_active: status === "Active" })
+    .eq("id", userId);
+
+  assertNoError("update passenger active status", profileError);
+}
+
+async function updateAuthAccount(
+  userId: string,
+  updates: { email?: string; password?: string },
+) {
+  const email = updates.email?.trim();
+  const password = updates.password?.trim();
+  if (!email && !password) return;
+
+  const { data, error } = await supabase.functions.invoke("admin-update-auth-user", {
+    body: {
+      userId,
+      email: email || undefined,
+      password: password || undefined,
+    },
+  });
+
+  assertNoError("update auth account", error);
+  if (data && data.success === false) {
+    throw new Error(data.error || "update auth account failed");
+  }
 }
 
 export async function uploadDriverLicenseImage(

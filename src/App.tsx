@@ -5,8 +5,11 @@ import {
   fetchFareSettings,
   subscribeAdminOperationalData,
   updateDriverAccount,
+  updateDriverActiveStatus,
   updateDriverVerification,
   updateFareSetting,
+  updatePassengerAccount,
+  updatePassengerActiveStatus,
   uploadDriverLicenseImage,
 } from "./lib/adminDataService";
 import { createDriverAccount } from "./lib/driverService";
@@ -43,6 +46,7 @@ import FareSettingsView from "./components/views/FareSettingsView";
 
 // Modals
 import EditDriverModal from "./components/modals/EditDriverModal";
+import EditPassengerModal from "./components/modals/EditPassengerModal";
 import AddRequestModal from "./components/modals/AddRequestModal";
 import ViewRequestModal from "./components/modals/ViewRequestModal";
 import ViewUserModal from "./components/modals/ViewUserModal";
@@ -199,6 +203,7 @@ export default function App() {
 
   // Modal display states
   const [showEditDriverModal, setShowEditDriverModal] = useState(false);
+  const [showEditPassengerModal, setShowEditPassengerModal] = useState(false);
   const [showAddRequestModal, setShowAddRequestModal] = useState(false);
   const [showViewRequestModal, setShowViewRequestModal] = useState(false);
   const [showViewUserModal, setShowViewUserModal] = useState(false);
@@ -207,6 +212,7 @@ export default function App() {
 
   // Selected item states
   const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
+  const [editingPassenger, setEditingPassenger] = useState<Passenger | null>(null);
   const [viewingRequest, setViewingRequest] = useState<RideRequest | null>(null);
   const [viewingUser, setViewingUser] = useState<Driver | Passenger | null>(null);
   const [viewingUserType, setViewingUserType] = useState<"driver" | "passenger" | null>(null);
@@ -233,10 +239,19 @@ export default function App() {
     toda: "",
     status: "Active" as "Active" | "Inactive",
     email: "",
+    password: "",
     plateNumber: "",
     isVerified: false,
     licenseImage: null as File | null,
     licenseImageName: ""
+  });
+
+  const [passengerEditFormData, setPassengerEditFormData] = useState({
+    name: "",
+    contact: "",
+    email: "",
+    status: "Active" as "Active" | "Inactive",
+    password: "",
   });
 
   const [newRequestData, setNewRequestData] = useState({
@@ -414,8 +429,48 @@ export default function App() {
       );
       setShowEditDriverModal(false);
       setEditingDriver(null);
+      setEditFormData(prev => ({ ...prev, password: "" }));
     } catch (error) {
       alert(`Unable to update driver account: ${error instanceof Error ? error.message : error}`);
+    }
+  };
+
+  const handleEditPassenger = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPassenger) return;
+    try {
+      await updatePassengerAccount(editingPassenger, passengerEditFormData);
+      setPassengers(prev =>
+        prev.map(p =>
+          p.id === editingPassenger.id
+            ? {
+                ...p,
+                name: passengerEditFormData.name,
+                contact: passengerEditFormData.contact,
+                email: passengerEditFormData.email,
+                status: passengerEditFormData.status,
+              }
+            : p
+        )
+      );
+      if (viewingUser?.id === editingPassenger.id && viewingUserType === "passenger") {
+        setViewingUser(prev =>
+          prev
+            ? {
+                ...prev,
+                name: passengerEditFormData.name,
+                contact: passengerEditFormData.contact,
+                email: passengerEditFormData.email,
+                status: passengerEditFormData.status,
+              } as Passenger
+            : null
+        );
+      }
+      setShowEditPassengerModal(false);
+      setEditingPassenger(null);
+      setPassengerEditFormData(prev => ({ ...prev, password: "" }));
+    } catch (error) {
+      alert(`Unable to update passenger account: ${error instanceof Error ? error.message : error}`);
     }
   };
 
@@ -471,43 +526,45 @@ export default function App() {
     }
   };
 
-  const handleDeactivateToggle = (id: number | string) => {
-    setDrivers(prev =>
-      prev.map(d => {
-        if (d.id === id) {
-          const nextStatus = d.status === "Active" ? "Inactive" : "Active";
-          return { ...d, status: nextStatus };
-        }
-        return d;
-      })
-    );
-    // Sync view modal if active
-    if (viewingUser && viewingUser.id === id && viewingUserType === "driver") {
-      setViewingUser(prev => prev ? { ...prev, status: prev.status === "Active" ? "Inactive" : "Active" } : null);
+  const handleDeactivateToggle = async (id: number | string) => {
+    const driver = drivers.find(d => d.id === id);
+    if (!driver) return;
+    const nextStatus = driver.status === "Active" ? "Inactive" : "Active";
+
+    try {
+      await updateDriverActiveStatus(driver, nextStatus);
+      setDrivers(prev =>
+        prev.map(d => d.id === id ? { ...d, status: nextStatus } : d)
+      );
+      if (viewingUser && viewingUser.id === id && viewingUserType === "driver") {
+        setViewingUser(prev => prev ? { ...prev, status: nextStatus } : null);
+      }
+    } catch (error) {
+      alert(`Unable to update driver status: ${error instanceof Error ? error.message : error}`);
     }
   };
 
-  const handleDeactivatePassengerToggle = (id: number | string) => {
-    setPassengers(prev =>
-      prev.map(p => {
-        if (p.id === id) {
-          if (p.canceledTrips >= 3 && p.status === "Inactive") {
-            alert("Cannot reactivate passenger! Canceled trips limit (3) exceeded.");
-            return p;
-          }
-          const nextStatus = p.status === "Active" ? "Inactive" : "Active";
-          return { ...p, status: nextStatus };
-        }
-        return p;
-      })
-    );
-    // Sync view modal if active
-    if (viewingUser && viewingUser.id === id && viewingUserType === "passenger") {
-      setViewingUser(prev => {
-        if (!prev) return null;
-        if ((prev as Passenger).canceledTrips >= 3 && prev.status === "Inactive") return prev;
-        return { ...prev, status: prev.status === "Active" ? "Inactive" : "Active" };
-      });
+  const handleDeactivatePassengerToggle = async (id: number | string) => {
+    const passenger = passengers.find(p => p.id === id);
+    if (!passenger) return;
+
+    if (passenger.canceledTrips >= 3 && passenger.status === "Inactive") {
+      alert("Cannot reactivate passenger! Canceled trips limit (3) exceeded.");
+      return;
+    }
+
+    const nextStatus = passenger.status === "Active" ? "Inactive" : "Active";
+
+    try {
+      await updatePassengerActiveStatus(passenger, nextStatus);
+      setPassengers(prev =>
+        prev.map(p => p.id === id ? { ...p, status: nextStatus } : p)
+      );
+      if (viewingUser && viewingUser.id === id && viewingUserType === "passenger") {
+        setViewingUser(prev => prev ? { ...prev, status: nextStatus } : null);
+      }
+    } catch (error) {
+      alert(`Unable to update passenger status: ${error instanceof Error ? error.message : error}`);
     }
   };
 
@@ -625,7 +682,8 @@ export default function App() {
   const filteredPassengers = useMemo(() => {
     return passengers.filter(p => {
       const matchSearch = p.name.toLowerCase().includes(driverSearch.toLowerCase()) ||
-        p.contact.includes(driverSearch);
+        p.contact.includes(driverSearch) ||
+        p.email.toLowerCase().includes(driverSearch.toLowerCase());
       const matchStatus = userStatusFilter === "All" || p.status === userStatusFilter;
       return matchSearch && matchStatus;
     });
@@ -812,6 +870,12 @@ export default function App() {
               setViewingUser={setViewingUser}
               setViewingUserType={setViewingUserType}
               setShowViewUserModal={setShowViewUserModal}
+              setEditingDriver={setEditingDriver}
+              setEditFormData={setEditFormData}
+              setShowEditDriverModal={setShowEditDriverModal}
+              setEditingPassenger={setEditingPassenger}
+              setPassengerEditFormData={setPassengerEditFormData}
+              setShowEditPassengerModal={setShowEditPassengerModal}
               setActiveStatModal={setActiveStatModal}
               activePassengerCount={activePassengersCount}
               activeDriverCount={activeDriversCount}
@@ -856,6 +920,18 @@ export default function App() {
         onSubmit={handleEditDriver}
       />
 
+      <EditPassengerModal
+        isOpen={showEditPassengerModal}
+        onClose={() => {
+          setShowEditPassengerModal(false);
+          setEditingPassenger(null);
+        }}
+        editingPassenger={editingPassenger}
+        editFormData={passengerEditFormData}
+        setEditFormData={setPassengerEditFormData}
+        onSubmit={handleEditPassenger}
+      />
+
       <AddRequestModal
         isOpen={showAddRequestModal}
         onClose={() => setShowAddRequestModal(false)}
@@ -888,6 +964,39 @@ export default function App() {
         onDeactivatePassengerToggle={handleDeactivatePassengerToggle}
         onIncrementCanceledTrips={handleIncrementCanceledTrips}
         onResetCanceledTrips={handleResetCanceledTrips}
+        onEdit={() => {
+          if (!viewingUser || !viewingUserType) return;
+          if (viewingUserType === "driver") {
+            const driver = viewingUser as Driver;
+            setEditingDriver(driver);
+            setEditFormData({
+              name: driver.name,
+              phone: driver.phone,
+              license: driver.license,
+              bodyNumber: driver.bodyNumber,
+              toda: driver.toda,
+              status: driver.status,
+              email: driver.email || "",
+              password: "",
+              plateNumber: driver.plateNumber || "",
+              isVerified: driver.isVerified,
+              licenseImage: null,
+              licenseImageName: driver.licenseImageName || "",
+            });
+            setShowEditDriverModal(true);
+          } else {
+            const passenger = viewingUser as Passenger;
+            setEditingPassenger(passenger);
+            setPassengerEditFormData({
+              name: passenger.name,
+              contact: passenger.contact,
+              email: passenger.email || "",
+              status: passenger.status,
+              password: "",
+            });
+            setShowEditPassengerModal(true);
+          }
+        }}
       />
 
       <ViewEarningsModal

@@ -22,7 +22,7 @@ export default function EditDriverModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4 transition-all">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[92vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         <div className="bg-[#0b1b6e] text-white px-6 py-4 flex items-center justify-between">
           <h3 className="font-bold text-lg">Edit Driver Account</h3>
           <button onClick={onClose} className="text-white/80 hover:text-white transition-colors cursor-pointer">
@@ -33,7 +33,7 @@ export default function EditDriverModal({
           </button>
         </div>
 
-        <form onSubmit={onSubmit} className="p-6 flex flex-col gap-4 text-left">
+        <form onSubmit={onSubmit} className="p-6 flex flex-col gap-4 text-left overflow-y-auto max-h-[calc(92vh-72px)]">
           <div className="flex flex-col gap-1">
             <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Driver Full Name</label>
             <input
@@ -91,6 +91,44 @@ export default function EditDriverModal({
                 <option value="CHOT-TODA">CHOT-TODA</option>
               </select>
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Email Address</label>
+              <input
+                type="email"
+                required
+                value={editFormData.email}
+                onChange={(e) => setEditFormData((prev: any) => ({ ...prev, email: e.target.value }))}
+                className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f]"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Plate Number</label>
+              <input
+                type="text"
+                required
+                value={editFormData.plateNumber}
+                onChange={(e) => setEditFormData((prev: any) => ({ ...prev, plateNumber: e.target.value }))}
+                className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f]"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">New Password</label>
+            <input
+              type="password"
+              minLength={8}
+              value={editFormData.password}
+              onChange={(e) => setEditFormData((prev: any) => ({ ...prev, password: e.target.value }))}
+              placeholder="Leave blank to keep current password"
+              className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f]"
+            />
+            <p className="text-[11px] text-slate-400 font-semibold">
+              Password changes are immediate and must be at least 8 characters.
+            </p>
           </div>
 
           <div className="flex flex-col gap-1">

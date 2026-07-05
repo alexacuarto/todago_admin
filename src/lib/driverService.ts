@@ -14,6 +14,7 @@ export interface CreateDriverResult {
   success: boolean;
   error?: string;
   driverName?: string;
+  driverId?: string;
 }
 
 /**
@@ -51,5 +52,26 @@ export async function createDriverAccount(
     return { success: false, error: data.error ?? "Driver account creation failed." };
   }
 
-  return { success: true, driverName: fullName };
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("email", email)
+    .maybeSingle();
+
+  const userId = (profile as { id?: string } | null)?.id;
+  if (!userId) {
+    return { success: true, driverName: fullName };
+  }
+
+  const { data: driver } = await supabase
+    .from("drivers")
+    .select("id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  return {
+    success: true,
+    driverName: fullName,
+    driverId: (driver as { id?: string } | null)?.id,
+  };
 }

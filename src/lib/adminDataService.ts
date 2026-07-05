@@ -8,6 +8,7 @@ type ProfileRow = {
   email: string | null;
   role: "passenger" | "driver" | "admin";
   is_active: boolean;
+  avatar_url: string | null;
 };
 
 type DriverRow = {
@@ -18,6 +19,7 @@ type DriverRow = {
   plate_number: string | null;
   status: "offline" | "online" | "busy" | "suspended";
   is_verified: boolean;
+  license_image_url: string | null;
   created_at: string;
 };
 
@@ -76,10 +78,10 @@ export async function fetchAdminDashboardData() {
   const [profilesResult, driversResult, passengersResult, ridesResult, earningsResult] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, full_name, phone, email, role, is_active"),
+      .select("id, full_name, phone, email, role, is_active, avatar_url"),
     supabase
       .from("drivers")
-      .select("id, user_id, license_number, tricycle_body_number, plate_number, status, is_verified, created_at"),
+      .select("id, user_id, license_number, license_image_url, tricycle_body_number, plate_number, status, is_verified, created_at"),
     supabase
       .from("passengers")
       .select("id, user_id, created_at"),
@@ -108,8 +110,11 @@ export async function fetchAdminDashboardData() {
   const passengersById = new Map(passengerRows.map((passenger) => [passenger.id, passenger]));
   const ridesById = new Map(rideRows.map((ride) => [ride.id, ride]));
 
-  const drivers: Driver[] = driverRows.map((row) => {
+  const drivers: Driver[] = await Promise.all(driverRows.map(async (row) => {
     const profile = profilesById.get(row.user_id);
+    const licenseImageUrl = row.license_image_url
+      ? await createDriverDocumentSignedUrl(row.license_image_url)
+      : undefined;
     return {
       id: row.id,
       name: profile?.full_name ?? "Driver",
@@ -123,8 +128,11 @@ export async function fetchAdminDashboardData() {
       joinedDate: row.created_at?.split("T")[0] ?? "",
       email: profile?.email ?? "",
       plateNumber: row.plate_number ?? "",
+      avatarUrl: profile?.avatar_url ?? undefined,
+      licenseImageUrl,
+      licenseImageName: row.license_image_url ? row.license_image_url.split("/").pop() : undefined,
     };
-  });
+  }));
 
   const passengers: Passenger[] = passengerRows.map((row) => {
     const profile = profilesById.get(row.user_id);
@@ -137,6 +145,7 @@ export async function fetchAdminDashboardData() {
       status: profile?.is_active === false ? "Inactive" : "Active",
       joinedDate: row.created_at?.split("T")[0] ?? "",
       ridesTaken: passengerRides.length,
+      avatarUrl: profile?.avatar_url ?? undefined,
     };
   });
 
@@ -243,6 +252,60 @@ export async function updateDriverAccount(
     .eq("id", driverId);
 
   assertNoError("update driver record", driverError);
+}
+
+export async function uploadDriverLicenseImage(
+  driverId: string | number,
+  file: File,
+) {
+  const driverIdString = String(driverId);
+  const extension = extensionFor(file.name);
+  const path = `${driverIdString}/license.${extension}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("driver-documents")
+    .upload(path, file, {
+      upsert: true,
+      contentType: file.type || contentTypeFor(extension),
+    });
+
+  assertNoError("upload driver license image", uploadError);
+
+  const { error: updateError } = await supabase
+    .from("drivers")
+    .update({ license_image_url: path })
+    .eq("id", driverIdString);
+
+  assertNoError("save driver license image URL", updateError);
+  return createDriverDocumentSignedUrl(path);
+}
+
+async function createDriverDocumentSignedUrl(path: string) {
+  if (path.startsWith("http")) return path;
+  const { data, error } = await supabase.storage
+    .from("driver-documents")
+    .createSignedUrl(path, 60 * 60);
+
+  assertNoError("sign driver license image URL", error);
+  if (!data?.signedUrl) {
+    throw new Error("sign driver license image URL: no signed URL returned.");
+  }
+  return data.signedUrl;
+}
+
+function extensionFor(fileName: string) {
+  const lower = fileName.toLowerCase();
+  if (lower.endsWith(".png")) return "png";
+  if (lower.endsWith(".webp")) return "webp";
+  if (lower.endsWith(".pdf")) return "pdf";
+  return "jpg";
+}
+
+function contentTypeFor(extension: string) {
+  if (extension === "png") return "image/png";
+  if (extension === "webp") return "image/webp";
+  if (extension === "pdf") return "application/pdf";
+  return "image/jpeg";
 }
 
 export function subscribeAdminOperationalData(onChange: () => void) {

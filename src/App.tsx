@@ -5,6 +5,7 @@ import {
   subscribeAdminOperationalData,
   updateDriverAccount,
   updateDriverVerification,
+  uploadDriverLicenseImage,
 } from "./lib/adminDataService";
 import { createDriverAccount } from "./lib/driverService";
 
@@ -175,7 +176,9 @@ export default function App() {
     status: "Active" as "Active" | "Inactive",
     email: "",
     plateNumber: "",
-    isVerified: false
+    isVerified: false,
+    licenseImage: null as File | null,
+    licenseImageName: ""
   });
 
   const [newRequestData, setNewRequestData] = useState({
@@ -288,6 +291,14 @@ export default function App() {
         return;
       }
 
+      if (formData.licenseImage) {
+        if (!result.driverId) {
+          alert("Driver account was created, but the license image could not be uploaded because the new driver ID was not resolved. Open the driver edit modal and upload the license image there.");
+        } else {
+          await uploadDriverLicenseImage(result.driverId, formData.licenseImage);
+        }
+      }
+
       setFormData({
         name: "",
         email: "",
@@ -314,6 +325,15 @@ export default function App() {
     if (!editingDriver) return;
     try {
       await updateDriverAccount(editingDriver, editFormData);
+      let licenseImageUrl = editingDriver.licenseImageUrl;
+      let licenseImageName = editingDriver.licenseImageName;
+      if (editFormData.licenseImage) {
+        licenseImageUrl = await uploadDriverLicenseImage(
+          editingDriver.id,
+          editFormData.licenseImage,
+        );
+        licenseImageName = editFormData.licenseImageName;
+      }
       setDrivers(prev =>
         prev.map(d =>
           d.id === editingDriver.id
@@ -327,7 +347,9 @@ export default function App() {
                 status: editFormData.status,
                 email: editFormData.email,
                 plateNumber: editFormData.plateNumber,
-                isVerified: editFormData.isVerified
+                isVerified: editFormData.isVerified,
+                licenseImageUrl,
+                licenseImageName
               }
             : d
         )

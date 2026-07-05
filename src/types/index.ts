@@ -17,6 +17,8 @@ export interface Driver {
   joinedDate: string;
   email: string;
   plateNumber: string;
+  avatarUrl?: string;
+  licenseImageUrl?: string;
   licenseImageName?: string;
 }
 
@@ -28,6 +30,7 @@ export interface Passenger {
   status: "Active" | "Inactive";
   joinedDate: string;
   ridesTaken: number;
+  avatarUrl?: string;
 }
 
 export interface RideRequest {

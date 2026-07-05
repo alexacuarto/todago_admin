@@ -46,8 +46,16 @@ export default function ViewUserModal({
         <div className="p-6 flex flex-col gap-6 text-left">
           {/* Account Overview Cards */}
           <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-            <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 shrink-0 font-extrabold text-xl">
-              {viewingUser.name.charAt(0)}
+            <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 shrink-0 font-extrabold text-xl overflow-hidden">
+              {viewingUser.avatarUrl ? (
+                <img
+                  src={viewingUser.avatarUrl}
+                  alt={`${viewingUser.name} profile`}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                viewingUser.name.charAt(0)
+              )}
             </div>
             <div className="flex-1">
               <h4 className="font-bold text-[#091b6f] text-md">{viewingUser.name}</h4>
@@ -115,6 +123,31 @@ export default function ViewUserModal({
               <div>
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Total Completed Trips</p>
                 <p className="font-extrabold text-[#091b6f] text-md mt-0.5">{(viewingUser as Driver).trips} Rides</p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">License Image</p>
+                {(viewingUser as Driver).licenseImageUrl ? (
+                  <div className="mt-2 rounded-2xl border border-slate-100 bg-slate-50 p-3">
+                    {(viewingUser as Driver).licenseImageName?.toLowerCase().endsWith(".pdf") ? (
+                      <a
+                        href={(viewingUser as Driver).licenseImageUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-sm font-bold text-blue-600 hover:text-blue-700"
+                      >
+                        View uploaded license PDF
+                      </a>
+                    ) : (
+                      <img
+                        src={(viewingUser as Driver).licenseImageUrl}
+                        alt="Driver license"
+                        className="max-h-56 w-full rounded-xl object-contain"
+                      />
+                    )}
+                  </div>
+                ) : (
+                  <p className="font-bold text-slate-500 mt-0.5">No license image uploaded</p>
+                )}
               </div>
             </div>
           ) : (

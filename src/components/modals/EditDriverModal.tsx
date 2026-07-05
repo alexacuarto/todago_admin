@@ -120,6 +120,32 @@ export default function EditDriverModal({
             </p>
           </div>
 
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Driver License Image</label>
+            <div className="border border-dashed border-slate-300 rounded-xl p-4 bg-slate-50">
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,application/pdf"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setEditFormData((prev: any) => ({
+                      ...prev,
+                      licenseImage: file,
+                      licenseImageName: file.name,
+                    }));
+                  }
+                }}
+                className="text-sm text-slate-600"
+              />
+              <p className="mt-2 text-[11px] font-semibold text-slate-400">
+                {editFormData.licenseImageName
+                  ? `Selected: ${editFormData.licenseImageName}`
+                  : "Upload a JPG, PNG, WEBP, or PDF license file."}
+              </p>
+            </div>
+          </div>
+
           <div className="flex items-center justify-end gap-3 mt-5 pt-5 border-t border-slate-100">
             <button
               type="button"

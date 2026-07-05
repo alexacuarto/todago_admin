@@ -7,9 +7,12 @@ export interface Driver {
   license: string;
   bodyNumber: string;
   trips: number;
-  joinedDate: string;
   email: string;
   plateNumber: string;
+  isOnline: boolean;
+  licensePhotoUrl?: string | null;
+  joinedDate: string;
+  activityStatus: "Active" | "Moderate" | "Inactive";
 }
 
 export interface Passenger {

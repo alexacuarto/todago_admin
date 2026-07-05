@@ -106,26 +106,54 @@ export default function Sidebar({
           </button>
 
           {/* Users Management Tab */}
-          <button
-            onClick={() => {
-              setActiveTab("users");
-              setUsersSubTab("all");
-              setMobileMenuOpen(false);
-            }}
-            className={`flex items-center gap-3 px-5 py-3 font-bold transition-all text-left border-l-4 cursor-pointer w-full ${
-              activeTab === "users"
-                ? "bg-white text-[#091b6f] border-[#091b6f] shadow-xs"
-                : "text-[#091b6f] border-transparent hover:bg-white/40"
-            }`}
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-            </svg>
-            <span>Users Management</span>
-          </button>
+          <div className="relative group w-full">
+            <button
+              onClick={() => {
+                setActiveTab("users");
+                setUsersSubTab("all");
+                setMobileMenuOpen(false);
+              }}
+              className={`flex items-center gap-3 px-5 py-3 font-bold transition-all text-left border-l-4 cursor-pointer w-full ${
+                activeTab === "users"
+                  ? "bg-white text-[#091b6f] border-[#091b6f] shadow-xs"
+                  : "text-[#091b6f] border-transparent hover:bg-white/40"
+              }`}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+              <span>Users Management</span>
+            </button>
+
+            {/* Hover Submenu Flyout */}
+            <div className="absolute left-[calc(100%-10px)] top-0 ml-2 hidden group-hover:flex flex-col bg-white border border-slate-150 rounded-2xl shadow-xl p-2.5 z-50 w-44 animate-in fade-in slide-in-from-left-2 duration-150">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveTab("users");
+                  setUsersSubTab("drivers");
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full text-left px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 hover:text-[#091b6f] rounded-lg transition-colors cursor-pointer"
+              >
+                Tricycle Drivers
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveTab("users");
+                  setUsersSubTab("passengers");
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full text-left px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 hover:text-[#091b6f] rounded-lg transition-colors cursor-pointer mt-1"
+              >
+                Passengers List
+              </button>
+            </div>
+          </div>
         </nav>
       </aside>
 

@@ -37,9 +37,6 @@ export default function Header({
           <span className="font-extrabold text-xl tracking-wider bg-white text-[#0b1b6e] px-2.5 py-0.5 rounded-md shadow-sm">
             TodaGo
           </span>
-          <span className="text-sky-200 text-xs font-semibold uppercase tracking-widest hidden sm:inline-block border-l border-white/20 pl-2">
-            Management Portal
-          </span>
         </div>
       </div>
 
@@ -49,7 +46,6 @@ export default function Header({
       >
         <div className="text-right hidden sm:block">
           <p className="text-sm font-bold tracking-wide">{adminProfile.name}</p>
-          <p className="text-[10px] text-sky-200">System Operator</p>
         </div>
 
         {/* Beautiful Custom Avatar */}

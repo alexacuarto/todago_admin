@@ -251,3 +251,40 @@ BEGIN
   RETURN v_email;
 END;
 $$;
+
+
+-- ============================================================
+-- 7. RLS POLICIES FOR DRIVERS TO READ PASSENGER PROFILES
+-- ============================================================
+
+-- Drop existing select policies for drivers if any
+DROP POLICY IF EXISTS profiles_select_driver ON public.profiles;
+DROP POLICY IF EXISTS passengers_select_driver ON public.passengers;
+
+-- Policy to allow drivers to view the profile of passengers associated with bookings
+CREATE POLICY profiles_select_driver ON public.profiles
+  FOR SELECT USING (
+    role = 'passenger'
+    AND EXISTS (
+      SELECT 1 FROM public.bookings b
+      LEFT JOIN public.passengers p ON b.passenger_id = p.id
+      WHERE p.profile_id = public.profiles.id
+        AND (
+          b.status::text IN ('pending', 'searching', 'accepted', 'pickedUp', 'droppedOff', 'paymentSent')
+          OR b.driver_id IN (SELECT id FROM public.drivers WHERE profile_id = auth.uid())
+        )
+    )
+  );
+
+-- Policy to allow drivers to view the passengers mapping table for bookings
+CREATE POLICY passengers_select_driver ON public.passengers
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.bookings b
+      WHERE b.passenger_id = public.passengers.id
+        AND (
+          b.status::text IN ('pending', 'searching', 'accepted', 'pickedUp', 'droppedOff', 'paymentSent')
+          OR b.driver_id IN (SELECT id FROM public.drivers WHERE profile_id = auth.uid())
+        )
+    )
+  );

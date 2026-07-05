@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { Driver, Passenger } from "../../types";
+import { getActivityBadgeClasses } from "../../lib/driverActivity";
 
 interface ViewUserModalProps {
   isOpen: boolean;
@@ -21,6 +23,8 @@ export default function ViewUserModal({
   onIncrementCanceledTrips,
   onResetCanceledTrips,
 }: ViewUserModalProps) {
+  const [showZoom, setShowZoom] = useState(false);
+
   if (!isOpen || !viewingUser) return null;
 
   return (
@@ -53,7 +57,7 @@ export default function ViewUserModal({
                 {viewingUserType === "driver" ? "Tricycle Operator / Driver" : "Passenger Client"}
               </p>
             </div>
-            <div>
+            <div className="flex flex-col gap-1 items-end">
               <span
                 className={`inline-block px-3 py-1 rounded-full text-xs font-extrabold border ${
                   viewingUser.status === "Active"
@@ -63,6 +67,21 @@ export default function ViewUserModal({
               >
                 {viewingUser.status}
               </span>
+               {viewingUserType === "driver" && (
+                <div className="flex flex-col gap-1 items-end mt-1">
+                  <div className="flex items-center gap-1">
+                    <span className={`w-2 h-2 rounded-full ${viewingUser.isOnline ? "bg-emerald-500" : "bg-slate-400"}`}></span>
+                    <span className="text-[10px] text-slate-500 font-bold">
+                      {viewingUser.isOnline ? "Online" : "Offline"}
+                    </span>
+                  </div>
+                  <span
+                    className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${getActivityBadgeClasses(viewingUser.activityStatus)}`}
+                  >
+                    Activity: {viewingUser.activityStatus}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -135,6 +154,39 @@ export default function ViewUserModal({
             </div>
           )}
 
+          {/* Document Preview Section */}
+          {viewingUserType === "driver" && (
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider">Driver's License Copy</h4>
+                {viewingUser.licensePhotoUrl && (
+                  <button
+                    onClick={() => setShowZoom(true)}
+                    className="px-2.5 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-[10px] font-bold transition-all cursor-pointer shadow-xs"
+                  >
+                    View Document Close-Up
+                  </button>
+                )}
+              </div>
+              {viewingUser.licensePhotoUrl ? (
+                <div 
+                  className="relative overflow-hidden rounded-xl border border-slate-200 bg-white h-32 flex items-center justify-center cursor-pointer hover:border-blue-300 transition-colors" 
+                  onClick={() => setShowZoom(true)}
+                >
+                  <img
+                    src={viewingUser.licensePhotoUrl}
+                    alt="Driver's License Document"
+                    className="max-h-full max-w-full object-contain p-2"
+                  />
+                </div>
+              ) : (
+                <div className="py-4 text-center text-slate-400 text-xs font-semibold italic border border-dashed border-slate-200 bg-white rounded-xl">
+                  No license uploaded
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Action Controls */}
           <div className="flex flex-col gap-3">
             <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider">Administrative Actions</h4>
@@ -201,6 +253,36 @@ export default function ViewUserModal({
           </div>
         </div>
       </div>
+
+      {showZoom && viewingUser?.licensePhotoUrl && (
+        <div 
+          className="fixed inset-0 bg-black/80 flex flex-col items-center justify-center z-[150] p-4 transition-all animate-in fade-in duration-200" 
+          onClick={() => setShowZoom(false)}
+        >
+          <button
+            onClick={() => setShowZoom(false)}
+            className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white rounded-full p-2.5 transition-all border border-white/20 cursor-pointer shadow-md"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+          <div 
+            className="max-w-3xl max-h-[85vh] bg-white p-3 rounded-2xl shadow-2xl relative overflow-hidden animate-in zoom-in-95" 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={viewingUser.licensePhotoUrl}
+              alt="Driver's License Zoom"
+              className="max-h-[75vh] max-w-full object-contain rounded-lg"
+            />
+            <div className="mt-3 text-center text-[#091b6f] font-extrabold text-sm">
+              License Copy: {viewingUser.name} (License: {viewingUser.license})
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

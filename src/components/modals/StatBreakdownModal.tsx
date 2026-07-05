@@ -33,7 +33,7 @@ export default function StatBreakdownModal({
       case "trips-today":
         return "Today's Dispatch List";
       case "total-earnings":
-        return "Total Transacted Volume";
+        return "Total Platform Earnings";
       case "completed-rides":
         return "Lifetime Completed Rides";
       case "commission-earned":
@@ -43,7 +43,7 @@ export default function StatBreakdownModal({
       case "registered-passengers":
         return "All Registered Passengers";
       default:
-        return "System Audit Details";
+        return "System Overview Details";
     }
   };
 
@@ -53,7 +53,7 @@ export default function StatBreakdownModal({
         {/* Header */}
         <div className="bg-[#0b1b6e] text-white px-6 py-5 flex items-center justify-between shrink-0">
           <div className="text-left">
-            <span className="text-xs font-bold uppercase tracking-wider text-sky-200">Database Audit Log</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-sky-200">Platform Statistics</span>
             <h3 className="font-bold text-lg">{getModalTitle(activeStatModal)}</h3>
           </div>
           <button onClick={onClose} className="text-white/85 hover:text-white transition-colors cursor-pointer">
@@ -78,7 +78,7 @@ export default function StatBreakdownModal({
                     <tr className="border-b border-slate-150 bg-slate-50 text-slate-500 font-bold uppercase tracking-wider">
                       <th className="p-3">Name</th>
                       <th className="p-3">TODA</th>
-                      <th className="p-3">Plate / Body</th>
+                      <th className="p-3">Plate Number</th>
                       <th className="p-3">Status</th>
                     </tr>
                   </thead>
@@ -92,7 +92,6 @@ export default function StatBreakdownModal({
                         <td className="p-3">{d.toda}</td>
                         <td className="p-3">
                           <p>{d.plateNumber}</p>
-                          <p className="text-[10px] text-slate-400 font-normal">{d.bodyNumber}</p>
                         </td>
                         <td className="p-3">
                           <span
@@ -125,7 +124,7 @@ export default function StatBreakdownModal({
                     <tr className="border-b border-slate-150 bg-slate-50 text-slate-500 font-bold uppercase tracking-wider">
                       <th className="p-3">Name</th>
                       <th className="p-3">TODA</th>
-                      <th className="p-3">Plate / Body</th>
+                      <th className="p-3">Plate Number</th>
                       <th className="p-3">Status</th>
                     </tr>
                   </thead>
@@ -141,7 +140,6 @@ export default function StatBreakdownModal({
                           <td className="p-3">{d.toda}</td>
                           <td className="p-3">
                             <p>{d.plateNumber}</p>
-                            <p className="text-[10px] text-slate-400 font-normal">{d.bodyNumber}</p>
                           </td>
                           <td className="p-3">
                             <span className="inline-block px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100">
@@ -259,41 +257,41 @@ export default function StatBreakdownModal({
           )}
 
           {/* CONTENT FOR: total-earnings */}
-          {activeStatModal === "total-earnings" && (
-            <div className="flex flex-col gap-4">
-              <div className="bg-[#091b6f] text-white p-5 rounded-2xl text-center">
-                <p className="text-xs text-sky-200 font-bold uppercase tracking-wider">
-                  Total Earnings (Baseline + Active Volume)
-                </p>
-                <p className="text-4xl font-extrabold mt-1">₱ {earningsToday.toLocaleString()}</p>
+          {activeStatModal === "total-earnings" && (() => {
+            const todaBreakdown: { [key: string]: number } = {};
+            rideRequests
+              .filter(r => r.status === "Completed")
+              .forEach(r => {
+                const todaName = r.toda || "Unassigned";
+                todaBreakdown[todaName] = (todaBreakdown[todaName] || 0) + r.fare;
+              });
+
+            return (
+              <div className="flex flex-col gap-4">
+                <div className="bg-[#091b6f] text-white p-5 rounded-2xl text-center">
+                  <p className="text-xs text-sky-200 font-bold uppercase tracking-wider">
+                    Total Earnings
+                  </p>
+                  <p className="text-4xl font-extrabold mt-1">₱ {earningsToday.toLocaleString()}</p>
+                </div>
+                <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider">TODA Earnings breakdown</h4>
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col gap-3 font-semibold text-slate-600 text-sm">
+                  {Object.keys(todaBreakdown).length === 0 ? (
+                    <div className="text-center py-4 text-slate-400 text-xs">No completed trips.</div>
+                  ) : (
+                    Object.entries(todaBreakdown).map(([todaName, amount]) => (
+                      <div key={todaName} className="flex justify-between border-b border-slate-100 last:border-0 pb-2 last:pb-0">
+                        <span>{todaName}</span>
+                        <span className="font-bold text-slate-800">
+                          ₱ {amount.toLocaleString()}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
-              <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider">TODA Earnings breakdown</h4>
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col gap-3 font-semibold text-slate-600 text-sm">
-                <div className="flex justify-between">
-                  <span>LHITC-TODA (45%)</span>
-                  <span className="font-bold text-slate-800">
-                    ₱ {((earningsToday) * 0.45).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                  </span>
-                </div>
-                <div className="flex justify-between border-t border-slate-200/50 pt-2">
-                  <span>CHOT-TODA (30%)</span>
-                  <span className="font-bold text-slate-800">
-                    ₱ {((earningsToday) * 0.30).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                  </span>
-                </div>
-                <div className="flex justify-between border-t border-slate-200/50 pt-2">
-                  <span>BYPASS ILAYANG BAGUIO-TODA (25%)</span>
-                  <span className="font-bold text-slate-800">
-                    ₱ {((earningsToday) * 0.25).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                  </span>
-                </div>
-                <div className="flex justify-between border-t border-slate-200/50 pt-2 font-bold text-[#091b6f]">
-                  <span>Total transacted volume</span>
-                  <span>₱ {earningsToday.toLocaleString()}</span>
-                </div>
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* CONTENT FOR: completed-rides */}
           {activeStatModal === "completed-rides" && (
@@ -444,7 +442,7 @@ export default function StatBreakdownModal({
             onClick={onClose}
             className="px-5 py-2 bg-[#091b6f] hover:bg-blue-800 text-white rounded-xl font-bold text-xs transition-colors cursor-pointer shadow-sm hover:shadow"
           >
-            Close Audit Detail
+            Close Details
           </button>
         </div>
       </div>

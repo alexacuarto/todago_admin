@@ -57,3 +57,26 @@ export interface EarningsRecord {
   totalEarnings: number;
   driverName?: string;
 }
+
+export type TripType = "one_way" | "round_trip";
+export type AdminTab =
+  | "dashboard"
+  | "ride-requests"
+  | "earnings"
+  | "fare-settings"
+  | "users"
+  | "profile"
+  | "create-driver";
+
+export interface FareSetting {
+  tripType: TripType;
+  label: string;
+  baseFare: number;
+  includedKm: number;
+  perSucceedingKm: number;
+  studentDiscountPercent: number;
+  pwdDiscountPercent: number;
+  seniorDiscountPercent: number;
+  isActive: boolean;
+  updatedAt: string;
+}

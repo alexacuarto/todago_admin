@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import { Driver, EarningsRecord, Passenger, RideRequest } from "../types";
+import { Driver, EarningsRecord, FareSetting, Passenger, RideRequest } from "../types";
 
 type ProfileRow = {
   id: string;
@@ -50,6 +50,19 @@ type DriverEarningRow = {
   ride_id: string;
   created_at: string;
   gross_fare: number;
+};
+
+type FareSettingRow = {
+  trip_type: "one_way" | "round_trip";
+  label: string;
+  base_fare: number;
+  included_km: number;
+  per_succeeding_km: number;
+  student_discount_percent: number;
+  pwd_discount_percent: number;
+  senior_discount_percent: number;
+  is_active: boolean;
+  updated_at: string;
 };
 
 function statusToAdmin(status: string): RideRequest["status"] {
@@ -280,6 +293,52 @@ export async function uploadDriverLicenseImage(
   return createDriverDocumentSignedUrl(path);
 }
 
+function mapFareSetting(row: FareSettingRow): FareSetting {
+  return {
+    tripType: row.trip_type,
+    label: row.label,
+    baseFare: Number(row.base_fare ?? 0),
+    includedKm: Number(row.included_km ?? 0),
+    perSucceedingKm: Number(row.per_succeeding_km ?? 0),
+    studentDiscountPercent: Number(row.student_discount_percent ?? 20),
+    pwdDiscountPercent: Number(row.pwd_discount_percent ?? 20),
+    seniorDiscountPercent: Number(row.senior_discount_percent ?? 20),
+    isActive: row.is_active === true,
+    updatedAt: row.updated_at,
+  };
+}
+
+export async function fetchFareSettings() {
+  const { data, error } = await supabase
+    .from("fare_settings")
+    .select("trip_type, label, base_fare, included_km, per_succeeding_km, student_discount_percent, pwd_discount_percent, senior_discount_percent, is_active, updated_at")
+    .order("trip_type", { ascending: true });
+
+  assertNoError("fare_settings", error);
+  return ((data ?? []) as FareSettingRow[]).map(mapFareSetting);
+}
+
+export async function updateFareSetting(setting: FareSetting) {
+  const { data, error } = await supabase
+    .from("fare_settings")
+    .update({
+      label: setting.label,
+      base_fare: setting.baseFare,
+      included_km: setting.includedKm,
+      per_succeeding_km: setting.perSucceedingKm,
+      student_discount_percent: setting.studentDiscountPercent,
+      pwd_discount_percent: setting.pwdDiscountPercent,
+      senior_discount_percent: setting.seniorDiscountPercent,
+      is_active: setting.isActive,
+    })
+    .eq("trip_type", setting.tripType)
+    .select("trip_type, label, base_fare, included_km, per_succeeding_km, student_discount_percent, pwd_discount_percent, senior_discount_percent, is_active, updated_at")
+    .single();
+
+  assertNoError("update fare setting", error);
+  return mapFareSetting(data as FareSettingRow);
+}
+
 async function createDriverDocumentSignedUrl(path: string) {
   if (path.startsWith("http")) return path;
   const { data, error } = await supabase.storage
@@ -319,5 +378,6 @@ export function subscribeAdminOperationalData(onChange: () => void) {
     .on("postgres_changes", { event: "*", schema: "public", table: "drivers" }, onChange)
     .on("postgres_changes", { event: "*", schema: "public", table: "driver_earnings" }, onChange)
     .on("postgres_changes", { event: "*", schema: "public", table: "ride_ratings" }, onChange)
+    .on("postgres_changes", { event: "*", schema: "public", table: "fare_settings" }, onChange)
     .subscribe();
 }

@@ -1,6 +1,8 @@
+import { AdminTab } from "../../types";
+
 interface SidebarProps {
-  activeTab: "dashboard" | "ride-requests" | "earnings" | "users" | "profile" | "create-driver";
-  setActiveTab: (tab: "dashboard" | "ride-requests" | "earnings" | "users" | "profile" | "create-driver") => void;
+  activeTab: AdminTab;
+  setActiveTab: (tab: AdminTab) => void;
   mobileMenuOpen: boolean;
   setMobileMenuOpen: (open: boolean) => void;
   usersSubTab: "all" | "drivers" | "passengers";
@@ -103,6 +105,25 @@ export default function Sidebar({
               <path d="M8 10h6M8 12h6M8 8v10" />
             </svg>
             <span>Earnings</span>
+          </button>
+
+          {/* Users Management Tab */}
+          <button
+            onClick={() => {
+              setActiveTab("fare-settings");
+              setMobileMenuOpen(false);
+            }}
+            className={`flex items-center gap-3 px-5 py-3 font-bold transition-all text-left border-l-4 cursor-pointer w-full ${
+              activeTab === "fare-settings"
+                ? "bg-white text-[#091b6f] border-[#091b6f] shadow-xs"
+                : "text-[#091b6f] border-transparent hover:bg-white/40"
+            }`}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M12 1v22" />
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
+            <span>Fare Settings</span>
           </button>
 
           {/* Users Management Tab */}

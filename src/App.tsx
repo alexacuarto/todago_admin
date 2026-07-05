@@ -2,9 +2,11 @@ import { useEffect, useState, useMemo } from "react";
 import { getCurrentAdminProfile } from "./lib/authService";
 import {
   fetchAdminDashboardData,
+  fetchFareSettings,
   subscribeAdminOperationalData,
   updateDriverAccount,
   updateDriverVerification,
+  updateFareSetting,
   uploadDriverLicenseImage,
 } from "./lib/adminDataService";
 import { createDriverAccount } from "./lib/driverService";
@@ -18,6 +20,8 @@ import {
 // Types
 import {
   Driver,
+  FareSetting,
+  AdminTab,
   Passenger,
   RideRequest,
   EarningsRecord,
@@ -35,6 +39,7 @@ import EarningsView from "./components/views/EarningsView";
 import UsersView from "./components/views/UsersView";
 import ProfileView from "./components/views/ProfileView";
 import CreateDriverView from "./components/views/CreateDriverView";
+import FareSettingsView from "./components/views/FareSettingsView";
 
 // Modals
 import EditDriverModal from "./components/modals/EditDriverModal";
@@ -53,7 +58,7 @@ export default function App() {
   const [loginError, setLoginError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<"dashboard" | "ride-requests" | "earnings" | "users" | "profile" | "create-driver">("dashboard");
+  const [activeTab, setActiveTab] = useState<AdminTab>("dashboard");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isCreatingDriver, setIsCreatingDriver] = useState(false);
 
@@ -100,9 +105,13 @@ export default function App() {
   const [passengers, setPassengers] = useState<Passenger[]>([]);
   const [rideRequests, setRideRequests] = useState<RideRequest[]>([]);
   const [earningsRecords, setEarningsRecords] = useState<EarningsRecord[]>([]);
+  const [fareSettings, setFareSettings] = useState<FareSetting[]>([]);
   const [notifications, setNotifications] = useState<AdminNotification[]>([]);
   const [isLoadingOperationalData, setIsLoadingOperationalData] = useState(false);
+  const [isLoadingFareSettings, setIsLoadingFareSettings] = useState(false);
+  const [isSavingFareSetting, setIsSavingFareSetting] = useState("");
   const [operationalDataError, setOperationalDataError] = useState("");
+  const [fareSettingsError, setFareSettingsError] = useState("");
 
   useEffect(() => {
     if (!isLoggedIn) return;
@@ -111,14 +120,20 @@ export default function App() {
 
     const loadOperationalData = async () => {
       setIsLoadingOperationalData(true);
+      setIsLoadingFareSettings(true);
       setOperationalDataError("");
+      setFareSettingsError("");
       try {
-        const data = await fetchAdminDashboardData();
+        const [data, settings] = await Promise.all([
+          fetchAdminDashboardData(),
+          fetchFareSettings(),
+        ]);
         if (!isMounted) return;
         setDrivers(data.drivers);
         setPassengers(data.passengers);
         setRideRequests(data.rideRequests);
         setEarningsRecords(data.earningsRecords);
+        setFareSettings(settings);
       } catch (error) {
         console.error("Unable to load Supabase operational data", error);
         if (isMounted) {
@@ -129,10 +144,12 @@ export default function App() {
                 ? String((error as { message?: unknown }).message)
                 : String(error || "Unable to load Supabase operational data.");
           setOperationalDataError(message);
+          setFareSettingsError(message);
         }
       } finally {
         if (isMounted) {
           setIsLoadingOperationalData(false);
+          setIsLoadingFareSettings(false);
         }
       }
     };
@@ -417,6 +434,40 @@ export default function App() {
       }
     } catch (error) {
       alert(`Unable to update driver verification: ${error instanceof Error ? error.message : error}`);
+    }
+  };
+
+  const handleFareSettingChange = (
+    tripType: FareSetting["tripType"],
+    updates: Partial<FareSetting>,
+  ) => {
+    setFareSettings(prev =>
+      prev.map(setting =>
+        setting.tripType === tripType ? { ...setting, ...updates } : setting,
+      ),
+    );
+  };
+
+  const handleSaveFareSetting = async (setting: FareSetting) => {
+    setIsSavingFareSetting(setting.tripType);
+    setFareSettingsError("");
+    try {
+      const saved = await updateFareSetting({
+        ...setting,
+        baseFare: Math.max(Number(setting.baseFare) || 0, 0),
+        includedKm: Math.max(Number(setting.includedKm) || 0, 0),
+        perSucceedingKm: Math.max(Number(setting.perSucceedingKm) || 0, 0),
+        studentDiscountPercent: Math.min(Math.max(Number(setting.studentDiscountPercent) || 0, 0), 100),
+        pwdDiscountPercent: Math.min(Math.max(Number(setting.pwdDiscountPercent) || 0, 0), 100),
+        seniorDiscountPercent: Math.min(Math.max(Number(setting.seniorDiscountPercent) || 0, 0), 100),
+      });
+      setFareSettings(prev =>
+        prev.map(item => item.tripType === saved.tripType ? saved : item),
+      );
+    } catch (error) {
+      setFareSettingsError(`Unable to save fare settings: ${error instanceof Error ? error.message : error}`);
+    } finally {
+      setIsSavingFareSetting("");
     }
   };
 
@@ -728,6 +779,17 @@ export default function App() {
               setViewingEarningsRecord={setViewingEarningsRecord}
               setShowViewEarningsModal={setShowViewEarningsModal}
               setActiveStatModal={setActiveStatModal}
+            />
+          )}
+
+          {activeTab === "fare-settings" && (
+            <FareSettingsView
+              fareSettings={fareSettings}
+              fareSettingsError={fareSettingsError}
+              isLoadingFareSettings={isLoadingFareSettings}
+              isSavingFareSetting={isSavingFareSetting}
+              onFareSettingChange={handleFareSettingChange}
+              onSaveFareSetting={handleSaveFareSetting}
             />
           )}
 

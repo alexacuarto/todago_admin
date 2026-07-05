@@ -1,4 +1,4 @@
-import { Driver, RideRequest } from "../../types";
+import { AdminTab, Driver, RideRequest } from "../../types";
 
 interface DashboardViewProps {
   rideRequests: RideRequest[];
@@ -15,7 +15,7 @@ interface DashboardViewProps {
   setHoveredBarIndex: (idx: number | null) => void;
   chartTooltip: { x: number; y: number; val: number; label: string };
   setChartTooltip: (tooltip: { x: number; y: number; val: number; label: string }) => void;
-  setActiveTab: (tab: "dashboard" | "ride-requests" | "earnings" | "users" | "profile" | "create-driver") => void;
+  setActiveTab: (tab: AdminTab) => void;
   setShowAddRequestModal: (show: boolean) => void;
   setShowEditDriverModal: (show: boolean) => void;
   setEditingDriver: (driver: Driver | null) => void;

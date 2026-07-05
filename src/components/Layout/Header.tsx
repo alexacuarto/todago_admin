@@ -1,4 +1,5 @@
 import { AdminNotification } from "../../lib/notificationService";
+import { AdminTab } from "../../types";
 
 interface HeaderProps {
   adminProfile: {
@@ -8,7 +9,7 @@ interface HeaderProps {
   };
   notifications: AdminNotification[];
   onMarkNotificationsRead: () => void;
-  setActiveTab: (tab: "dashboard" | "ride-requests" | "earnings" | "users" | "profile" | "create-driver") => void;
+  setActiveTab: (tab: AdminTab) => void;
   mobileMenuOpen: boolean;
   setMobileMenuOpen: (open: boolean) => void;
 }

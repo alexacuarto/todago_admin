@@ -8,6 +8,12 @@ import {
   uploadDriverLicenseImage,
 } from "./lib/adminDataService";
 import { createDriverAccount } from "./lib/driverService";
+import {
+  AdminNotification,
+  fetchAdminNotifications,
+  markAdminNotificationsRead,
+  subscribeAdminNotifications,
+} from "./lib/notificationService";
 
 // Types
 import {
@@ -94,6 +100,7 @@ export default function App() {
   const [passengers, setPassengers] = useState<Passenger[]>([]);
   const [rideRequests, setRideRequests] = useState<RideRequest[]>([]);
   const [earningsRecords, setEarningsRecords] = useState<EarningsRecord[]>([]);
+  const [notifications, setNotifications] = useState<AdminNotification[]>([]);
   const [isLoadingOperationalData, setIsLoadingOperationalData] = useState(false);
   const [operationalDataError, setOperationalDataError] = useState("");
 
@@ -138,6 +145,40 @@ export default function App() {
       channel.unsubscribe();
     };
   }, [isLoggedIn]);
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    let isMounted = true;
+
+    const loadNotifications = async () => {
+      try {
+        const data = await fetchAdminNotifications();
+        if (isMounted) setNotifications(data);
+      } catch (error) {
+        console.error("Unable to load notifications", error);
+      }
+    };
+
+    loadNotifications();
+    const channel = subscribeAdminNotifications(loadNotifications);
+
+    return () => {
+      isMounted = false;
+      channel.unsubscribe();
+    };
+  }, [isLoggedIn]);
+
+  const handleMarkNotificationsRead = async () => {
+    try {
+      await markAdminNotificationsRead();
+      setNotifications(prev =>
+        prev.map(notification => ({ ...notification, isRead: true })),
+      );
+    } catch (error) {
+      console.error("Unable to mark notifications read", error);
+    }
+  };
 
   // Modal display states
   const [showEditDriverModal, setShowEditDriverModal] = useState(false);
@@ -597,6 +638,8 @@ export default function App() {
       {/* HEADER SECTION */}
       <Header
         adminProfile={adminProfile}
+        notifications={notifications}
+        onMarkNotificationsRead={handleMarkNotificationsRead}
         setActiveTab={setActiveTab}
         mobileMenuOpen={mobileMenuOpen}
         setMobileMenuOpen={setMobileMenuOpen}

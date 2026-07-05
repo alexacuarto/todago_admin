@@ -1,9 +1,13 @@
+import { AdminNotification } from "../../lib/notificationService";
+
 interface HeaderProps {
   adminProfile: {
     name: string;
     avatarUrl: string;
     avatarColor: string;
   };
+  notifications: AdminNotification[];
+  onMarkNotificationsRead: () => void;
   setActiveTab: (tab: "dashboard" | "ride-requests" | "earnings" | "users" | "profile" | "create-driver") => void;
   mobileMenuOpen: boolean;
   setMobileMenuOpen: (open: boolean) => void;
@@ -11,10 +15,14 @@ interface HeaderProps {
 
 export default function Header({
   adminProfile,
+  notifications,
+  onMarkNotificationsRead,
   setActiveTab,
   mobileMenuOpen,
   setMobileMenuOpen,
 }: HeaderProps) {
+  const unreadCount = notifications.filter((notification) => !notification.isRead).length;
+
   return (
     <header className="bg-[#0b1b6e] text-white flex items-center justify-between px-6 py-3 shadow-md z-20 shrink-0">
       <div className="flex items-center gap-3">
@@ -41,10 +49,54 @@ export default function Header({
         </div>
       </div>
 
-      <div
-        onClick={() => setActiveTab("profile")}
-        className="flex items-center gap-3 cursor-pointer group relative"
-      >
+      <div className="flex items-center gap-4">
+        <div className="relative group">
+          <button
+            className="relative rounded-full bg-white/15 p-2.5 hover:bg-white/20 transition-colors"
+            aria-label="Notifications"
+            onClick={onMarkNotificationsRead}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3">
+              <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 7h18s-3 0-3-7" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+            {unreadCount > 0 && (
+              <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-extrabold text-white">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </button>
+          <div className="invisible absolute right-0 top-11 z-30 w-80 translate-y-1 rounded-2xl border border-slate-100 bg-white p-3 text-slate-700 opacity-0 shadow-xl transition-all group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-xs font-extrabold uppercase tracking-wider text-[#091b6f]">Notifications</p>
+              <span className="text-[10px] font-bold text-slate-400">{unreadCount} unread</span>
+            </div>
+            {notifications.length === 0 ? (
+              <p className="py-5 text-center text-xs font-semibold text-slate-400">No notifications yet.</p>
+            ) : (
+              <div className="max-h-80 overflow-y-auto">
+                {notifications.slice(0, 8).map((notification) => (
+                  <div
+                    key={notification.id}
+                    className={`mb-2 rounded-xl p-3 text-left ${
+                      notification.isRead ? "bg-slate-50" : "bg-blue-50"
+                    }`}
+                  >
+                    <p className="text-sm font-extrabold text-[#091b6f]">{notification.title}</p>
+                    <p className="mt-1 text-xs font-semibold text-slate-500">{notification.message}</p>
+                    <p className="mt-2 text-[10px] font-bold text-slate-400">
+                      {new Date(notification.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        <div
+          onClick={() => setActiveTab("profile")}
+          className="flex items-center gap-3 cursor-pointer group relative"
+        >
         <div className="text-right hidden sm:block">
           <p className="text-sm font-bold tracking-wide">{adminProfile.name}</p>
           <p className="text-[10px] text-sky-200">System Operator</p>
@@ -79,6 +131,7 @@ export default function Header({
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-sky-200 group-hover:text-white transition-colors">
           <polyline points="6 9 12 15 18 9" />
         </svg>
+        </div>
       </div>
     </header>
   );

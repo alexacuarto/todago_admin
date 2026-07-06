@@ -193,6 +193,11 @@ DROP POLICY IF EXISTS passengers_select_own ON public.passengers;
 CREATE POLICY passengers_select_own ON public.passengers
   FOR SELECT USING ( profile_id = auth.uid() );
 
+-- 6B. Passengers can INSERT their own passenger record (self-heal)
+DROP POLICY IF EXISTS passengers_insert_own ON public.passengers;
+CREATE POLICY passengers_insert_own ON public.passengers
+  FOR INSERT WITH CHECK ( profile_id = auth.uid() );
+
 -- 6B. Admin full access on passengers
 DROP POLICY IF EXISTS passengers_all_admin ON public.passengers;
 CREATE POLICY passengers_all_admin ON public.passengers
@@ -438,6 +443,54 @@ CREATE TRIGGER bookings_set_updated_at
 
 
 -- ############################################################
+-- SECTION 12: AUTO-DEACTIVATE PASSENGER ON 3 CANCELLATIONS
+-- ############################################################
+-- Automatically toggles profiles.is_active = false if passenger cancels >= 3 trips.
+
+CREATE OR REPLACE FUNCTION public.handle_booking_cancellation()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_cancel_count integer;
+  v_profile_id uuid;
+BEGIN
+  -- Get the profile_id for this passenger
+  SELECT profile_id INTO v_profile_id
+  FROM public.passengers
+  WHERE id = COALESCE(NEW.passenger_id, OLD.passenger_id);
+
+  IF v_profile_id IS NOT NULL THEN
+    -- Count all cancelled bookings for this passenger
+    SELECT COUNT(*) INTO v_cancel_count
+    FROM public.bookings
+    WHERE passenger_id = COALESCE(NEW.passenger_id, OLD.passenger_id)
+      AND status = 'cancelled';
+
+    -- If cancellation count is 3 or more, deactivate the passenger profile
+    IF v_cancel_count >= 3 THEN
+      UPDATE public.profiles
+      SET is_active = false
+      WHERE id = v_profile_id;
+    ELSE
+      -- Optional: reactivate if cancellations go below 3 (e.g. on reset)
+      UPDATE public.profiles
+      SET is_active = true
+      WHERE id = v_profile_id;
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_booking_cancelled ON public.bookings;
+CREATE TRIGGER on_booking_cancelled
+  AFTER INSERT OR UPDATE OF status ON public.bookings
+  FOR EACH ROW
+  WHEN (NEW.status = 'cancelled')
+  EXECUTE FUNCTION public.handle_booking_cancellation();
+
+
+-- ############################################################
 -- DONE! Summary of what was created:
 -- ############################################################
 -- ✅ Realtime enabled on 7 tables
@@ -451,4 +504,110 @@ CREATE TRIGGER bookings_set_updated_at
 -- ✅ accept_booking RPC (atomic, race-safe)
 -- ✅ complete_booking RPC (uses estimated_fare)
 -- ✅ updated_at / completed_at columns + auto-trigger
+-- ✅ Auto-deactivate passenger profile on 3+ cancellations trigger
 -- ============================================================
+
+
+-- ############################################################
+-- SECTION 13: FIX GENERATE BOOKING NUMBER BY MAX SUFFIX INSTEAD OF COUNT
+-- ############################################################
+
+CREATE OR REPLACE FUNCTION public.generate_booking_number()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_today_prefix TEXT;
+  v_max_suffix INTEGER;
+BEGIN
+  v_today_prefix := 'TG-' || TO_CHAR(CURRENT_DATE, 'YYYYMMDD') || '-%';
+  
+  SELECT COALESCE(
+    MAX(CAST(SUBSTRING(booking_number FROM '([0-9]+)$') AS INTEGER)), 
+    0
+  ) + 1 INTO v_max_suffix
+  FROM public.bookings
+  WHERE booking_number LIKE v_today_prefix;
+
+  NEW.booking_number := 'TG-' || TO_CHAR(CURRENT_DATE, 'YYYYMMDD') || '-' || LPAD(v_max_suffix::TEXT, 4, '0');
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- ############################################################
+-- SECTION 14: EMAIL COLUMN, UPDATED TRIGGER & PASSENGER BACKFILL
+-- ############################################################
+
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS email TEXT;
+
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_role_txt text;
+  v_role public.user_role;
+BEGIN
+  v_role_txt := NEW.raw_user_meta_data->>'role';
+  IF v_role_txt = 'driver' THEN
+    v_role := 'driver'::public.user_role;
+  ELSIF v_role_txt = 'admin' THEN
+    v_role := 'admin'::public.user_role;
+  ELSE
+    v_role := 'passenger'::public.user_role;
+  END IF;
+
+  BEGIN
+    INSERT INTO public.profiles (id, first_name, last_name, phone_number, email, role)
+    VALUES (
+      NEW.id,
+      COALESCE(NEW.raw_user_meta_data->>'first_name', ''),
+      COALESCE(NEW.raw_user_meta_data->>'last_name', ''),
+      COALESCE(NEW.raw_user_meta_data->>'phone_number', NEW.phone),
+      NEW.email,
+      v_role
+    )
+    ON CONFLICT (id) DO UPDATE SET
+      first_name = EXCLUDED.first_name,
+      last_name = EXCLUDED.last_name,
+      phone_number = EXCLUDED.phone_number,
+      email = EXCLUDED.email,
+      role = EXCLUDED.role;
+  EXCEPTION WHEN OTHERS THEN
+    RAISE WARNING 'Error inserting profile for user %: % (SQLSTATE: %)', NEW.id, SQLERRM, SQLSTATE;
+  END;
+
+  IF v_role = 'passenger' THEN
+    BEGIN
+      INSERT INTO public.passengers (id, profile_id)
+      VALUES (NEW.id, NEW.id)
+      ON CONFLICT (profile_id) DO NOTHING;
+    EXCEPTION WHEN OTHERS THEN
+      RAISE WARNING 'Error inserting passenger for user %: % (SQLSTATE: %)', NEW.id, SQLERRM, SQLSTATE;
+    END;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+UPDATE public.profiles p
+SET
+  first_name = COALESCE(
+    NULLIF(TRIM(p.first_name), ''), 
+    NULLIF(TRIM(u.raw_user_meta_data->>'first_name'), ''),
+    NULLIF(TRIM(u.raw_user_meta_data->>'full_name'), ''),
+    ''
+  ),
+  last_name = COALESCE(
+    NULLIF(TRIM(p.last_name), ''), 
+    NULLIF(TRIM(u.raw_user_meta_data->>'last_name'), ''),
+    ''
+  ),
+  phone_number = COALESCE(
+    p.phone_number, 
+    u.raw_user_meta_data->>'phone_number', 
+    u.phone
+  ),
+  email = COALESCE(p.email, u.email)
+FROM auth.users u
+WHERE p.id = u.id;
+
+

@@ -83,7 +83,7 @@ export default function RideRequestsView({
             className="pl-3 pr-8 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-[#091b6f] cursor-pointer appearance-none outline-hidden focus:border-blue-500"
             defaultValue="all-status"
           >
-            <option value="all-status">All Status → Apr 2,2026</option>
+            <option value="all-status">All Time</option>
             <option value="pending">Pending Only</option>
             <option value="intransit">In Transit Only</option>
           </select>

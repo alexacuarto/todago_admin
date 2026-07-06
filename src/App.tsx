@@ -191,8 +191,8 @@ export default function App() {
           const canceledTrips = passengerBookings.filter(b => b.status === "cancelled").length;
           return {
             id: p.id,
-            name: `${p.first_name || ""} ${p.last_name || ""}`.trim() || "Unnamed Passenger",
-            contact: p.phone_number || "No Contact",
+            name: `${p.first_name || ""} ${p.last_name || ""}`.trim() || p.phone_number || p.email || "Unnamed Passenger",
+            contact: p.phone_number || p.email || "No Contact",
             canceledTrips,
             status: p.is_active ? "Active" : "Inactive",
             joinedDate: p.created_at ? p.created_at.split("T")[0] : new Date().toISOString().split("T")[0],
@@ -206,7 +206,7 @@ export default function App() {
         const vehicle = d.vehicles?.[0] || {};
         const driverBookings = bookings.filter(b => b.driver_id === d.id && (b.status === "droppedOff" || b.status === "paymentSent"));
         const tripsCount = driverBookings.length;
-        
+
         const todaOptions = ["LHITC-TODA", "BYPASS ILAYANG BAGUIO-TODA", "CHOT-TODA"];
         const todaIndex = Math.abs(d.id.split("").reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0)) % todaOptions.length;
         const toda = todaOptions[todaIndex];
@@ -245,21 +245,21 @@ export default function App() {
       // Map Ride Requests
       const mappedRequests: RideRequest[] = bookings.map((b: any) => {
         let passengerProfile: any = profiles.find(p => p.id === b.passenger_id);
-        
+
         if (!passengerProfile && passengersData) {
           const passengerRow = passengersData.find(pd => pd.id === b.passenger_id);
           if (passengerRow) {
             passengerProfile = profiles.find(p => p.id === passengerRow.profile_id);
           }
         }
-        
+
         passengerProfile = passengerProfile || {};
-        const passengerName = `${passengerProfile.first_name || ""} ${passengerProfile.last_name || ""}`.trim() || "Unknown Passenger";
-        
+        const passengerName = `${passengerProfile.first_name || ""} ${passengerProfile.last_name || ""}`.trim() || passengerProfile.phone_number || passengerProfile.email || "Unknown Passenger";
+
         const driverObj = driversData.find((d: any) => d.id === b.driver_id);
         const driverProfile: any = driverObj?.profiles || {};
         const driverName = driverObj ? `${driverProfile.first_name || ""} ${driverProfile.last_name || ""}`.trim() : "Not provided";
-        
+
         const todaOptions = ["LHITC-TODA", "BYPASS ILAYANG BAGUIO-TODA", "CHOT-TODA"];
         let toda = "Not provided";
         if (driverObj) {
@@ -375,7 +375,7 @@ export default function App() {
           .from('profiles')
           .update({ role: 'admin' })
           .eq('id', session.user.id);
-        
+
         if (!promoError) {
           profile.role = 'admin';
         } else {
@@ -574,9 +574,9 @@ export default function App() {
       return;
     }
 
-    console.log("Initiating driver signup request...", { 
-      name: formData.name, 
-      email: formData.email, 
+    console.log("Initiating driver signup request...", {
+      name: formData.name,
+      email: formData.email,
       phone: formData.phone,
       plateNumber: formData.plateNumber,
       toda: formData.toda
@@ -591,6 +591,7 @@ export default function App() {
         contactNumber: formData.phone,
         plateNumber: formData.plateNumber,
         todaAssociation: formData.toda,
+        licenseImage: formData.licenseImage,
       });
 
       if (!result.success) {
@@ -703,7 +704,7 @@ export default function App() {
   const handleDeactivatePassengerToggle = async (id: string) => {
     const passengerObj = passengers.find(p => p.id === id);
     if (!passengerObj) return;
-    
+
     const nextStatus = passengerObj.status === "Active" ? false : true;
 
     console.log("[Supabase Query] Toggling passenger is_active status...");
@@ -739,7 +740,7 @@ export default function App() {
         status: "cancelled",
         estimated_fare: 0
       });
-    
+
     if (error) {
       console.error("[Supabase Error] Failed to simulate cancellation:", error);
       alert(`Failed to simulate cancellation: ${error.message}`);
@@ -765,7 +766,7 @@ export default function App() {
         .from('profiles')
         .update({ is_active: true })
         .eq('id', id);
-        
+
       alert("Cancellations reset and passenger reactivated!");
       fetchData();
     }
@@ -777,7 +778,7 @@ export default function App() {
       alert("Please fill in all fields.");
       return;
     }
-    
+
     const matchPassenger = passengers.find(p => p.name.toLowerCase() === newRequestData.passenger.toLowerCase());
     const passengerId = matchPassenger?.id;
     if (!passengerId) {
@@ -786,7 +787,7 @@ export default function App() {
     }
 
     const assignedDriver = drivers.find(d => d.id === newRequestData.driverId);
-    
+
     console.log("[Supabase Query] Inserting new booking...");
     const { data, error } = await supabase
       .from('bookings')
@@ -797,8 +798,8 @@ export default function App() {
         dropoff_address: newRequestData.destination,
         estimated_fare: Number(newRequestData.fare),
         status: newRequestData.status === "Pending" ? "pending" :
-                newRequestData.status === "In Transit" ? "pickedUp" :
-                newRequestData.status === "Completed" ? "droppedOff" : "cancelled"
+          newRequestData.status === "In Transit" ? "pickedUp" :
+            newRequestData.status === "Completed" ? "droppedOff" : "cancelled"
       })
       .select('*')
       .single();
@@ -893,7 +894,7 @@ export default function App() {
         <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#091b6f] border-t-transparent"></div>
         <p className="text-[#091b6f] font-semibold mt-4 text-sm">Verifying Session...</p>
       </div>
-    );
+    ); /* bakit need iverify yung session*/
   }
 
   // Login View render condition
@@ -944,7 +945,7 @@ export default function App() {
               <button onClick={fetchData} className="px-4 py-1.5 bg-rose-200 hover:bg-rose-300 rounded-lg text-xs font-bold transition-all">Retry</button>
             </div>
           )}
-          
+
           {isLoadingData ? (
             <div className="flex flex-col items-center justify-center p-12 text-slate-400">
               <div className="animate-spin rounded-full h-8 w-8 border-3 border-indigo-600 border-t-transparent mb-3"></div>

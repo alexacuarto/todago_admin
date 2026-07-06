@@ -60,7 +60,9 @@ BEGIN
   -- DRIVER
   INSERT INTO public.drivers (profile_id, license_number, status, approved_at)
   VALUES (p_user_id, 'PENDING', 'approved', now())
-  ON CONFLICT (profile_id) DO NOTHING
+  ON CONFLICT (profile_id) DO UPDATE SET
+    status = 'approved',
+    approved_at = COALESCE(public.drivers.approved_at, now())
   RETURNING id INTO v_driver_id;
 
   -- If driver already existed, select its id

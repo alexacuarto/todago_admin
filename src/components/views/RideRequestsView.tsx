@@ -28,7 +28,7 @@ export default function RideRequestsView({
   setViewingRequest,
   setShowViewRequestModal,
 }: RideRequestsViewProps) {
-  const itemsPerPage = 9;
+  const itemsPerPage = 7;
 
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto">
@@ -36,8 +36,7 @@ export default function RideRequestsView({
       <div className="bg-[#b3e2ff]/30 p-3 rounded-xl flex flex-wrap items-center gap-3 border border-[#b3e2ff]/50">
         <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
           {[
-            { key: "Ongoing", label: "Ongoing (15)" },
-            { key: "Scheduled", label: "Scheduled" },
+            { key: "Ongoing", label: "Ongoing" },
             { key: "Completed", label: "Completed" },
             { key: "Cancelled", label: "Cancelled" },
           ].map((tab) => (
@@ -47,11 +46,10 @@ export default function RideRequestsView({
                 setStatusFilter(tab.key);
                 setRequestsPage(1);
               }}
-              className={`px-4 py-2 rounded-md text-xs font-bold transition-all cursor-pointer ${
-                statusFilter === tab.key
+              className={`px-4 py-2 rounded-md text-xs font-bold transition-all cursor-pointer ${statusFilter === tab.key
                   ? "bg-[#091b6f] text-white shadow-sm"
                   : "text-slate-600 hover:text-[#091b6f]"
-              }`}
+                }`}
             >
               {tab.label}
             </button>
@@ -80,30 +78,7 @@ export default function RideRequestsView({
           </span>
         </div>
 
-        {/* Status / Date Filter */}
-        <div className="relative">
-          <select
-            className="pl-3 pr-8 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-[#091b6f] cursor-pointer appearance-none outline-hidden focus:border-blue-500"
-            defaultValue="all-status"
-          >
-            <option value="all-status">All Status → Apr 2,2026</option>
-            <option value="pending">Pending Only</option>
-            <option value="intransit">In Transit Only</option>
-          </select>
-          <span className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-slate-400">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </span>
-        </div>
 
-        {/* Apply Filter Button */}
-        <button
-          onClick={() => setRequestsPage(1)}
-          className="px-5 py-2 bg-[#4c75f2] hover:bg-blue-600 text-white font-bold text-xs rounded-lg shadow-sm hover:shadow transition-all cursor-pointer"
-        >
-          Apply Filter
-        </button>
       </div>
 
       {/* Main List Container */}
@@ -164,17 +139,14 @@ export default function RideRequestsView({
                     <td className="py-5 px-2 text-slate-600">{r.toda}</td>
                     <td className="py-5">
                       <span
-                        className={`inline-block px-4 py-1 rounded-full text-[10px] font-bold ${
-                          r.status === "Completed"
+                        className={`inline-block px-4 py-1 rounded-full text-[10px] font-bold ${r.status === "Completed"
                             ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
                             : r.status === "In Transit"
-                            ? "bg-emerald-500 text-white border border-emerald-600"
-                            : r.status === "Pending"
-                            ? "bg-amber-100 text-amber-600 border border-amber-200"
-                            : r.status === "Scheduled"
-                            ? "bg-indigo-50 text-indigo-600 border border-indigo-100"
-                            : "bg-rose-50 text-rose-600 border border-rose-100"
-                        }`}
+                              ? "bg-emerald-500 text-white border border-emerald-600"
+                              : r.status === "Pending"
+                                ? "bg-amber-100 text-amber-600 border border-amber-200"
+                                : "bg-rose-50 text-rose-600 border border-rose-100"
+                          }`}
                       >
                         {r.status}
                       </span>
@@ -206,64 +178,38 @@ export default function RideRequestsView({
         {/* Pagination */}
         {filteredRequests.length > 0 && (
           <div className="flex items-center justify-between border-t border-slate-100 pt-6 mt-2">
-            <button
-              onClick={() => setRequestsPage((prev) => Math.max(prev - 1, 1))}
-              disabled={requestsPage === 1}
-              className="text-xs font-bold text-blue-500 hover:underline disabled:opacity-30 disabled:no-underline cursor-pointer flex items-center gap-1"
-            >
-              &lt;&lt; Previous
-            </button>
+            <span className="text-xs text-slate-500 font-bold">
+              Page {requestsPage} of {Math.ceil(filteredRequests.length / itemsPerPage)}
+            </span>
 
-            <div className="flex items-center gap-4">
-              <span className="text-xs text-slate-500 font-bold">
-                Page {requestsPage} of {Math.ceil(filteredRequests.length / itemsPerPage)}
-              </span>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setRequestsPage((prev) => Math.max(prev - 1, 1))}
+                disabled={requestsPage === 1}
+                className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded-lg border ${
+                  requestsPage === 1
+                    ? "opacity-30 border-slate-200 text-slate-400"
+                    : "border-slate-200 hover:bg-slate-50 text-[#091b6f] cursor-pointer"
+                }`}
+              >
+                &lt;
+              </button>
 
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => setRequestsPage(1)}
-                  className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded-lg border ${
-                    requestsPage === 1
-                      ? "bg-slate-100 border-slate-200 text-[#091b6f]"
-                      : "border-slate-200 hover:bg-slate-50 text-[#091b6f] cursor-pointer"
-                  }`}
-                >
-                  &lt;&lt;
-                </button>
-
-                {Array.from(
-                  { length: Math.ceil(filteredRequests.length / itemsPerPage) },
-                  (_, i) => i + 1
-                ).map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => setRequestsPage(p)}
-                    className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded-lg border ${
-                      requestsPage === p
-                        ? "bg-blue-100 border-blue-200 text-blue-600 font-extrabold"
-                        : "border-slate-200 hover:bg-slate-50 text-slate-600 cursor-pointer"
-                    }`}
-                  >
-                    {p}
-                  </button>
-                ))}
-
-                <button
-                  onClick={() =>
-                    setRequestsPage((prev) =>
-                      Math.min(prev + 1, Math.ceil(filteredRequests.length / itemsPerPage))
-                    )
-                  }
-                  disabled={requestsPage === Math.ceil(filteredRequests.length / itemsPerPage)}
-                  className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded-lg border ${
-                    requestsPage === Math.ceil(filteredRequests.length / itemsPerPage)
-                      ? "opacity-30 border-slate-200 text-slate-400"
-                      : "border-slate-200 hover:bg-slate-50 text-[#091b6f] cursor-pointer"
-                  }`}
-                >
-                  Next &gt;&gt;
-                </button>
-              </div>
+              <button
+                onClick={() =>
+                  setRequestsPage((prev) =>
+                    Math.min(prev + 1, Math.ceil(filteredRequests.length / itemsPerPage))
+                  )
+                }
+                disabled={requestsPage === Math.ceil(filteredRequests.length / itemsPerPage)}
+                className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded-lg border ${
+                  requestsPage === Math.ceil(filteredRequests.length / itemsPerPage)
+                    ? "opacity-30 border-slate-200 text-slate-400"
+                    : "border-slate-200 hover:bg-slate-50 text-[#091b6f] cursor-pointer"
+                }`}
+              >
+                &gt;
+              </button>
             </div>
           </div>
         )}

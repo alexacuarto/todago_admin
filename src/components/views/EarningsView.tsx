@@ -41,7 +41,7 @@ export default function EarningsView({
   return (
     <div className="flex flex-col gap-8 max-w-7xl mx-auto">
       {/* Stat Cards Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         {/* Total Earnings */}
         <div
           onClick={() => setActiveStatModal("total-earnings")}
@@ -213,65 +213,39 @@ export default function EarningsView({
 
         {/* Pagination */}
         {filteredEarnings.length > 0 && (
-          <div className="flex items-center justify-between border-t border-slate-100 pt-4 mt-2">
-            <button
-              onClick={() => setEarningsPage((prev) => Math.max(prev - 1, 1))}
-              disabled={earningsPage === 1}
-              className="text-xs font-bold text-blue-500 hover:underline disabled:opacity-30 disabled:no-underline cursor-pointer flex items-center gap-1"
-            >
-              &lt;&lt; Previous
-            </button>
+          <div className="flex items-center justify-between border-t border-slate-100 pt-6 mt-2">
+            <span className="text-xs text-slate-500 font-bold">
+              Page {earningsPage} of {Math.ceil(filteredEarnings.length / itemsPerPage)}
+            </span>
 
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-slate-500 font-bold">
-                Page {earningsPage} of {Math.ceil(filteredEarnings.length / itemsPerPage)}
-              </span>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setEarningsPage((prev) => Math.max(prev - 1, 1))}
+                disabled={earningsPage === 1}
+                className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded-lg border ${
+                  earningsPage === 1
+                    ? "opacity-30 border-slate-200 text-slate-400"
+                    : "border-slate-200 hover:bg-slate-50 text-[#091b6f] cursor-pointer"
+                }`}
+              >
+                &lt;
+              </button>
 
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setEarningsPage(1)}
-                  className={`w-7 h-7 flex items-center justify-center text-xs font-bold rounded-lg border ${
-                    earningsPage === 1
-                      ? "bg-slate-100 border-slate-200 text-[#091b6f]"
-                      : "border-slate-200 hover:bg-slate-50 text-[#091b6f] cursor-pointer"
-                  }`}
-                >
-                  &lt;&lt;
-                </button>
-
-                {Array.from(
-                  { length: Math.ceil(filteredEarnings.length / itemsPerPage) },
-                  (_, i) => i + 1
-                ).map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => setEarningsPage(p)}
-                    className={`w-7 h-7 flex items-center justify-center text-xs font-bold rounded-lg border ${
-                      earningsPage === p
-                        ? "bg-blue-100 border-blue-200 text-blue-600 font-extrabold"
-                        : "border-slate-200 hover:bg-slate-50 text-slate-600 cursor-pointer"
-                    }`}
-                  >
-                    {p}
-                  </button>
-                ))}
-
-                <button
-                  onClick={() =>
-                    setEarningsPage((prev) =>
-                      Math.min(prev + 1, Math.ceil(filteredEarnings.length / itemsPerPage))
-                    )
-                  }
-                  disabled={earningsPage === Math.ceil(filteredEarnings.length / itemsPerPage)}
-                  className={`w-7 h-7 flex items-center justify-center text-xs font-bold rounded-lg border ${
-                    earningsPage === Math.ceil(filteredEarnings.length / itemsPerPage)
-                      ? "opacity-30 border-slate-200 text-slate-400"
-                      : "border-slate-200 hover:bg-slate-50 text-[#091b6f] cursor-pointer"
-                  }`}
-                >
-                  Next &gt;&gt;
-                </button>
-              </div>
+              <button
+                onClick={() =>
+                  setEarningsPage((prev) =>
+                    Math.min(prev + 1, Math.ceil(filteredEarnings.length / itemsPerPage))
+                  )
+                }
+                disabled={earningsPage === Math.ceil(filteredEarnings.length / itemsPerPage)}
+                className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded-lg border ${
+                  earningsPage === Math.ceil(filteredEarnings.length / itemsPerPage)
+                    ? "opacity-30 border-slate-200 text-slate-400"
+                    : "border-slate-200 hover:bg-slate-50 text-[#091b6f] cursor-pointer"
+                }`}
+              >
+                &gt;
+              </button>
             </div>
           </div>
         )}

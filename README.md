@@ -1,36 +1,29 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TODA GO Admin Dashboard
 
-## Getting Started
+React/Vite admin web dashboard for the TODA GO tricycle booking system.
 
-First, run the development server:
+## Current Implemented Scope
+
+- Supabase Auth admin login and session restore.
+- Supabase-backed dashboard data for drivers, passengers, rides, earnings, fare settings, and notifications.
+- Driver account creation through the `create-driver-account` Edge Function.
+- Driver/passenger editing, activation/deactivation, driver verification, and optional Auth email/password update through the `admin-update-auth-user` Edge Function.
+- Driver license image upload and private signed-url viewing through Supabase Storage.
+- Realtime operational refreshes and notification dropdown.
+- Fare settings panel for one-way/round-trip pricing and Student/PWD/Senior Citizen discounts.
+- Header refresh action that reloads operational data, fare settings, and notifications.
+
+## Recent Reliability/UI Updates
+
+- Supabase table loads, fare updates, account edits, license uploads, driver creation, and Auth update Edge Function calls use bounded request timeouts.
+- Operational load failures show a visible retry action.
+- Admin build currently passes; Vite still reports a non-blocking bundle chunk-size warning.
+
+## Main Verification Commands
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`npm run lint` is not currently ready because ESLint is not installed/configured.

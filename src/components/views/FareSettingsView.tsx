@@ -44,13 +44,10 @@ export default function FareSettingsView({
     <div className="max-w-6xl mx-auto space-y-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-extrabold text-[#091b6f]">Fare Settings</h1>
+          <h1 className="text-2xl font-extrabold text-[#091b6f]">Adjust Fare Pricing</h1>
           <p className="text-sm font-semibold text-slate-500">
-            Manage distance-based pricing and passenger category discounts.
+            Manage pricing and passenger discounts.
           </p>
-        </div>
-        <div className="rounded-md border border-blue-100 bg-white px-4 py-3 text-sm font-bold text-[#091b6f] shadow-sm">
-          Server recalculates every fare during ride creation
         </div>
       </div>
 
@@ -204,26 +201,6 @@ export default function FareSettingsView({
               </div>
 
               <div className="border-t border-slate-100 bg-slate-50 px-5 py-4">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <div>
-                    <p className="text-[11px] font-extrabold uppercase text-slate-400">1.0 km, 1 regular</p>
-                    <p className="text-base font-extrabold text-[#091b6f]">
-                      {peso(sampleFare(setting, 1, { regular: 1, student: 0, pwd: 0, senior: 0 }))}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-extrabold uppercase text-slate-400">3.4 km, 1 student</p>
-                    <p className="text-base font-extrabold text-[#091b6f]">
-                      {peso(sampleFare(setting, 3.4, { regular: 0, student: 1, pwd: 0, senior: 0 }))}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-extrabold uppercase text-slate-400">3.4 km, mixed 4 pax</p>
-                    <p className="text-base font-extrabold text-[#091b6f]">
-                      {peso(sampleFare(setting, 3.4, { regular: 1, student: 1, pwd: 1, senior: 1 }))}
-                    </p>
-                  </div>
-                </div>
                 <div className="mt-4 flex items-center justify-between gap-3">
                   <p className="text-xs font-semibold text-slate-500">
                     Last updated: {setting.updatedAt ? new Date(setting.updatedAt).toLocaleString() : "Not yet saved"}

@@ -79,31 +79,21 @@ export default function ViewRequestModal({
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Ride Status</p>
               <div className="mt-1">
                 <span
-                  className={`inline-block px-3 py-1 rounded-full text-xs font-extrabold ${
-                    viewingRequest.status === "Completed"
+                  className={`inline-block px-3 py-1 rounded-full text-xs font-extrabold ${viewingRequest.status === "Completed"
                       ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
                       : viewingRequest.status === "In Transit"
-                      ? "bg-emerald-500 text-white border border-emerald-600"
-                      : viewingRequest.status === "Pending"
-                      ? "bg-amber-50 text-amber-600 border border-amber-100"
-                      : viewingRequest.status === "Scheduled"
-                      ? "bg-indigo-50 text-indigo-600 border border-indigo-100"
-                      : "bg-rose-50 text-rose-600 border border-rose-100"
-                  }`}
+                        ? "bg-emerald-500 text-white border border-emerald-600"
+                        : viewingRequest.status === "Pending"
+                          ? "bg-amber-50 text-amber-600 border border-amber-100"
+                          : viewingRequest.status === "Scheduled"
+                            ? "bg-indigo-50 text-indigo-600 border border-indigo-100"
+                            : "bg-rose-50 text-rose-600 border border-rose-100"
+                    }`}
                 >
                   {viewingRequest.status}
                 </span>
               </div>
             </div>
-          </div>
-
-          <div className="border-t border-slate-100 pt-5 mt-2 flex items-center justify-end">
-            <button
-              onClick={onClose}
-              className="px-6 py-2.5 bg-[#091b6f] hover:bg-blue-800 text-white rounded-xl font-bold text-sm transition-colors cursor-pointer shadow-sm hover:shadow"
-            >
-              Close Audit Detail
-            </button>
           </div>
         </div>
       </div>

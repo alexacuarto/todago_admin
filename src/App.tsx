@@ -280,7 +280,7 @@ export default function App() {
   const [earningsDateRange, setEarningsDateRange] = useState("April 1, 2024- April 30, 2026");
   const [userTodaFilter, setUserTodaFilter] = useState("All");
   const [userStatusFilter, setUserStatusFilter] = useState("All");
-  const [usersSubTab, setUsersSubTab] = useState<"all" | "drivers" | "passengers">("all");
+  const [usersSubTab, setUsersSubTab] = useState<"all" | "drivers" | "passengers">("drivers");
 
   // Pagination states
   const [requestsPage, setRequestsPage] = useState(1);
@@ -752,7 +752,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#f3f8fc] font-sans antialiased text-slate-800">
+    <div className="flex flex-col h-screen bg-[#f3f8fc] font-sans antialiased text-slate-800">
       {/* HEADER SECTION */}
       <Header
         adminProfile={adminProfile}

@@ -116,6 +116,8 @@ export default function App() {
   const [isSavingFareSetting, setIsSavingFareSetting] = useState("");
   const [operationalDataError, setOperationalDataError] = useState("");
   const [fareSettingsError, setFareSettingsError] = useState("");
+  const [operationalReloadKey, setOperationalReloadKey] = useState(0);
+  const [notificationReloadKey, setNotificationReloadKey] = useState(0);
 
   useEffect(() => {
     if (!isLoggedIn) return;
@@ -165,7 +167,7 @@ export default function App() {
       isMounted = false;
       channel.unsubscribe();
     };
-  }, [isLoggedIn]);
+  }, [isLoggedIn, operationalReloadKey]);
 
   useEffect(() => {
     if (!isLoggedIn) return;
@@ -188,7 +190,12 @@ export default function App() {
       isMounted = false;
       channel.unsubscribe();
     };
-  }, [isLoggedIn]);
+  }, [isLoggedIn, notificationReloadKey]);
+
+  const handleRefreshDashboard = () => {
+    setOperationalReloadKey(key => key + 1);
+    setNotificationReloadKey(key => key + 1);
+  };
 
   const handleMarkNotificationsRead = async () => {
     try {
@@ -342,6 +349,7 @@ export default function App() {
   // Handlers
   const handleAddDriver = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isCreatingDriver) return;
     if (!formData.name || !formData.phone || !formData.email || !formData.password || !formData.plateNumber) {
       alert("Please fill in all fields.");
       return;
@@ -385,6 +393,7 @@ export default function App() {
       });
       setActiveTab("users");
       setUsersSubTab("drivers");
+      setOperationalReloadKey(key => key + 1);
       alert(`Driver account created successfully for ${result.driverName}!\nThe driver can now log in with the Flutter app.`);
     } catch (err: any) {
       alert(`Unexpected error: ${err.message || err}`);
@@ -749,6 +758,8 @@ export default function App() {
         adminProfile={adminProfile}
         notifications={notifications}
         onMarkNotificationsRead={handleMarkNotificationsRead}
+        onRefreshDashboard={handleRefreshDashboard}
+        isRefreshingDashboard={isLoadingOperationalData || isLoadingFareSettings}
         setActiveTab={setActiveTab}
         mobileMenuOpen={mobileMenuOpen}
         setMobileMenuOpen={setMobileMenuOpen}
@@ -774,8 +785,16 @@ export default function App() {
           )}
 
           {operationalDataError && (
-            <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
-              Supabase data load failed: {operationalDataError}
+            <div className="mb-4 flex flex-col gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 sm:flex-row sm:items-center sm:justify-between">
+              <span>Supabase data load failed: {operationalDataError}</span>
+              <button
+                type="button"
+                onClick={() => setOperationalReloadKey(key => key + 1)}
+                disabled={isLoadingOperationalData}
+                className="rounded-lg bg-rose-600 px-3 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:bg-rose-300"
+              >
+                Retry
+              </button>
             </div>
           )}
 

@@ -87,23 +87,35 @@ function assertNoError(label: string, error: unknown) {
   }
 }
 
+function withTimeout<T>(promise: PromiseLike<T>, label: string, timeoutMs = 15000): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => {
+      reject(new Error(`${label} timed out. Check the internet connection and try again.`));
+    }, timeoutMs);
+
+    Promise.resolve(promise)
+      .then(resolve, reject)
+      .finally(() => window.clearTimeout(timer));
+  });
+}
+
 export async function fetchAdminDashboardData() {
   const [profilesResult, driversResult, passengersResult, ridesResult, earningsResult] = await Promise.all([
-    supabase
+    withTimeout(supabase
       .from("profiles")
-      .select("id, full_name, phone, email, role, is_active, avatar_url"),
-    supabase
+      .select("id, full_name, phone, email, role, is_active, avatar_url"), "profiles load"),
+    withTimeout(supabase
       .from("drivers")
-      .select("id, user_id, license_number, license_image_url, tricycle_body_number, plate_number, status, is_verified, created_at"),
-    supabase
+      .select("id, user_id, license_number, license_image_url, tricycle_body_number, plate_number, status, is_verified, created_at"), "drivers load"),
+    withTimeout(supabase
       .from("passengers")
-      .select("id, user_id, created_at"),
-    supabase
+      .select("id, user_id, created_at"), "passengers load"),
+    withTimeout(supabase
       .from("rides")
-      .select("id, passenger_id, driver_id, pickup_address, pickup_latitude, pickup_longitude, dropoff_address, dropoff_latitude, dropoff_longitude, status, fare_amount, requested_at"),
-    supabase
+      .select("id, passenger_id, driver_id, pickup_address, pickup_latitude, pickup_longitude, dropoff_address, dropoff_latitude, dropoff_longitude, status, fare_amount, requested_at"), "rides load"),
+    withTimeout(supabase
       .from("driver_earnings")
-      .select("id, driver_id, ride_id, created_at, gross_fare"),
+      .select("id, driver_id, ride_id, created_at, gross_fare"), "earnings load"),
   ]);
 
   assertNoError("profiles", profilesResult.error);
@@ -208,10 +220,10 @@ export async function updateDriverVerification(
   driverId: string | number,
   isVerified: boolean,
 ) {
-  const { error } = await supabase
+  const { error } = await withTimeout(supabase
     .from("drivers")
     .update({ is_verified: isVerified })
-    .eq("id", driverId);
+    .eq("id", driverId), "update driver verification");
 
   assertNoError("update driver verification", error);
 }
@@ -222,27 +234,27 @@ export async function updateDriverActiveStatus(
 ) {
   const driverId = String(driver.id);
 
-  const { data: driverRow, error: driverReadError } = await supabase
+  const { data: driverRow, error: driverReadError } = await withTimeout(supabase
     .from("drivers")
     .select("user_id")
     .eq("id", driverId)
-    .single();
+    .single(), "read driver account");
 
   assertNoError("read driver account", driverReadError);
 
   const userId = (driverRow as { user_id: string }).user_id;
 
-  const { error: profileError } = await supabase
+  const { error: profileError } = await withTimeout(supabase
     .from("profiles")
     .update({ is_active: status === "Active" })
-    .eq("id", userId);
+    .eq("id", userId), "update driver active status");
 
   assertNoError("update driver active status", profileError);
 
-  const { error: driverError } = await supabase
+  const { error: driverError } = await withTimeout(supabase
     .from("drivers")
     .update({ status: status === "Inactive" ? "suspended" : "offline" })
-    .eq("id", driverId);
+    .eq("id", driverId), "update driver availability status");
 
   assertNoError("update driver availability status", driverError);
 }
@@ -264,11 +276,11 @@ export async function updateDriverAccount(
 ) {
   const driverId = String(driver.id);
 
-  const { data: driverRow, error: driverReadError } = await supabase
+  const { data: driverRow, error: driverReadError } = await withTimeout(supabase
     .from("drivers")
     .select("user_id")
     .eq("id", driverId)
-    .single();
+    .single(), "read driver account");
 
   assertNoError("read driver account", driverReadError);
 
@@ -279,7 +291,7 @@ export async function updateDriverAccount(
     password: updates.password,
   });
 
-  const { error: profileError } = await supabase
+  const { error: profileError } = await withTimeout(supabase
     .from("profiles")
     .update({
       full_name: updates.name,
@@ -287,11 +299,11 @@ export async function updateDriverAccount(
       email: updates.email || null,
       is_active: updates.status === "Active",
     })
-    .eq("id", userId);
+    .eq("id", userId), "update driver profile");
 
   assertNoError("update driver profile", profileError);
 
-  const { error: driverError } = await supabase
+  const { error: driverError } = await withTimeout(supabase
     .from("drivers")
     .update({
       license_number: updates.license,
@@ -300,7 +312,7 @@ export async function updateDriverAccount(
       status: updates.status === "Inactive" ? "suspended" : "offline",
       is_verified: updates.isVerified,
     })
-    .eq("id", driverId);
+    .eq("id", driverId), "update driver record");
 
   assertNoError("update driver record", driverError);
 }
@@ -317,11 +329,11 @@ export async function updatePassengerAccount(
 ) {
   const passengerId = String(passenger.id);
 
-  const { data: passengerRow, error: passengerReadError } = await supabase
+  const { data: passengerRow, error: passengerReadError } = await withTimeout(supabase
     .from("passengers")
     .select("user_id")
     .eq("id", passengerId)
-    .single();
+    .single(), "read passenger account");
 
   assertNoError("read passenger account", passengerReadError);
 
@@ -332,7 +344,7 @@ export async function updatePassengerAccount(
     password: updates.password,
   });
 
-  const { error: profileError } = await supabase
+  const { error: profileError } = await withTimeout(supabase
     .from("profiles")
     .update({
       full_name: updates.name,
@@ -340,7 +352,7 @@ export async function updatePassengerAccount(
       email: updates.email || null,
       is_active: updates.status === "Active",
     })
-    .eq("id", userId);
+    .eq("id", userId), "update passenger profile");
 
   assertNoError("update passenger profile", profileError);
 }
@@ -351,20 +363,20 @@ export async function updatePassengerActiveStatus(
 ) {
   const passengerId = String(passenger.id);
 
-  const { data: passengerRow, error: passengerReadError } = await supabase
+  const { data: passengerRow, error: passengerReadError } = await withTimeout(supabase
     .from("passengers")
     .select("user_id")
     .eq("id", passengerId)
-    .single();
+    .single(), "read passenger account");
 
   assertNoError("read passenger account", passengerReadError);
 
   const userId = (passengerRow as { user_id: string }).user_id;
 
-  const { error: profileError } = await supabase
+  const { error: profileError } = await withTimeout(supabase
     .from("profiles")
     .update({ is_active: status === "Active" })
-    .eq("id", userId);
+    .eq("id", userId), "update passenger active status");
 
   assertNoError("update passenger active status", profileError);
 }
@@ -377,13 +389,13 @@ async function updateAuthAccount(
   const password = updates.password?.trim();
   if (!email && !password) return;
 
-  const { data, error } = await supabase.functions.invoke("admin-update-auth-user", {
+  const { data, error } = await withTimeout(supabase.functions.invoke("admin-update-auth-user", {
     body: {
       userId,
       email: email || undefined,
       password: password || undefined,
     },
-  });
+  }), "update auth account", 20000);
 
   assertNoError("update auth account", error);
   if (data && data.success === false) {
@@ -399,19 +411,19 @@ export async function uploadDriverLicenseImage(
   const extension = extensionFor(file.name);
   const path = `${driverIdString}/license.${extension}`;
 
-  const { error: uploadError } = await supabase.storage
+  const { error: uploadError } = await withTimeout(supabase.storage
     .from("driver-documents")
     .upload(path, file, {
       upsert: true,
       contentType: file.type || contentTypeFor(extension),
-    });
+    }), "upload driver license image", 30000);
 
   assertNoError("upload driver license image", uploadError);
 
-  const { error: updateError } = await supabase
+  const { error: updateError } = await withTimeout(supabase
     .from("drivers")
     .update({ license_image_url: path })
-    .eq("id", driverIdString);
+    .eq("id", driverIdString), "save driver license image URL");
 
   assertNoError("save driver license image URL", updateError);
   return createDriverDocumentSignedUrl(path);
@@ -433,17 +445,17 @@ function mapFareSetting(row: FareSettingRow): FareSetting {
 }
 
 export async function fetchFareSettings() {
-  const { data, error } = await supabase
+  const { data, error } = await withTimeout(supabase
     .from("fare_settings")
     .select("trip_type, label, base_fare, included_km, per_succeeding_km, student_discount_percent, pwd_discount_percent, senior_discount_percent, is_active, updated_at")
-    .order("trip_type", { ascending: true });
+    .order("trip_type", { ascending: true }), "fare settings load");
 
   assertNoError("fare_settings", error);
   return ((data ?? []) as FareSettingRow[]).map(mapFareSetting);
 }
 
 export async function updateFareSetting(setting: FareSetting) {
-  const { data, error } = await supabase
+  const { data, error } = await withTimeout(supabase
     .from("fare_settings")
     .update({
       label: setting.label,
@@ -457,7 +469,7 @@ export async function updateFareSetting(setting: FareSetting) {
     })
     .eq("trip_type", setting.tripType)
     .select("trip_type, label, base_fare, included_km, per_succeeding_km, student_discount_percent, pwd_discount_percent, senior_discount_percent, is_active, updated_at")
-    .single();
+    .single(), "update fare setting");
 
   assertNoError("update fare setting", error);
   return mapFareSetting(data as FareSettingRow);
@@ -465,9 +477,9 @@ export async function updateFareSetting(setting: FareSetting) {
 
 async function createDriverDocumentSignedUrl(path: string) {
   if (path.startsWith("http")) return path;
-  const { data, error } = await supabase.storage
+  const { data, error } = await withTimeout(supabase.storage
     .from("driver-documents")
-    .createSignedUrl(path, 60 * 60);
+    .createSignedUrl(path, 60 * 60), "sign driver license image URL");
 
   assertNoError("sign driver license image URL", error);
   if (!data?.signedUrl) {

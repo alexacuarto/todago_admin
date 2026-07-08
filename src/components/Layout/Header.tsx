@@ -9,6 +9,8 @@ interface HeaderProps {
   };
   notifications: AdminNotification[];
   onMarkNotificationsRead: () => void;
+  onRefreshDashboard: () => void;
+  isRefreshingDashboard: boolean;
   setActiveTab: (tab: AdminTab) => void;
   mobileMenuOpen: boolean;
   setMobileMenuOpen: (open: boolean) => void;
@@ -18,6 +20,8 @@ export default function Header({
   adminProfile,
   notifications,
   onMarkNotificationsRead,
+  onRefreshDashboard,
+  isRefreshingDashboard,
   setActiveTab,
   mobileMenuOpen,
   setMobileMenuOpen,
@@ -51,6 +55,29 @@ export default function Header({
       </div>
 
       <div className="flex items-center gap-4">
+        <button
+          type="button"
+          onClick={onRefreshDashboard}
+          disabled={isRefreshingDashboard}
+          className="rounded-full bg-white/15 p-2.5 transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
+          aria-label="Refresh dashboard"
+          title="Refresh dashboard"
+        >
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.3"
+            className={isRefreshingDashboard ? "animate-spin" : ""}
+          >
+            <path d="M21 12a9 9 0 0 1-15.5 6.2" />
+            <path d="M3 12A9 9 0 0 1 18.5 5.8" />
+            <path d="M18 2v4h-4" />
+            <path d="M6 22v-4h4" />
+          </svg>
+        </button>
         <div className="relative group">
           <button
             className="relative rounded-full bg-white/15 p-2.5 hover:bg-white/20 transition-colors"

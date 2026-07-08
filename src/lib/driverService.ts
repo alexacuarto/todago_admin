@@ -17,6 +17,18 @@ export interface CreateDriverResult {
   driverId?: string;
 }
 
+function withTimeout<T>(promise: PromiseLike<T>, label: string, timeoutMs = 20000): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => {
+      reject(new Error(`${label} timed out. Check the internet connection and try again.`));
+    }, timeoutMs);
+
+    Promise.resolve(promise)
+      .then(resolve, reject)
+      .finally(() => window.clearTimeout(timer));
+  });
+}
+
 /**
  * Creates a driver through a Supabase Edge Function.
  * The service role key must stay in the Edge Function, never in React.
@@ -30,9 +42,9 @@ export async function createDriverAccount(
     return { success: false, error: 'Please fill in all required fields.' };
   }
 
-  const { data, error } = await supabase.functions.invoke("create-driver-account", {
+  const { data, error } = await withTimeout(supabase.functions.invoke("create-driver-account", {
     body: params,
-  });
+  }), "create driver account", 25000);
 
   if (error) {
     if (error instanceof FunctionsHttpError) {
@@ -52,22 +64,22 @@ export async function createDriverAccount(
     return { success: false, error: data.error ?? "Driver account creation failed." };
   }
 
-  const { data: profile } = await supabase
+  const { data: profile } = await withTimeout(supabase
     .from("profiles")
     .select("id")
     .eq("email", email)
-    .maybeSingle();
+    .maybeSingle(), "resolve driver profile");
 
   const userId = (profile as { id?: string } | null)?.id;
   if (!userId) {
     return { success: true, driverName: fullName };
   }
 
-  const { data: driver } = await supabase
+  const { data: driver } = await withTimeout(supabase
     .from("drivers")
     .select("id")
     .eq("user_id", userId)
-    .maybeSingle();
+    .maybeSingle(), "resolve driver record");
 
   return {
     success: true,

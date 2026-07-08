@@ -894,7 +894,7 @@ export default function App() {
         <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#091b6f] border-t-transparent"></div>
         <p className="text-[#091b6f] font-semibold mt-4 text-sm">Verifying Session...</p>
       </div>
-    ); /* bakit need iverify yung session*/
+    );
   }
 
   // Login View render condition

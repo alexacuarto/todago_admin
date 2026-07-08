@@ -21,7 +21,7 @@ export default function StatBreakdownModal({
 }: StatBreakdownModalProps) {
   if (!isOpen || !activeStatModal) return null;
 
-  // Helper helper to get title based on type
+  // Helper function to get title based on type
   const getModalTitle = (type: string) => {
     switch (type) {
       case "total-drivers":

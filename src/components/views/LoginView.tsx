@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { supabase } from "../../lib/supabase";
+import { AdminProfile, loginAdmin } from "../../lib/authService";
 
 interface LoginViewProps {
   loginEmail: string;
@@ -11,6 +11,7 @@ interface LoginViewProps {
   showPassword: boolean;
   setShowPassword: (val: boolean) => void;
   setIsLoggedIn: (val: boolean) => void;
+  onLoginSuccess: (profile: AdminProfile) => void;
 }
 
 export default function LoginView({
@@ -23,50 +24,21 @@ export default function LoginView({
   showPassword,
   setShowPassword,
   setIsLoggedIn,
+  onLoginSuccess,
 }: LoginViewProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!loginEmail || !loginPassword) {
-      setLoginError("Please enter both email and password.");
-      return;
-    }
-    if (!loginEmail.includes("@")) {
-      setLoginError("Please enter a valid email address.");
-      return;
-    }
-
     setIsLoading(true);
     setLoginError("");
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: loginEmail,
-        password: loginPassword,
-      });
-
-      if (error) {
-        // Handle specific Supabase auth errors
-        if (error.message.includes("Invalid login credentials")) {
-          setLoginError("Invalid credentials. Please check your email and password.");
-        } else if (error.message.includes("Email not confirmed")) {
-          setLoginError("Email not confirmed. Please verify your email first.");
-        } else {
-          setLoginError(error.message || "Authentication failed. Please try again.");
-        }
-        return;
-      }
-
-      // Only navigate to dashboard if we have a valid session and user
-      if (data?.session && data?.user) {
-        setIsLoggedIn(true);
-      } else {
-        setLoginError("Login failed. No valid session returned.");
-      }
-    } catch (err: any) {
-      setLoginError("An unexpected error occurred. Please try again.");
-      console.error("Login error:", err);
+      const profile = await loginAdmin(loginEmail, loginPassword);
+      onLoginSuccess(profile);
+      setIsLoggedIn(true);
+    } catch (error) {
+      setLoginError(error instanceof Error ? error.message : "Login failed.");
     } finally {
       setIsLoading(false);
     }
@@ -77,14 +49,6 @@ export default function LoginView({
       <div className="flex flex-col items-center w-full max-w-sm mt-4">
         {/* Uploaded Logo */}
         <img src="/icons/login.png" alt="Tayabas TODA Go Logo" className="w-24 h-auto object-contain mt-10 mb-5" />
-
-        {/* App Name */}
-        <h1 className="text-[#091b6f] font-bold text-lg tracking-wide text-center leading-none mt-1">
-          Tayabas TODA Go
-        </h1>
-        <p className="text-[#2b4bb5] text-sm tracking-wide mt-1">
-          Booking App
-        </p>
 
         {/* Welcome Headers */}
         <h2 className="text-[#091b6f] font-extrabold text-[28px] tracking-tight mt-10 mb-1">
@@ -175,11 +139,10 @@ export default function LoginView({
           <button
             type="submit"
             disabled={isLoading}
-            className={`${
-              isLoading
+            className={`${isLoading
                 ? "bg-[#5b7af5]/70 cursor-not-allowed"
                 : "bg-[#5b7af5] hover:bg-[#4f73f6] active:bg-blue-700 cursor-pointer"
-            } text-white font-extrabold text-base py-4 px-6 rounded-2xl w-full shadow-md hover:shadow-lg transition-all mt-4`}
+              } text-white font-extrabold text-base py-4 px-6 rounded-2xl w-full shadow-md hover:shadow-lg transition-all mt-4`}
           >
             {isLoading ? "Authenticating..." : "Login"}
           </button>

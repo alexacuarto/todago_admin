@@ -1,5 +1,4 @@
-import React from "react";
-import { RideRequest } from "../../data/mockData";
+import { RideRequest } from "../../types";
 
 interface ViewRequestModalProps {
   isOpen: boolean;
@@ -49,12 +48,42 @@ export default function ViewRequestModal({
               <p className="font-bold text-slate-700 mt-0.5">{viewingRequest.destination || "N/A"}</p>
             </div>
             <div>
+              <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Pickup Coordinates</p>
+              <p className="font-bold text-slate-700 mt-0.5">
+                {viewingRequest.pickupLatitude && viewingRequest.pickupLongitude
+                  ? `${viewingRequest.pickupLatitude.toFixed(5)}, ${viewingRequest.pickupLongitude.toFixed(5)}`
+                  : "N/A"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Drop-off Coordinates</p>
+              <p className="font-bold text-slate-700 mt-0.5">
+                {viewingRequest.dropoffLatitude && viewingRequest.dropoffLongitude
+                  ? `${viewingRequest.dropoffLatitude.toFixed(5)}, ${viewingRequest.dropoffLongitude.toFixed(5)}`
+                  : "N/A"}
+              </p>
+            </div>
+            <div>
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Fare Value</p>
-              <p className="font-extrabold text-[#091b6f] text-lg mt-0.5">₱{viewingRequest.fare}</p>
+              <p className="font-extrabold text-[#091b6f] text-lg mt-0.5">
+                ₱{viewingRequest.fare.toLocaleString()}
+              </p>
             </div>
             <div>
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Booking Time</p>
               <p className="font-bold text-slate-500 mt-0.5">{viewingRequest.time}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Driver Earning</p>
+              <p className="font-extrabold text-emerald-700 text-lg mt-0.5">
+                {viewingRequest.earningAmount > 0
+                  ? `₱${viewingRequest.earningAmount.toLocaleString()}`
+                  : "Not recorded yet"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Earning Date</p>
+              <p className="font-bold text-slate-500 mt-0.5">{viewingRequest.earningDate || "N/A"}</p>
             </div>
             <div>
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">TODA Association</p>
@@ -64,31 +93,21 @@ export default function ViewRequestModal({
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Ride Status</p>
               <div className="mt-1">
                 <span
-                  className={`inline-block px-3 py-1 rounded-full text-xs font-extrabold ${
-                    viewingRequest.status === "Completed"
+                  className={`inline-block px-3 py-1 rounded-full text-xs font-extrabold ${viewingRequest.status === "Completed"
                       ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
                       : viewingRequest.status === "In Transit"
-                      ? "bg-emerald-500 text-white border border-emerald-600"
-                      : viewingRequest.status === "Pending"
-                      ? "bg-amber-50 text-amber-600 border border-amber-100"
-                      : viewingRequest.status === "Scheduled"
-                      ? "bg-indigo-50 text-indigo-600 border border-indigo-100"
-                      : "bg-rose-50 text-rose-600 border border-rose-100"
-                  }`}
+                        ? "bg-emerald-500 text-white border border-emerald-600"
+                        : viewingRequest.status === "Pending"
+                          ? "bg-amber-50 text-amber-600 border border-amber-100"
+                          : viewingRequest.status === "Scheduled"
+                            ? "bg-indigo-50 text-indigo-600 border border-indigo-100"
+                            : "bg-rose-50 text-rose-600 border border-rose-100"
+                    }`}
                 >
                   {viewingRequest.status}
                 </span>
               </div>
             </div>
-          </div>
-
-          <div className="border-t border-slate-100 pt-5 mt-2 flex items-center justify-end">
-            <button
-              onClick={onClose}
-              className="px-6 py-2.5 bg-[#091b6f] hover:bg-blue-800 text-white rounded-xl font-bold text-sm transition-colors cursor-pointer shadow-sm hover:shadow"
-            >
-              Close Audit Detail
-            </button>
           </div>
         </div>
       </div>

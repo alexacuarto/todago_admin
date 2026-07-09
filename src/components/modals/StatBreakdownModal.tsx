@@ -1,5 +1,4 @@
-import React from "react";
-import { Driver, Passenger, RideRequest } from "../../data/mockData";
+import { Driver, Passenger, RideRequest } from "../../types";
 
 interface StatBreakdownModalProps {
   isOpen: boolean;
@@ -8,7 +7,6 @@ interface StatBreakdownModalProps {
   drivers: Driver[];
   passengers: Passenger[];
   rideRequests: RideRequest[];
-  earningsToday: number;
 }
 
 export default function StatBreakdownModal({
@@ -18,9 +16,25 @@ export default function StatBreakdownModal({
   drivers,
   passengers,
   rideRequests,
-  earningsToday,
 }: StatBreakdownModalProps) {
   if (!isOpen || !activeStatModal) return null;
+
+  const completedRides = rideRequests.filter((ride) => ride.status === "Completed");
+  const totalRecordedEarnings = rideRequests.reduce((sum, ride) => sum + ride.earningAmount, 0);
+  const todaNames = Array.from(new Set([
+    ...rideRequests.map((ride) => ride.toda).filter((toda) => toda && toda !== "-"),
+    ...drivers.map((driver) => driver.toda).filter((toda) => toda && toda !== "-"),
+  ])).sort();
+  const earningsByToda = todaNames.map((toda) => ({
+    toda,
+    amount: rideRequests
+      .filter((ride) => ride.toda === toda)
+      .reduce((sum, ride) => sum + ride.earningAmount, 0),
+  }));
+  const completedRidesByToda = todaNames.map((toda) => ({
+    toda,
+    count: completedRides.filter((ride) => ride.toda === toda).length,
+  }));
 
   // Helper helper to get title based on type
   const getModalTitle = (type: string) => {
@@ -37,8 +51,7 @@ export default function StatBreakdownModal({
         return "Total Transacted Volume";
       case "completed-rides":
         return "Lifetime Completed Rides";
-      case "commission-earned":
-        return "Platform Commissions (15%)";
+
       case "active-passengers":
         return "Active Passengers";
       case "registered-passengers":
@@ -264,33 +277,27 @@ export default function StatBreakdownModal({
             <div className="flex flex-col gap-4">
               <div className="bg-[#091b6f] text-white p-5 rounded-2xl text-center">
                 <p className="text-xs text-sky-200 font-bold uppercase tracking-wider">
-                  Total Earnings (Baseline + Active Volume)
+                  Total Recorded Earnings
                 </p>
-                <p className="text-4xl font-extrabold mt-1">₱ {earningsToday.toLocaleString()}</p>
+                <p className="text-4xl font-extrabold mt-1">₱ {totalRecordedEarnings.toLocaleString()}</p>
               </div>
               <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider">TODA Earnings breakdown</h4>
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col gap-3 font-semibold text-slate-600 text-sm">
-                <div className="flex justify-between">
-                  <span>LHITC-TODA (45%)</span>
-                  <span className="font-bold text-slate-800">
-                    ₱ {((earningsToday) * 0.45).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                  </span>
-                </div>
-                <div className="flex justify-between border-t border-slate-200/50 pt-2">
-                  <span>CHOT-TODA (30%)</span>
-                  <span className="font-bold text-slate-800">
-                    ₱ {((earningsToday) * 0.30).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                  </span>
-                </div>
-                <div className="flex justify-between border-t border-slate-200/50 pt-2">
-                  <span>BYPASS ILAYANG BAGUIO-TODA (25%)</span>
-                  <span className="font-bold text-slate-800">
-                    ₱ {((earningsToday) * 0.25).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                  </span>
-                </div>
+                {earningsByToda.map((entry, index) => (
+                  <div
+                    key={entry.toda}
+                    className={`flex justify-between ${index > 0 ? "border-t border-slate-200/50 pt-2" : ""}`}
+                  >
+                    <span>{entry.toda}</span>
+                    <span className="font-bold text-slate-800">₱ {entry.amount.toLocaleString()}</span>
+                  </div>
+                ))}
+                {earningsByToda.length === 0 && (
+                  <p className="text-center text-xs font-bold text-slate-400">No earning records found.</p>
+                )}
                 <div className="flex justify-between border-t border-slate-200/50 pt-2 font-bold text-[#091b6f]">
                   <span>Total transacted volume</span>
-                  <span>₱ {earningsToday.toLocaleString()}</span>
+                  <span>₱ {totalRecordedEarnings.toLocaleString()}</span>
                 </div>
               </div>
             </div>
@@ -301,66 +308,33 @@ export default function StatBreakdownModal({
             <div className="flex flex-col gap-4">
               <div className="bg-[#091b6f] text-white p-5 rounded-2xl text-center">
                 <p className="text-xs text-sky-200 font-bold uppercase tracking-wider">Total Completed Rides</p>
-                <p className="text-4xl font-extrabold mt-1">1,250</p>
+                <p className="text-4xl font-extrabold mt-1">{completedRides.length.toLocaleString()}</p>
               </div>
               <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider">
                 completed transactions by association
               </h4>
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col gap-3 font-semibold text-slate-600 text-sm">
-                <div className="flex justify-between">
-                  <span>LHITC-TODA</span>
-                  <span className="font-bold text-slate-800">562 completed rides</span>
-                </div>
-                <div className="flex justify-between border-t border-slate-200/50 pt-2">
-                  <span>CHOT-TODA</span>
-                  <span className="font-bold text-slate-800">375 completed rides</span>
-                </div>
-                <div className="flex justify-between border-t border-slate-200/50 pt-2">
-                  <span>BYPASS ILAYANG BAGUIO-TODA</span>
-                  <span className="font-bold text-slate-800">313 completed rides</span>
-                </div>
+                {completedRidesByToda.map((entry, index) => (
+                  <div
+                    key={entry.toda}
+                    className={`flex justify-between ${index > 0 ? "border-t border-slate-200/50 pt-2" : ""}`}
+                  >
+                    <span>{entry.toda}</span>
+                    <span className="font-bold text-slate-800">{entry.count.toLocaleString()} completed rides</span>
+                  </div>
+                ))}
+                {completedRidesByToda.length === 0 && (
+                  <p className="text-center text-xs font-bold text-slate-400">No completed rides found.</p>
+                )}
                 <div className="flex justify-between border-t border-slate-200/50 pt-2 font-bold text-[#091b6f]">
                   <span>Total platform rides</span>
-                  <span>1,250 Completed Rides</span>
+                  <span>{completedRides.length.toLocaleString()} Completed Rides</span>
                 </div>
               </div>
             </div>
           )}
 
-          {/* CONTENT FOR: commission-earned */}
-          {activeStatModal === "commission-earned" && (
-            <div className="flex flex-col gap-4">
-              <div className="bg-[#091b6f] text-white p-5 rounded-2xl text-center">
-                <p className="text-xs text-sky-200 font-bold uppercase tracking-wider">
-                  Total Platform Commission (15%)
-                </p>
-                <p className="text-4xl font-extrabold mt-1">₱ 10,000</p>
-              </div>
-              <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider">
-                commission breakdown by association
-              </h4>
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col gap-3 font-semibold text-slate-600 text-sm">
-                <div className="flex justify-between">
-                  <span>LHITC-TODA Commission Share</span>
-                  <span className="font-bold text-slate-800">₱ 4,500</span>
-                </div>
-                <div className="flex justify-between border-t border-slate-200/50 pt-2">
-                  <span>CHOT-TODA Commission Share</span>
-                  <span className="font-bold text-slate-800">₱ 3,000</span>
-                </div>
-                <div className="flex justify-between border-t border-slate-200/50 pt-2">
-                  <span>BYPASS ILAYANG BAGUIO-TODA Commission Share</span>
-                  <span className="font-bold text-slate-800">₱ 2,500</span>
-                </div>
-                <div className="flex justify-between border-t border-slate-200/50 pt-2 font-bold text-[#091b6f]">
-                  <span>Total Platform Earnings Share</span>
-                  <span>₱ 10,000</span>
-                </div>
-              </div>
-            </div>
-          )}
 
-          {/* CONTENT FOR: active-passengers */}
           {activeStatModal === "active-passengers" && (
             <div className="flex flex-col gap-3">
               <p className="text-sm text-slate-500 font-semibold">

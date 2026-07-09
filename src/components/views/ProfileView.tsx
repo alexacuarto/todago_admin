@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { supabase } from "../../lib/supabase";
 
 interface AdminProfile {
   name: string;
@@ -9,12 +8,15 @@ interface AdminProfile {
   avatarUrl: string;
   avatarColor: string;
   avatarSeed: string;
+  isPrimaryAdmin: boolean;
 }
+
+import { AdminTab } from "../../types";
 
 interface ProfileViewProps {
   adminProfile: AdminProfile;
   setAdminProfile: React.Dispatch<React.SetStateAction<AdminProfile>>;
-  setActiveTab: (tab: "dashboard" | "ride-requests" | "earnings" | "users" | "profile") => void;
+  setActiveTab: (tab: AdminTab) => void;
   setIsLoggedIn: (loggedIn: boolean) => void;
   setLoginEmail?: (email: string) => void;
   setLoginPassword?: (password: string) => void;
@@ -96,7 +98,7 @@ export default function ProfileView({
             {/* Admin Name & Badge */}
             <h3 className="text-xl font-bold text-[#091b6f]">{adminProfile.name}</h3>
             <span className="px-4 py-0.5 bg-blue-100 text-blue-700 font-extrabold text-[10px] rounded-full uppercase tracking-wider border border-blue-200/50">
-              Administrator
+              {adminProfile.isPrimaryAdmin ? "Primary Administrator" : "Administrator"}
             </span>
           </div>
 
@@ -179,9 +181,8 @@ export default function ProfileView({
 
           {/* Logout Button */}
           <button
-            onClick={async () => {
+            onClick={() => {
               if (confirm("Are you sure you want to log out?")) {
-                await supabase.auth.signOut();
                 setIsLoggedIn(false);
                 setActiveTab("dashboard");
                 if (setLoginEmail) setLoginEmail("");

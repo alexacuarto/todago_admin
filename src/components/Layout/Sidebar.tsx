@@ -1,12 +1,13 @@
-import React from "react";
+import { AdminTab } from "../../types";
 
 interface SidebarProps {
-  activeTab: "dashboard" | "ride-requests" | "earnings" | "users" | "profile" | "create-driver";
-  setActiveTab: (tab: "dashboard" | "ride-requests" | "earnings" | "users" | "profile" | "create-driver") => void;
+  activeTab: AdminTab;
+  setActiveTab: (tab: AdminTab) => void;
   mobileMenuOpen: boolean;
   setMobileMenuOpen: (open: boolean) => void;
   usersSubTab: "all" | "drivers" | "passengers";
   setUsersSubTab: (subTab: "all" | "drivers" | "passengers") => void;
+  isSuperAdmin: boolean;
 }
 
 export default function Sidebar({
@@ -14,8 +15,8 @@ export default function Sidebar({
   setActiveTab,
   mobileMenuOpen,
   setMobileMenuOpen,
-  usersSubTab,
   setUsersSubTab,
+  isSuperAdmin,
 }: SidebarProps) {
   return (
     <>
@@ -34,11 +35,10 @@ export default function Sidebar({
               setActiveTab("dashboard");
               setMobileMenuOpen(false);
             }}
-            className={`flex items-center gap-3 px-5 py-3 font-bold transition-all text-left border-l-4 w-full cursor-pointer ${
-              activeTab === "dashboard"
-                ? "bg-white text-[#091b6f] border-[#091b6f] shadow-sm"
-                : "text-[#091b6f] border-transparent hover:bg-white/40"
-            }`}
+            className={`flex items-center gap-3 px-5 py-3 font-bold transition-all text-left border-l-4 w-full cursor-pointer ${activeTab === "dashboard"
+              ? "bg-white text-[#091b6f] border-[#091b6f] shadow-sm"
+              : "text-[#091b6f] border-transparent hover:bg-white/40"
+              }`}
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
@@ -53,11 +53,10 @@ export default function Sidebar({
               setActiveTab("create-driver");
               setMobileMenuOpen(false);
             }}
-            className={`flex items-center gap-3 px-5 py-3 font-bold transition-all text-left border-l-4 cursor-pointer w-full ${
-              activeTab === "create-driver"
-                ? "bg-white text-[#091b6f] border-[#091b6f] shadow-xs"
-                : "text-[#091b6f] border-transparent hover:bg-white/40"
-            }`}
+            className={`flex items-center gap-3 px-5 py-3 font-bold transition-all text-left border-l-4 cursor-pointer w-full ${activeTab === "create-driver"
+              ? "bg-white text-[#091b6f] border-[#091b6f] shadow-xs"
+              : "text-[#091b6f] border-transparent hover:bg-white/40"
+              }`}
           >
             {/* Philippine Tricycle Icon */}
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -66,60 +65,80 @@ export default function Sidebar({
               <path d="M5.5 16h13M8.5 10l2-4h5v4M4 11.5a2.5 2.5 0 0 1 2.5-2.5h2" />
               <path d="M12 10v6M18.5 16v-6h-7M3.5 13.5h2" />
             </svg>
-            <span>Create Driver Account</span>
+            <span>Create Driver</span>
           </button>
 
-          {/* Ride Requests Tab */}
+          {/* History Logs Tab */}
           <button
             onClick={() => {
               setActiveTab("ride-requests");
               setMobileMenuOpen(false);
             }}
-            className={`flex items-center gap-3 px-5 py-3 font-bold transition-all text-left border-l-4 cursor-pointer w-full ${
-              activeTab === "ride-requests"
-                ? "bg-white text-[#091b6f] border-[#091b6f] shadow-xs"
-                : "text-[#091b6f] border-transparent hover:bg-white/40"
-            }`}
+            className={`flex items-center gap-3 px-5 py-3 font-bold transition-all text-left border-l-4 cursor-pointer w-full ${activeTab === "ride-requests"
+              ? "bg-white text-[#091b6f] border-[#091b6f] shadow-xs"
+              : "text-[#091b6f] border-transparent hover:bg-white/40"
+              }`}
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
               <circle cx="12" cy="10" r="3" />
             </svg>
-            <span>Ride Requests</span>
+            <span>Booking Logs</span>
           </button>
 
-          {/* Earnings Tab */}
-          <button
-            onClick={() => {
-              setActiveTab("earnings");
-              setMobileMenuOpen(false);
-            }}
-            className={`flex items-center gap-3 px-5 py-3 font-bold transition-all text-left border-l-4 cursor-pointer w-full ${
-              activeTab === "earnings"
-                ? "bg-white text-[#091b6f] border-[#091b6f] shadow-xs"
-                : "text-[#091b6f] border-transparent hover:bg-white/40"
-            }`}
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M8 8h6.5a2.5 2.5 0 0 1 0 5H8" />
-              <path d="M8 10h6M8 12h6M8 8v10" />
-            </svg>
-            <span>Earnings</span>
-          </button>
+          {isSuperAdmin && (
+            <>
+              {/* Fare Settings Tab */}
+              <button
+                onClick={() => {
+                  setActiveTab("fare-settings");
+                  setMobileMenuOpen(false);
+                }}
+                className={`flex items-center gap-3 px-5 py-3 font-bold transition-all text-left border-l-4 cursor-pointer w-full ${activeTab === "fare-settings"
+                  ? "bg-white text-[#091b6f] border-[#091b6f] shadow-xs"
+                  : "text-[#091b6f] border-transparent hover:bg-white/40"
+                  }`}
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M12 1v22" />
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6" />
+                </svg>
+                <span>Fare Settings</span>
+              </button>
+
+              {/* Admin Management Tab */}
+              <button
+                onClick={() => {
+                  setActiveTab("admin-management");
+                  setMobileMenuOpen(false);
+                }}
+                className={`flex items-center gap-3 px-5 py-3 font-bold transition-all text-left border-l-4 cursor-pointer w-full ${activeTab === "admin-management"
+                  ? "bg-white text-[#091b6f] border-[#091b6f] shadow-xs"
+                  : "text-[#091b6f] border-transparent hover:bg-white/40"
+                  }`}
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="8.5" cy="7" r="4" />
+                  <path d="M20 8v6" />
+                  <path d="M23 11h-6" />
+                </svg>
+                <span>Admin Management</span>
+              </button>
+            </>
+          )}
 
           {/* Users Management Tab */}
           <button
             onClick={() => {
               setActiveTab("users");
-              setUsersSubTab("all");
+              setUsersSubTab("drivers");
               setMobileMenuOpen(false);
             }}
-            className={`flex items-center gap-3 px-5 py-3 font-bold transition-all text-left border-l-4 cursor-pointer w-full ${
-              activeTab === "users"
-                ? "bg-white text-[#091b6f] border-[#091b6f] shadow-xs"
-                : "text-[#091b6f] border-transparent hover:bg-white/40"
-            }`}
+            className={`flex items-center gap-3 px-5 py-3 font-bold transition-all text-left border-l-4 cursor-pointer w-full ${activeTab === "users"
+              ? "bg-white text-[#091b6f] border-[#091b6f] shadow-xs"
+              : "text-[#091b6f] border-transparent hover:bg-white/40"
+              }`}
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />

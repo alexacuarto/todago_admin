@@ -1,15 +1,16 @@
-import React from "react";
-import { Driver, Passenger } from "../../data/mockData";
+import { Driver, Passenger } from "../../types";
 
 interface ViewUserModalProps {
   isOpen: boolean;
   onClose: () => void;
   viewingUser: any;
   viewingUserType: "driver" | "passenger" | null;
-  onDeactivateDriverToggle: (id: number) => void;
-  onDeactivatePassengerToggle: (id: number) => void;
-  onIncrementCanceledTrips: (id: number) => void;
-  onResetCanceledTrips: (id: number) => void;
+  onDeactivateDriverToggle: (id: number | string) => void;
+  onDriverVerificationToggle: (id: number | string) => void;
+  onDeactivatePassengerToggle: (id: number | string) => void;
+  onIncrementCanceledTrips: (id: number | string) => void;
+  onResetCanceledTrips: (id: number | string) => void;
+  onEdit: () => void;
 }
 
 export default function ViewUserModal({
@@ -18,9 +19,11 @@ export default function ViewUserModal({
   viewingUser,
   viewingUserType,
   onDeactivateDriverToggle,
+  onDriverVerificationToggle,
   onDeactivatePassengerToggle,
   onIncrementCanceledTrips,
   onResetCanceledTrips,
+  onEdit,
 }: ViewUserModalProps) {
   if (!isOpen || !viewingUser) return null;
 
@@ -45,8 +48,16 @@ export default function ViewUserModal({
         <div className="p-6 flex flex-col gap-6 text-left">
           {/* Account Overview Cards */}
           <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-            <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 shrink-0 font-extrabold text-xl">
-              {viewingUser.name.charAt(0)}
+            <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 shrink-0 font-extrabold text-xl overflow-hidden">
+              {viewingUser.avatarUrl ? (
+                <img
+                  src={viewingUser.avatarUrl}
+                  alt={`${viewingUser.name} profile`}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                viewingUser.name.charAt(0)
+              )}
             </div>
             <div className="flex-1">
               <h4 className="font-bold text-[#091b6f] text-md">{viewingUser.name}</h4>
@@ -80,6 +91,18 @@ export default function ViewUserModal({
                 <p className="font-bold text-slate-700 mt-0.5 font-mono">{(viewingUser as Driver).license}</p>
               </div>
               <div>
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Verification</p>
+                <span
+                  className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-extrabold border ${
+                    (viewingUser as Driver).isVerified
+                      ? "bg-blue-50 text-blue-600 border-blue-100"
+                      : "bg-amber-50 text-amber-600 border-amber-100"
+                  }`}
+                >
+                  {(viewingUser as Driver).isVerified ? "Verified" : "Unverified"}
+                </span>
+              </div>
+              <div>
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Tricycle Body Number</p>
                 <p className="font-bold text-slate-700 mt-0.5">{(viewingUser as Driver).bodyNumber}</p>
               </div>
@@ -103,6 +126,31 @@ export default function ViewUserModal({
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Total Completed Trips</p>
                 <p className="font-extrabold text-[#091b6f] text-md mt-0.5">{(viewingUser as Driver).trips} Rides</p>
               </div>
+              <div className="col-span-2">
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">License Image</p>
+                {(viewingUser as Driver).licenseImageUrl ? (
+                  <div className="mt-2 rounded-2xl border border-slate-100 bg-slate-50 p-3">
+                    {(viewingUser as Driver).licenseImageName?.toLowerCase().endsWith(".pdf") ? (
+                      <a
+                        href={(viewingUser as Driver).licenseImageUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-sm font-bold text-blue-600 hover:text-blue-700"
+                      >
+                        View uploaded license PDF
+                      </a>
+                    ) : (
+                      <img
+                        src={(viewingUser as Driver).licenseImageUrl}
+                        alt="Driver license"
+                        className="max-h-56 w-full rounded-xl object-contain"
+                      />
+                    )}
+                  </div>
+                ) : (
+                  <p className="font-bold text-slate-500 mt-0.5">No license image uploaded</p>
+                )}
+              </div>
             </div>
           ) : (
             // Passenger Specific Data
@@ -110,6 +158,10 @@ export default function ViewUserModal({
               <div>
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Contact Number</p>
                 <p className="font-bold text-slate-700 mt-0.5">{(viewingUser as Passenger).contact}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Email Address</p>
+                <p className="font-bold text-slate-600 mt-0.5">{(viewingUser as Passenger).email || "N/A"}</p>
               </div>
               <div>
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Joined Date</p>
@@ -140,16 +192,35 @@ export default function ViewUserModal({
           <div className="flex flex-col gap-3">
             <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider">Administrative Actions</h4>
             <div className="flex flex-wrap gap-2">
+              <button
+                onClick={onEdit}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-[#091b6f] rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs"
+              >
+                Edit Account Info
+              </button>
+
               {/* Status Toggle (Deactivate / Activate) */}
               {viewingUserType === "driver" ? (
-                <button
-                  onClick={() => onDeactivateDriverToggle(viewingUser.id)}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs ${
-                    viewingUser.status === "Active" ? "bg-rose-50 text-rose-600 hover:bg-rose-100" : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
-                  }`}
-                >
-                  {viewingUser.status === "Active" ? "Deactivate Driver" : "Activate Driver"}
-                </button>
+                <>
+                  <button
+                    onClick={() => onDriverVerificationToggle(viewingUser.id)}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs ${
+                      (viewingUser as Driver).isVerified
+                        ? "bg-amber-50 text-amber-600 hover:bg-amber-100"
+                        : "bg-blue-50 text-blue-600 hover:bg-blue-100"
+                    }`}
+                  >
+                    {(viewingUser as Driver).isVerified ? "Unverify Driver" : "Verify Driver"}
+                  </button>
+                  <button
+                    onClick={() => onDeactivateDriverToggle(viewingUser.id)}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs ${
+                      viewingUser.status === "Active" ? "bg-rose-50 text-rose-600 hover:bg-rose-100" : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                    }`}
+                  >
+                    {viewingUser.status === "Active" ? "Deactivate Driver" : "Activate Driver"}
+                  </button>
+                </>
               ) : (
                 <div className="flex gap-2 items-center flex-wrap">
                   <button

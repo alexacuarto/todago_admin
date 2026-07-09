@@ -1,5 +1,4 @@
-import React from "react";
-import { Driver, RideRequest } from "../../data/mockData";
+import { AdminTab, Driver, RideRequest } from "../../types";
 
 interface DashboardViewProps {
   rideRequests: RideRequest[];
@@ -7,7 +6,7 @@ interface DashboardViewProps {
   totalDriversCount: number;
   activeDriversCount: number;
   usersCount: number;
-  tripsCount: number;
+  tripsTodayCount: number;
   earningsToday: number;
   earningsWeekly: number;
   earningsMonthly: number;
@@ -16,12 +15,11 @@ interface DashboardViewProps {
   setHoveredBarIndex: (idx: number | null) => void;
   chartTooltip: { x: number; y: number; val: number; label: string };
   setChartTooltip: (tooltip: { x: number; y: number; val: number; label: string }) => void;
-  setActiveTab: (tab: "dashboard" | "ride-requests" | "earnings" | "users" | "profile" | "create-driver") => void;
-  setShowAddRequestModal: (show: boolean) => void;
+  setActiveTab: (tab: AdminTab) => void;
   setShowEditDriverModal: (show: boolean) => void;
   setEditingDriver: (driver: Driver | null) => void;
   setEditFormData: (formData: any) => void;
-  handleDeactivateToggle: (id: number) => void;
+  handleDeactivateToggle: (id: number | string) => void;
   setActiveStatModal: (modal: string | null) => void;
 }
 
@@ -31,7 +29,7 @@ export default function DashboardView({
   totalDriversCount,
   activeDriversCount,
   usersCount,
-  tripsCount,
+  tripsTodayCount,
   earningsToday,
   earningsWeekly,
   earningsMonthly,
@@ -41,13 +39,15 @@ export default function DashboardView({
   chartTooltip,
   setChartTooltip,
   setActiveTab,
-  setShowAddRequestModal,
   setShowEditDriverModal,
   setEditingDriver,
   setEditFormData,
   handleDeactivateToggle,
   setActiveStatModal,
 }: DashboardViewProps) {
+  const maxChartValue = Math.max(1, ...chartData.map((item) => item.val));
+  const yAxisLabels = [maxChartValue, Math.ceil(maxChartValue * 0.75), Math.ceil(maxChartValue * 0.5), Math.ceil(maxChartValue * 0.25)];
+
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto">
       {/* Stat Cards Row */}
@@ -144,7 +144,7 @@ export default function DashboardView({
           </div>
           <div>
             <p className="text-slate-500 font-medium text-sm">Trips Today</p>
-            <p className="text-3xl font-extrabold text-[#091b6f]">{tripsCount}</p>
+            <p className="text-3xl font-extrabold text-[#091b6f]">{tripsTodayCount}</p>
           </div>
         </div>
       </div>
@@ -158,7 +158,7 @@ export default function DashboardView({
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-[#091b6f] font-bold text-lg">Ride Activity</h2>
-                <p className="text-xs text-slate-400 font-medium">Ride Requests Today</p>
+                <p className="text-xs text-slate-400 font-medium">Database rides today, grouped by 4-hour blocks</p>
               </div>
               <div className="text-slate-300 hover:text-slate-500 cursor-pointer">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
@@ -180,16 +180,15 @@ export default function DashboardView({
                 <line x1="30" y1="150" x2="420" y2="150" stroke="#4967cf" strokeWidth="1" />
 
                 {/* Y-Axis Labels */}
-                <text x="15" y="24" className="text-[10px] fill-slate-400 font-bold text-right" textAnchor="end">40</text>
-                <text x="15" y="64" className="text-[10px] fill-slate-400 font-bold text-right" textAnchor="end">30</text>
-                <text x="15" y="104" className="text-[10px] fill-slate-400 font-bold text-right" textAnchor="end">20</text>
-                <text x="15" y="144" className="text-[10px] fill-slate-400 font-bold text-right" textAnchor="end">10</text>
+                <text x="15" y="24" className="text-[10px] fill-slate-400 font-bold text-right" textAnchor="end">{yAxisLabels[0]}</text>
+                <text x="15" y="64" className="text-[10px] fill-slate-400 font-bold text-right" textAnchor="end">{yAxisLabels[1]}</text>
+                <text x="15" y="104" className="text-[10px] fill-slate-400 font-bold text-right" textAnchor="end">{yAxisLabels[2]}</text>
+                <text x="15" y="144" className="text-[10px] fill-slate-400 font-bold text-right" textAnchor="end">{yAxisLabels[3]}</text>
 
                 {/* Bars & Interactive Triggers */}
                 {chartData.map((d, i) => {
-                  const maxVal = 40;
                   const chartHeight = 130; // height from 20 to 150
-                  const barHeight = (d.val / maxVal) * chartHeight;
+                  const barHeight = Math.max((d.val / maxChartValue) * chartHeight, d.val > 0 ? 3 : 0);
                   const barWidth = 28;
                   const xSpacing = 65;
                   const startX = 50 + i * xSpacing;
@@ -224,9 +223,8 @@ export default function DashboardView({
                         width={barWidth}
                         height={barHeight}
                         rx="2"
-                        className={`transition-all duration-300 ${
-                          hoveredBarIndex === i ? "fill-[#2563eb]" : "fill-[#091b6f]"
-                        }`}
+                        className={`transition-all duration-300 ${hoveredBarIndex === i ? "fill-[#2563eb]" : "fill-[#091b6f]"
+                          }`}
                       />
                       {/* X-Axis Label */}
                       <text
@@ -251,7 +249,7 @@ export default function DashboardView({
                     top: `${(chartTooltip.y / 180) * 100}%`,
                   }}
                 >
-                  {chartTooltip.val} Requests
+                  {chartTooltip.val} Rides
                 </div>
               )}
             </div>
@@ -259,67 +257,7 @@ export default function DashboardView({
             {/* Chart Legend */}
             <div className="flex items-center justify-center gap-2 mt-2">
               <span className="w-4 h-4 bg-[#091b6f] rounded-xs inline-block"></span>
-              <span className="text-xs text-slate-500 font-bold">Ride Requests</span>
-            </div>
-          </div>
-
-          {/* Recent Ride Requests Card */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-[#091b6f] font-bold text-lg">Recent Ride Request</h2>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setShowAddRequestModal(true)}
-                  className="text-xs text-[#091b6f] font-bold hover:underline cursor-pointer"
-                >
-                  + New Request
-                </button>
-                <button
-                  onClick={() => setActiveTab("ride-requests")}
-                  className="text-xs text-blue-500 font-bold hover:underline flex items-center gap-1 cursor-pointer"
-                >
-                  View All
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <polyline points="9 18 15 12 9 6" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            {/* Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider">
-                    <th className="pb-3 pl-3 text-left">Passenger</th>
-                    <th className="pb-3 px-3 text-left">Driver</th>
-                    <th className="pb-3 px-3 text-left">Location</th>
-                    <th className="pb-3 text-right pr-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="text-sm font-semibold divide-y divide-slate-50">
-                  {rideRequests.slice(0, 3).map((r) => (
-                    <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="py-3.5 pl-3 text-left text-slate-700">{r.passenger}</td>
-                      <td className="py-3.5 px-3 text-left text-slate-600">{r.driver}</td>
-                      <td className="py-3.5 px-3 text-left text-slate-500">{r.location}</td>
-                      <td className="py-3.5 text-right pr-3">
-                        <span
-                          className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                            r.status === "Completed"
-                              ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                              : r.status === "In Transit"
-                              ? "bg-blue-50 text-blue-600 border border-blue-100"
-                              : "bg-amber-50 text-amber-600 border border-amber-100"
-                          }`}
-                        >
-                          {r.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <span className="text-xs text-slate-500 font-bold">Bookings</span>
             </div>
           </div>
         </div>
@@ -393,11 +331,10 @@ export default function DashboardView({
                       </td>
                       <td className="py-3.5 px-3 text-center">
                         <span
-                          className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                            d.status === "Active"
-                              ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                              : "bg-rose-50 text-rose-600 border border-rose-100"
-                          }`}
+                          className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${d.status === "Active"
+                            ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                            : "bg-rose-50 text-rose-600 border border-rose-100"
+                            }`}
                         >
                           {d.status}
                         </span>
@@ -415,7 +352,11 @@ export default function DashboardView({
                                 toda: d.toda,
                                 status: d.status,
                                 email: d.email || "",
+                                password: "",
                                 plateNumber: d.plateNumber || "",
+                                isVerified: d.isVerified,
+                                licenseImage: null,
+                                licenseImageName: d.licenseImageName || "",
                               });
                               setShowEditDriverModal(true);
                             }}
@@ -425,11 +366,10 @@ export default function DashboardView({
                           </button>
                           <button
                             onClick={() => handleDeactivateToggle(d.id)}
-                            className={`px-3 py-1 rounded-md text-[10px] font-bold transition-colors cursor-pointer ${
-                              d.status === "Active"
-                                ? "text-rose-500 bg-rose-50 hover:bg-rose-100"
-                                : "text-emerald-500 bg-emerald-50 hover:bg-emerald-100"
-                            }`}
+                            className={`px-3 py-1 rounded-md text-[10px] font-bold transition-colors cursor-pointer ${d.status === "Active"
+                              ? "text-rose-500 bg-rose-50 hover:bg-rose-100"
+                              : "text-emerald-500 bg-emerald-50 hover:bg-emerald-100"
+                              }`}
                           >
                             {d.status === "Active" ? "Deactivate" : "Activate"}
                           </button>
@@ -441,45 +381,118 @@ export default function DashboardView({
               </table>
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* Earnings Summary Card */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+      {/* Bottom Row (Recent Ride Requests & Earnings Summary side-by-side) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6 mb-6">
+        {/* Left Column (Recent Ride Requests) */}
+        <div className="lg:col-span-7">
+          {/* Recent Ride Requests Card */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 h-[260px]">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-[#091b6f] font-bold text-lg">Earnings Summary</h2>
-            </div>
-
-            <div className="flex flex-col gap-4">
-              {/* Today's Earnings */}
-              <div className="flex items-center justify-between py-2.5 border-b border-slate-50">
-                <div>
-                  <p className="text-slate-600 text-sm font-semibold">Today's Earnings</p>
-                  <p className="text-[10px] text-slate-400 font-bold">Target: ₱3,500</p>
-                </div>
-                <p className="text-[#091b6f] font-extrabold text-lg">₱ {earningsToday.toLocaleString()}</p>
-              </div>
-
-              {/* Weekly Earnings */}
-              <div className="flex items-center justify-between py-2.5 border-b border-slate-50">
-                <div>
-                  <p className="text-slate-600 text-sm font-semibold">Weekly Earnings</p>
-                  <p className="text-[10px] text-slate-400 font-bold">Target: ₱18,200</p>
-                </div>
-                <p className="text-[#091b6f] font-extrabold text-lg">₱ {earningsWeekly.toLocaleString()}</p>
-              </div>
-
-              {/* Monthly Earnings */}
-              <div className="flex items-center justify-between pt-1">
-                <div>
-                  <p className="text-slate-600 text-sm font-semibold">Monthly Earnings</p>
-                  <p className="text-[10px] text-slate-400 font-bold">Target: ₱72,500</p>
-                </div>
+              <h2 className="text-[#091b6f] font-bold text-lg">Recent Ride Request</h2>
+              <div className="flex items-center gap-3">
                 <button
-                  onClick={() => setActiveTab("earnings")}
-                  className="bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs px-4 py-2 rounded-lg shadow-sm hover:shadow transition-all cursor-pointer"
+                  onClick={() => setActiveTab("ride-requests")}
+                  className="text-xs text-blue-500 font-bold hover:underline flex items-center gap-1 cursor-pointer"
                 >
-                  View Earnings
+                  View All
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
                 </button>
               </div>
+            </div>
+
+            {/* Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider">
+                    <th className="pb-3 pl-3 text-left">Passenger</th>
+                    <th className="pb-3 px-3 text-left">Driver</th>
+                    <th className="pb-3 px-3 text-left">Location</th>
+                    <th className="pb-3 text-right pr-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="text-sm font-semibold divide-y divide-slate-50">
+                  {rideRequests.slice(0, 2).map((r) => (
+                    <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="py-3.5 pl-3 text-left text-slate-700">{r.passenger}</td>
+                      <td className="py-3.5 px-3 text-left text-slate-600">{r.driver}</td>
+                      <td className="py-3.5 px-3 text-left text-slate-500">{r.location}</td>
+                      <td className="py-3.5 text-right pr-3">
+                        <span
+                          className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${r.status === "Completed"
+                            ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                            : r.status === "In Transit"
+                              ? "bg-blue-50 text-blue-600 border border-blue-100"
+                              : "bg-amber-50 text-amber-600 border border-amber-100"
+                            }`}
+                        >
+                          {r.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {rideRequests.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="py-8 text-center text-xs font-semibold text-slate-400">
+                        No ride records found in the database.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column (Earnings Summary) */}
+        <div className="lg:col-span-5">
+          {/* Earnings Summary Card */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 h-[260px] flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-[#091b6f] font-bold text-lg">Earnings Summary</h2>
+              </div>
+
+              <div className="flex flex-col gap-4">
+                {/* Today's Earnings */}
+                <div className="flex items-center justify-between py-2.5 border-b border-slate-50">
+                  <div>
+                    <p className="text-slate-600 text-sm font-semibold">Today's Earnings</p>
+                    <p className="text-[10px] text-slate-400 font-bold">Recorded today</p>
+                  </div>
+                  <p className="text-[#091b6f] font-extrabold text-lg">₱ {earningsToday.toLocaleString()}</p>
+                </div>
+
+                {/* Weekly Earnings */}
+                <div className="flex items-center justify-between py-2.5 border-b border-slate-50">
+                  <div>
+                    <p className="text-slate-600 text-sm font-semibold">Weekly Earnings</p>
+                    <p className="text-[10px] text-slate-400 font-bold">Recorded this week</p>
+                  </div>
+                  <p className="text-[#091b6f] font-extrabold text-lg">₱ {earningsWeekly.toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Monthly Earnings */}
+            <div className="flex items-center justify-between pt-1 border-t border-slate-50">
+              <div>
+                <p className="text-slate-600 text-sm font-semibold">Monthly Earnings</p>
+                <p className="text-[10px] text-slate-400 font-bold">
+                  ₱ {earningsMonthly.toLocaleString()} recorded this month
+                </p>
+              </div>
+              <button
+                onClick={() => setActiveTab("ride-requests")}
+                className="bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs px-4 py-2 rounded-lg shadow-sm hover:shadow transition-all cursor-pointer"
+              >
+                View History
+              </button>
             </div>
           </div>
         </div>

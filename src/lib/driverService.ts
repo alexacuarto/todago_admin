@@ -1,4 +1,5 @@
-import { supabase } from './supabase';
+import { supabase } from "./supabase";
+import { FunctionsHttpError, FunctionsRelayError, FunctionsFetchError } from "@supabase/supabase-js";
 
 export interface CreateDriverParams {
   fullName: string;
@@ -13,90 +14,76 @@ export interface CreateDriverResult {
   success: boolean;
   error?: string;
   driverName?: string;
+  driverId?: string;
+}
+
+function withTimeout<T>(promise: PromiseLike<T>, label: string, timeoutMs = 20000): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => {
+      reject(new Error(`${label} timed out. Check the internet connection and try again.`));
+    }, timeoutMs);
+
+    Promise.resolve(promise)
+      .then(resolve, reject)
+      .finally(() => window.clearTimeout(timer));
+  });
 }
 
 /**
- * Idempotent driver creation:
- *  1. signUp() → create auth user (safe if already exists)
- *  2. Restore admin session
- *  3. RPC → create profile + driver + vehicle (all use ON CONFLICT)
+ * Creates a driver through a Supabase Edge Function.
+ * The service role key must stay in the Edge Function, never in React.
  */
 export async function createDriverAccount(
   params: CreateDriverParams
 ): Promise<CreateDriverResult> {
-  const { fullName, email, password, contactNumber, plateNumber } = params;
+  const { fullName, email, contactNumber, plateNumber } = params;
 
-  const nameParts = fullName.trim().split(/\s+/);
-  const firstName = nameParts[0] || '';
-  const lastName = nameParts.slice(1).join(' ') || '';
-
-  // 1. Save admin session
-  const { data: { session: adminSession } } = await supabase.auth.getSession();
-  if (!adminSession) {
-    return { success: false, error: 'Admin is not logged in.' };
+  if (!fullName || !email || !contactNumber || !plateNumber) {
+    return { success: false, error: 'Please fill in all required fields.' };
   }
 
-  // 1b. Pre-validate uniqueness using client queries to prevent ghost user signup
-  if (contactNumber) {
-    const { data: phoneCheck } = await supabase.from('profiles').select('id').eq('phone_number', contactNumber).maybeSingle();
-    if (phoneCheck) {
-      return { success: false, error: 'Phone number already exists' };
+  const { data, error } = await withTimeout(supabase.functions.invoke("create-driver-account", {
+    body: params,
+  }), "create driver account", 25000);
+
+  if (error) {
+    if (error instanceof FunctionsHttpError) {
+      const errorBody = await error.context.json().catch(() => null);
+      return {
+        success: false,
+        error: errorBody?.error ?? errorBody?.message ?? error.message,
+      };
     }
+    if (error instanceof FunctionsRelayError || error instanceof FunctionsFetchError) {
+      return { success: false, error: error.message };
+    }
+    return { success: false, error: error.message };
   }
 
-  const { data: plateCheck } = await supabase.from('vehicles').select('id').eq('plate_number', plateNumber).maybeSingle();
-  if (plateCheck) {
-    return { success: false, error: 'Plate number already exists' };
+  if (data?.success === false) {
+    return { success: false, error: data.error ?? "Driver account creation failed." };
   }
 
-  // 2. Create auth user via signUp
-  const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        first_name: firstName,
-        last_name: lastName,
-        phone_number: contactNumber,
-        role: 'driver',
-      },
-    },
-  });
+  const { data: profile } = await withTimeout(supabase
+    .from("profiles")
+    .select("id")
+    .eq("email", email)
+    .maybeSingle(), "resolve driver profile");
 
-  if (signUpError) {
-    return { success: false, error: signUpError.message };
-  }
-
-  const userId = signUpData?.user?.id;
+  const userId = (profile as { id?: string } | null)?.id;
   if (!userId) {
-    return { success: false, error: 'Could not create auth user.' };
+    return { success: true, driverName: fullName };
   }
 
-  // 3. Restore admin session
-  await supabase.auth.setSession({
-    access_token: adminSession.access_token,
-    refresh_token: adminSession.refresh_token,
-  });
+  const { data: driver } = await withTimeout(supabase
+    .from("drivers")
+    .select("id")
+    .eq("user_id", userId)
+    .maybeSingle(), "resolve driver record");
 
-  // 4. Call RPC
-  const { data, error: rpcError } = await supabase.rpc('create_driver_account', {
-    p_user_id: userId,
-    p_email: email,
-    p_first_name: firstName,
-    p_last_name: lastName,
-    p_phone: contactNumber,
-    p_plate_number: plateNumber,
-  });
-
-  if (rpcError || !data?.success) {
-    const errorMsg = rpcError?.message || data?.error || 'Failed to create driver account.';
-    
-    // Clean up/delete the created auth user from the database if RPC database writing fails
-    await supabase.rpc('rollback_user_creation', { p_user_id: userId });
-    
-    alert(errorMsg);
-    return { success: false, error: errorMsg };
-  }
-
-  return { success: true, driverName: fullName };
+  return {
+    success: true,
+    driverName: fullName,
+    driverId: (driver as { id?: string } | null)?.id,
+  };
 }

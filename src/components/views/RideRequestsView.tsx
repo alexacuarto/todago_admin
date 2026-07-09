@@ -37,10 +37,10 @@ export default function RideRequestsView({
   const totalCompletedRides = filteredRequests.filter((record) => record.status === "Completed").length;
 
   return (
-    <div className="flex flex-col gap-6 max-w-7xl mx-auto">
+    <div className="flex flex-col gap-4 max-w-7xl mx-auto sm:gap-6">
       <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-extrabold text-[#091b6f]">Booking Logs</h1>
-        <p className="text-sm font-semibold text-slate-500">
+        <h1 className="text-xl font-extrabold text-[#091b6f] sm:text-2xl">Booking Logs</h1>
+        <p className="break-anywhere text-sm font-semibold text-slate-500">
           Review bookings, ride status, fare values, and driver earnings in one place.
         </p>
       </div>
@@ -52,7 +52,7 @@ export default function RideRequestsView({
           className="rounded-lg border border-slate-100 bg-[#091b6f] p-5 text-left text-white shadow-sm transition hover:bg-[#132b91]"
         >
           <p className="text-xs font-extrabold uppercase text-sky-200">Total Earnings</p>
-          <p className="mt-2 text-3xl font-extrabold">₱{totalEarnings.toLocaleString()}</p>
+          <p className="break-anywhere mt-2 text-2xl font-extrabold sm:text-3xl">₱{totalEarnings.toLocaleString()}</p>
           <p className="mt-3 text-xs font-semibold text-sky-200/80">From the visible ride history rows</p>
         </button>
 
@@ -62,17 +62,17 @@ export default function RideRequestsView({
           className="rounded-lg border border-slate-100 bg-white p-5 text-left shadow-sm transition hover:border-[#091b6f]/20"
         >
           <p className="text-xs font-extrabold uppercase text-slate-400">Completed Rides</p>
-          <p className="mt-2 text-3xl font-extrabold text-[#091b6f]">{totalCompletedRides.toLocaleString()}</p>
+          <p className="mt-2 text-2xl font-extrabold text-[#091b6f] sm:text-3xl">{totalCompletedRides.toLocaleString()}</p>
           <p className="mt-3 text-xs font-semibold text-slate-500">Completed rides in the current history view</p>
         </button>
 
         <div className="rounded-lg border border-slate-100 bg-white p-5 shadow-sm">
           <p className="text-xs font-extrabold uppercase text-slate-400">Logged Bookings</p>
-          <p className="mt-2 text-3xl font-extrabold text-[#091b6f]">{filteredRequests.length.toLocaleString()}</p>
+          <p className="mt-2 text-2xl font-extrabold text-[#091b6f] sm:text-3xl">{filteredRequests.length.toLocaleString()}</p>
           <button
             type="button"
             onClick={handleDownloadReport}
-            className="mt-4 inline-flex items-center gap-2 rounded-md bg-[#4c75f2] px-4 py-2 text-xs font-extrabold text-white hover:bg-blue-600"
+            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#4c75f2] px-4 py-2 text-xs font-extrabold text-white hover:bg-blue-600 sm:w-auto"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -116,7 +116,7 @@ export default function RideRequestsView({
               setRequestTodaFilter(e.target.value);
               setRequestsPage(1);
             }}
-            className="pl-3 pr-8 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-[#091b6f] cursor-pointer appearance-none outline-hidden focus:border-blue-500"
+            className="w-full pl-3 pr-8 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-[#091b6f] cursor-pointer appearance-none outline-hidden focus:border-blue-500 sm:w-56"
           >
             <option value="All">All TODAs</option>
             <option value="LHITC-TODA">LHITC-TODA</option>
@@ -134,11 +134,11 @@ export default function RideRequestsView({
       </div>
 
       {/* Main List Container */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col gap-4">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex flex-col gap-4 sm:p-6">
         {/* Section Header with Search Bar */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <h2 className="text-[#091b6f] font-bold text-lg">
+        <div className="flex flex-col items-stretch justify-between gap-4 sm:flex-row sm:items-center">
+          <div className="flex min-w-0 items-center gap-2">
+            <h2 className="break-anywhere text-[#091b6f] font-bold text-base sm:text-lg">
               {statusFilter} Booking History ({filteredRequests.length})
             </h2>
           </div>
@@ -166,7 +166,7 @@ export default function RideRequestsView({
 
         {/* Table */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="min-w-[980px] w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider whitespace-nowrap">
                 <th className="pb-3 pl-3">Passenger</th>
@@ -186,10 +186,10 @@ export default function RideRequestsView({
                 .slice((requestsPage - 1) * itemsPerPage, requestsPage * itemsPerPage)
                 .map((r) => (
                   <tr key={r.id} className="hover:bg-slate-50/50 transition-colors whitespace-nowrap">
-                    <td className="py-5 pl-3 text-[#091b6f] font-bold">{r.passenger}</td>
+                    <td className="py-5 pl-3 text-[#091b6f] font-bold max-w-[160px] truncate" title={r.passenger}>{r.passenger}</td>
                     <td className="py-5 px-2 text-slate-600 max-w-[200px] truncate">{r.location}</td>
                     <td className="py-5 px-2 text-slate-500 max-w-[200px] truncate">{r.destination}</td>
-                    <td className="py-5 px-2 text-slate-700">{r.driver}</td>
+                    <td className="py-5 px-2 text-slate-700 max-w-[160px] truncate" title={r.driver}>{r.driver}</td>
                     <td className="py-5 px-2 text-slate-600">{r.toda}</td>
                     <td className="py-5 px-2 text-slate-600">{r.time || "-"}</td>
                     <td className="py-5 px-2 font-extrabold text-[#091b6f]">₱{r.fare.toLocaleString()}</td>
@@ -234,7 +234,7 @@ export default function RideRequestsView({
 
         {/* Pagination */}
         {filteredRequests.length > 0 && (
-          <div className="flex items-center justify-between border-t border-slate-100 pt-6 mt-2">
+          <div className="flex flex-col items-stretch gap-3 border-t border-slate-100 pt-6 mt-2 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-xs text-slate-500 font-bold">
               Page {requestsPage} of {Math.ceil(filteredRequests.length / itemsPerPage)}
             </span>

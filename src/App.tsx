@@ -845,7 +845,7 @@ export default function App() {
         />
 
         {/* MAIN PANEL CONTENT VIEW */}
-        <main className="flex-1 p-6 overflow-y-auto z-0 relative">
+        <main className="flex-1 overflow-y-auto z-0 relative p-3 sm:p-5 lg:p-6">
           {isLoadingOperationalData && (
             <div className="mb-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-[#091b6f]">
               Loading Supabase operational data...
@@ -854,7 +854,7 @@ export default function App() {
 
           {operationalDataError && (
             <div className="mb-4 flex flex-col gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700 sm:flex-row sm:items-center sm:justify-between">
-              <span>Supabase data load failed: {operationalDataError}</span>
+              <span className="break-anywhere">Supabase data load failed: {operationalDataError}</span>
               <button
                 type="button"
                 onClick={() => setOperationalReloadKey(key => key + 1)}

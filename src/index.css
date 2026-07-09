@@ -54,6 +54,22 @@ body {
   font-family: var(--font-poppins), sans-serif;
 }
 
+* {
+  min-width: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.break-anywhere {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

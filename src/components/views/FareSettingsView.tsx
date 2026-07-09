@@ -18,11 +18,11 @@ export default function FareSettingsView({
   onSaveFareSetting,
 }: FareSettingsViewProps) {
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-extrabold text-[#091b6f]">Adjust Fare Pricing</h1>
-          <p className="text-sm font-semibold text-slate-500">
+          <h1 className="text-xl font-extrabold text-[#091b6f] sm:text-2xl">Adjust Fare Pricing</h1>
+          <p className="break-anywhere text-sm font-semibold text-slate-500">
             Manage pricing and passenger discounts.
           </p>
         </div>
@@ -45,9 +45,9 @@ export default function FareSettingsView({
           const isSaving = isSavingFareSetting === setting.tripType;
           return (
             <section key={setting.tripType} className="rounded-lg border border-slate-100 bg-white shadow-sm">
-              <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+              <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                 <div>
-                  <h2 className="text-lg font-extrabold text-[#091b6f]">{setting.label}</h2>
+                  <h2 className="break-anywhere text-lg font-extrabold text-[#091b6f]">{setting.label}</h2>
                   <p className="text-xs font-bold uppercase text-slate-400">
                     {setting.tripType === "one_way" ? "One-way pricing" : "Round-trip pricing"}
                   </p>
@@ -65,7 +65,7 @@ export default function FareSettingsView({
                 </label>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:p-5">
                 <label className="space-y-1">
                   <span className="text-xs font-extrabold uppercase text-slate-500">Display Label</span>
                   <input
@@ -177,9 +177,9 @@ export default function FareSettingsView({
                 </label>
               </div>
 
-              <div className="border-t border-slate-100 bg-slate-50 px-5 py-4">
-                <div className="mt-4 flex items-center justify-between gap-3">
-                  <p className="text-xs font-semibold text-slate-500">
+              <div className="border-t border-slate-100 bg-slate-50 px-4 py-4 sm:px-5">
+                <div className="mt-4 flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
+                  <p className="break-anywhere text-xs font-semibold text-slate-500">
                     Last updated: {setting.updatedAt ? new Date(setting.updatedAt).toLocaleString() : "Not yet saved"}
                   </p>
                   <button

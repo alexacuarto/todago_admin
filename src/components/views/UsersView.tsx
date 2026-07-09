@@ -55,7 +55,7 @@ export default function UsersView({
   const itemsPerPage = 7;
 
   return (
-    <div className="flex flex-col gap-6 max-w-7xl mx-auto">
+    <div className="flex flex-col gap-4 max-w-7xl mx-auto sm:gap-6">
 
 
       {/* Filters registry bar */}
@@ -68,7 +68,7 @@ export default function UsersView({
             <button
               key={tab.key}
               onClick={() => setUsersSubTab(tab.key as any)}
-              className={`px-4 py-2 rounded-md text-xs font-bold transition-all cursor-pointer ${usersSubTab === tab.key
+              className={`w-full px-4 py-2 rounded-md text-xs font-bold transition-all cursor-pointer sm:w-auto ${usersSubTab === tab.key
                 ? "bg-[#091b6f] text-white shadow-xs"
                 : "text-slate-600 hover:text-[#091b6f]"
                 }`}
@@ -121,12 +121,12 @@ export default function UsersView({
 
       {/* Drivers List Card (Visible if sub-tab is "all" or "drivers") */}
       {(usersSubTab === "all" || usersSubTab === "drivers") && (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col gap-4">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex flex-col gap-4 sm:p-6">
           <h3 className="text-[#091b6f] font-bold text-lg">Drivers List</h3>
 
           {/* Table */}
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="min-w-[760px] w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider whitespace-nowrap">
                   <th className="pb-3 pl-3">Name</th>
@@ -143,11 +143,11 @@ export default function UsersView({
                   .map((d) => (
                     <tr key={d.id} className="hover:bg-slate-50/50 transition-colors whitespace-nowrap">
                       <td className="py-4 pl-3 text-left">
-                        <p className="text-[#091b6f] font-bold">{d.name}</p>
+                        <p className="max-w-[170px] truncate text-[#091b6f] font-bold" title={d.name}>{d.name}</p>
                         <p className="text-[10px] text-slate-400 font-bold">Body: {d.bodyNumber}</p>
                       </td>
-                      <td className="py-4 text-slate-600 text-left">{d.toda}</td>
-                      <td className="py-4 text-slate-500 font-mono text-xs text-left">{d.license}</td>
+                      <td className="py-4 text-slate-600 text-left max-w-[180px] truncate" title={d.toda}>{d.toda}</td>
+                      <td className="py-4 text-slate-500 font-mono text-xs text-left max-w-[150px] truncate" title={d.license}>{d.license}</td>
                       <td className="py-4 text-left">
                         <span
                           className={`inline-block px-3 py-0.5 rounded-full text-[10px] font-bold ${d.status === "Active"
@@ -220,12 +220,12 @@ export default function UsersView({
 
           {/* Pagination */}
           {filteredDrivers.length > 0 && (
-            <div className="flex items-center justify-between border-t border-slate-100 pt-4 mt-2">
+            <div className="flex flex-col items-stretch gap-3 border-t border-slate-100 pt-4 mt-2 sm:flex-row sm:items-center sm:justify-between">
               <span className="text-xs text-slate-500 font-bold">
                 Page {driversPage} of {Math.ceil(filteredDrivers.length / itemsPerPage)}
               </span>
 
-              <div className="flex items-center gap-1">
+              <div className="flex max-w-full items-center gap-1 overflow-x-auto pb-1">
                 <button
                   onClick={() => setDriversPage((prev) => Math.max(prev - 1, 1))}
                   disabled={driversPage === 1}
@@ -269,12 +269,12 @@ export default function UsersView({
 
       {/* Passengers List Card (Visible if sub-tab is "all" or "passengers") */}
       {(usersSubTab === "all" || usersSubTab === "passengers") && (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col gap-4">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex flex-col gap-4 sm:p-6">
           <h3 className="text-[#091b6f] font-bold text-lg">Passengers List</h3>
 
           {/* Table */}
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="min-w-[620px] w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider whitespace-nowrap">
                   <th className="pb-3 pl-3">Name</th>
@@ -289,12 +289,12 @@ export default function UsersView({
                   .map((p) => (
                     <tr key={p.id} className="hover:bg-slate-50/50 transition-colors whitespace-nowrap">
                       <td className="py-4 pl-3 text-left">
-                        <p className="text-[#091b6f] font-bold">{p.name}</p>
+                        <p className="max-w-[190px] truncate text-[#091b6f] font-bold" title={p.name}>{p.name}</p>
                         <p className="text-[10px] text-slate-400 font-bold">
                           Canceled: {p.canceledTrips} trips
                         </p>
                       </td>
-                      <td className="py-4 text-slate-600 text-left">{p.contact}</td>
+                      <td className="py-4 text-slate-600 text-left max-w-[170px] truncate" title={p.contact}>{p.contact}</td>
                       <td className="py-4 text-left">
                         <span
                           className={`inline-block px-3 py-0.5 rounded-full text-[10px] font-bold ${p.status === "Active"
@@ -350,12 +350,12 @@ export default function UsersView({
 
           {/* Pagination */}
           {filteredPassengers.length > 0 && (
-            <div className="flex items-center justify-between border-t border-slate-100 pt-4 mt-2">
+            <div className="flex flex-col items-stretch gap-3 border-t border-slate-100 pt-4 mt-2 sm:flex-row sm:items-center sm:justify-between">
               <span className="text-xs text-slate-500 font-bold">
                 Page {passengersPage} of {Math.ceil(filteredPassengers.length / itemsPerPage)}
               </span>
 
-              <div className="flex items-center gap-1">
+              <div className="flex max-w-full items-center gap-1 overflow-x-auto pb-1">
                 <button
                   onClick={() => setPassengersPage((prev) => Math.max(prev - 1, 1))}
                   disabled={passengersPage === 1}

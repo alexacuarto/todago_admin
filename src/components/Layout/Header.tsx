@@ -30,8 +30,8 @@ export default function Header({
   const unreadCount = notifications.filter((notification) => !notification.isRead).length;
 
   return (
-    <header className="bg-[#0b1b6e] text-white flex items-center justify-between px-6 py-4 shadow-md z-30 shrink-0 sticky top-0">
-      <div className="flex items-center gap-3">
+    <header className="bg-[#0b1b6e] text-white flex items-center justify-between gap-2 px-3 py-3 shadow-md z-30 shrink-0 sticky top-0 sm:px-5 sm:py-4 lg:px-6">
+      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
         {/* Mobile menu hamburger */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -45,11 +45,11 @@ export default function Header({
           </svg>
         </button>
 
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           <img
             src="/icons/todago-white.png"
             alt="TodaGo Logo"
-            className="h-16 object-contain"
+            className="h-11 object-contain sm:h-14 lg:h-16"
           />
           <span className="text-sky-200 text-xs font-semibold uppercase tracking-widest hidden sm:inline-block border-l border-white/20 pl-2">
             Management Portal
@@ -57,18 +57,18 @@ export default function Header({
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex shrink-0 items-center gap-2 sm:gap-4">
         <button
           type="button"
           onClick={onRefreshDashboard}
           disabled={isRefreshingDashboard}
-          className="rounded-full bg-white/15 p-2.5 transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-full bg-white/15 p-2 transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60 sm:p-2.5"
           aria-label="Refresh dashboard"
           title="Refresh dashboard"
         >
           <svg
-            width="22"
-            height="22"
+            width="20"
+            height="20"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -83,11 +83,11 @@ export default function Header({
         </button>
         <div className="relative group">
           <button
-            className="relative rounded-full bg-white/15 p-2.5 hover:bg-white/20 transition-colors"
+            className="relative rounded-full bg-white/15 p-2 hover:bg-white/20 transition-colors sm:p-2.5"
             aria-label="Notifications"
             onClick={onMarkNotificationsRead}
           >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3">
               <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 7h18s-3 0-3-7" />
               <path d="M13.73 21a2 2 0 0 1-3.46 0" />
             </svg>
@@ -97,7 +97,7 @@ export default function Header({
               </span>
             )}
           </button>
-          <div className="invisible absolute right-0 top-11 z-30 w-80 translate-y-1 rounded-2xl border border-slate-100 bg-white p-3 text-slate-700 opacity-0 shadow-xl transition-all group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
+          <div className="invisible fixed right-2 top-16 z-30 w-[calc(100vw-1rem)] max-w-80 translate-y-1 rounded-2xl border border-slate-100 bg-white p-3 text-slate-700 opacity-0 shadow-xl transition-all group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 sm:absolute sm:right-0 sm:top-11 sm:w-80">
             <div className="mb-2 flex items-center justify-between">
               <p className="text-xs font-extrabold uppercase tracking-wider text-[#091b6f]">Notifications</p>
               <span className="text-[10px] font-bold text-slate-400">{unreadCount} unread</span>
@@ -112,8 +112,8 @@ export default function Header({
                     className={`mb-2 rounded-xl p-3 text-left ${notification.isRead ? "bg-slate-50" : "bg-blue-50"
                       }`}
                   >
-                    <p className="text-sm font-extrabold text-[#091b6f]">{notification.title}</p>
-                    <p className="mt-1 text-xs font-semibold text-slate-500">{notification.message}</p>
+                    <p className="break-anywhere text-sm font-extrabold text-[#091b6f]">{notification.title}</p>
+                    <p className="break-anywhere mt-1 text-xs font-semibold text-slate-500">{notification.message}</p>
                     <p className="mt-2 text-[10px] font-bold text-slate-400">
                       {new Date(notification.createdAt).toLocaleString()}
                     </p>
@@ -128,7 +128,7 @@ export default function Header({
           className="flex items-center gap-3 cursor-pointer group relative"
         >
           <div className="text-right hidden sm:block">
-            <p className="text-sm font-bold tracking-wide">{adminProfile.name}</p>
+            <p className="max-w-36 truncate text-sm font-bold tracking-wide">{adminProfile.name}</p>
             <p className="text-[10px] text-sky-200">
               {adminProfile.isPrimaryAdmin ? "Primary Administrator" : "Administrator"}
             </p>
@@ -160,7 +160,7 @@ export default function Header({
             <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-[#0b1b6e] rounded-full"></span>
           </div>
 
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-sky-200 group-hover:text-white transition-colors">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="hidden text-sky-200 transition-colors group-hover:text-white sm:block">
             <polyline points="6 9 12 15 18 9" />
           </svg>
         </div>

@@ -36,10 +36,6 @@ export default function UsersView({
   filteredPassengers,
   driverSearch,
   setDriverSearch,
-  userTodaFilter,
-  setUserTodaFilter,
-  userStatusFilter,
-  setUserStatusFilter,
   usersSubTab,
   setUsersSubTab,
   driversPage,
@@ -55,10 +51,6 @@ export default function UsersView({
   setEditingPassenger,
   setPassengerEditFormData,
   setShowEditPassengerModal,
-  setActiveStatModal,
-  activePassengerCount,
-  activeDriverCount,
-  registeredPassengerCount,
 }: UsersViewProps) {
   const itemsPerPage = 7;
 
@@ -397,7 +389,7 @@ export default function UsersView({
                   disabled={passengersPage === Math.ceil(filteredPassengers.length / itemsPerPage)}
                   className="w-7 h-7 flex items-center justify-center text-xs font-bold rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:hover:bg-transparent text-[#091b6f] cursor-pointer"
                 >
-                  Next &gt;&gt;
+                  &gt;
                 </button>
               </div>
             </div>

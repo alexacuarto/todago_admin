@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import { Driver, EarningsRecord, FareSetting, Passenger, RideRequest } from "../types";
+import { AdminAccount, Driver, EarningsRecord, FareSetting, Passenger, RideRequest } from "../types";
 
 type ProfileRow = {
   id: string;
@@ -9,6 +9,8 @@ type ProfileRow = {
   role: "passenger" | "driver" | "admin";
   is_active: boolean;
   avatar_url: string | null;
+  is_primary_admin: boolean;
+  created_at: string;
 };
 
 type DriverRow = {
@@ -103,7 +105,7 @@ export async function fetchAdminDashboardData() {
   const [profilesResult, driversResult, passengersResult, ridesResult, earningsResult] = await Promise.all([
     withTimeout(supabase
       .from("profiles")
-      .select("id, full_name, phone, email, role, is_active, avatar_url"), "profiles load"),
+      .select("id, full_name, phone, email, role, is_active, avatar_url, is_primary_admin, created_at"), "profiles load"),
     withTimeout(supabase
       .from("drivers")
       .select("id, user_id, license_number, license_image_url, tricycle_body_number, plate_number, status, is_verified, created_at"), "drivers load"),
@@ -134,6 +136,7 @@ export async function fetchAdminDashboardData() {
   const driversById = new Map(driverRows.map((driver) => [driver.id, driver]));
   const passengersById = new Map(passengerRows.map((passenger) => [passenger.id, passenger]));
   const ridesById = new Map(rideRows.map((ride) => [ride.id, ride]));
+  const earningsByRideId = new Map(earningRows.map((earning) => [earning.ride_id, earning]));
 
   const drivers: Driver[] = await Promise.all(driverRows.map(async (row) => {
     const profile = profilesById.get(row.user_id);
@@ -180,6 +183,7 @@ export async function fetchAdminDashboardData() {
     const passengerProfile = passenger ? profilesById.get(passenger.user_id) : null;
     const driver = row.driver_id ? driversById.get(row.driver_id) : null;
     const driverProfile = driver ? profilesById.get(driver.user_id) : null;
+    const earning = earningsByRideId.get(row.id);
 
     return {
       id: row.id,
@@ -194,8 +198,16 @@ export async function fetchAdminDashboardData() {
       status: statusToAdmin(row.status),
       fare: Number(row.fare_amount ?? 0),
       time: row.requested_at ? new Date(row.requested_at).toLocaleString() : "",
+      requestedAt: row.requested_at ?? "",
       toda: driver?.tricycle_body_number ?? "-",
+      earningId: earning?.id,
+      earningAmount: Number(earning?.gross_fare ?? 0),
+      earningDate: earning?.created_at ? new Date(earning.created_at).toLocaleString() : "",
     };
+  }).sort((a, b) => {
+    const bTime = Date.parse(b.requestedAt || b.time || "");
+    const aTime = Date.parse(a.requestedAt || a.time || "");
+    return (Number.isNaN(bTime) ? 0 : bTime) - (Number.isNaN(aTime) ? 0 : aTime);
   });
 
   const earningsRecords: EarningsRecord[] = earningRows.map((row) => {
@@ -213,7 +225,23 @@ export async function fetchAdminDashboardData() {
     };
   });
 
-  return { drivers, passengers, rideRequests, earningsRecords };
+  const adminAccounts: AdminAccount[] = profiles
+    .filter((profile) => profile.role === "admin")
+    .sort((a, b) => {
+      if (a.is_primary_admin !== b.is_primary_admin) return a.is_primary_admin ? -1 : 1;
+      return (a.full_name || "").localeCompare(b.full_name || "");
+    })
+    .map((profile) => ({
+      id: profile.id,
+      name: profile.full_name ?? "Administrator",
+      email: profile.email ?? "",
+      phone: profile.phone ?? "",
+      status: profile.is_active === false ? "Inactive" : "Active",
+      isPrimaryAdmin: profile.is_primary_admin === true,
+      createdAt: profile.created_at ? profile.created_at.split("T")[0] : "",
+    }));
+
+  return { drivers, passengers, rideRequests, earningsRecords, adminAccounts };
 }
 
 export async function updateDriverVerification(

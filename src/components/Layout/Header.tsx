@@ -6,6 +6,7 @@ interface HeaderProps {
     name: string;
     avatarUrl: string;
     avatarColor: string;
+    isPrimaryAdmin?: boolean;
   };
   notifications: AdminNotification[];
   onMarkNotificationsRead: () => void;
@@ -128,7 +129,9 @@ export default function Header({
         >
           <div className="text-right hidden sm:block">
             <p className="text-sm font-bold tracking-wide">{adminProfile.name}</p>
-            <p className="text-[10px] text-sky-200">System Operator</p>
+            <p className="text-[10px] text-sky-200">
+              {adminProfile.isPrimaryAdmin ? "Primary Administrator" : "Administrator"}
+            </p>
           </div>
 
           {/* Beautiful Custom Avatar */}

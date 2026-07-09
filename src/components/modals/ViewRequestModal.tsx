@@ -65,11 +65,25 @@ export default function ViewRequestModal({
             </div>
             <div>
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Fare Value</p>
-              <p className="font-extrabold text-[#091b6f] text-lg mt-0.5">₱{viewingRequest.fare}</p>
+              <p className="font-extrabold text-[#091b6f] text-lg mt-0.5">
+                ₱{viewingRequest.fare.toLocaleString()}
+              </p>
             </div>
             <div>
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Booking Time</p>
               <p className="font-bold text-slate-500 mt-0.5">{viewingRequest.time}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Driver Earning</p>
+              <p className="font-extrabold text-emerald-700 text-lg mt-0.5">
+                {viewingRequest.earningAmount > 0
+                  ? `₱${viewingRequest.earningAmount.toLocaleString()}`
+                  : "Not recorded yet"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Earning Date</p>
+              <p className="font-bold text-slate-500 mt-0.5">{viewingRequest.earningDate || "N/A"}</p>
             </div>
             <div>
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">TODA Association</p>

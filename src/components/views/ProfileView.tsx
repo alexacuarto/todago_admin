@@ -8,6 +8,7 @@ interface AdminProfile {
   avatarUrl: string;
   avatarColor: string;
   avatarSeed: string;
+  isPrimaryAdmin: boolean;
 }
 
 import { AdminTab } from "../../types";
@@ -97,7 +98,7 @@ export default function ProfileView({
             {/* Admin Name & Badge */}
             <h3 className="text-xl font-bold text-[#091b6f]">{adminProfile.name}</h3>
             <span className="px-4 py-0.5 bg-blue-100 text-blue-700 font-extrabold text-[10px] rounded-full uppercase tracking-wider border border-blue-200/50">
-              Administrator
+              {adminProfile.isPrimaryAdmin ? "Primary Administrator" : "Administrator"}
             </span>
           </div>
 

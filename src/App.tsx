@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { getCurrentAdminProfile } from "./lib/authService";
+import { createAdminAccount, resetAdminPassword, setAdminAccountActive } from "./lib/adminAccountService";
 import {
   fetchAdminDashboardData,
   fetchFareSettings,
@@ -28,6 +29,7 @@ import {
   Passenger,
   RideRequest,
   EarningsRecord,
+  AdminAccount,
 } from "./types";
 
 // Layout components
@@ -38,19 +40,17 @@ import Sidebar from "./components/Layout/Sidebar";
 import LoginView from "./components/views/LoginView";
 import DashboardView from "./components/views/DashboardView";
 import RideRequestsView from "./components/views/RideRequestsView";
-import EarningsView from "./components/views/EarningsView";
 import UsersView from "./components/views/UsersView";
 import ProfileView from "./components/views/ProfileView";
 import CreateDriverView from "./components/views/CreateDriverView";
 import FareSettingsView from "./components/views/FareSettingsView";
+import AdminManagementView from "./components/views/AdminManagementView";
 
 // Modals
 import EditDriverModal from "./components/modals/EditDriverModal";
 import EditPassengerModal from "./components/modals/EditPassengerModal";
-import AddRequestModal from "./components/modals/AddRequestModal";
 import ViewRequestModal from "./components/modals/ViewRequestModal";
 import ViewUserModal from "./components/modals/ViewUserModal";
-import ViewEarningsModal from "./components/modals/ViewEarningsModal";
 import StatBreakdownModal from "./components/modals/StatBreakdownModal";
 
 export default function App() {
@@ -74,8 +74,24 @@ export default function App() {
     password: "password123",
     avatarSeed: "alexa",
     avatarColor: "#38bdf8",
-    avatarUrl: ""
+    avatarUrl: "",
+    isPrimaryAdmin: false,
   });
+
+  const applyAdminProfile = (profile: {
+    full_name: string;
+    email: string | null;
+    is_active: boolean;
+    is_primary_admin: boolean;
+  }) => {
+    setAdminProfile(prev => ({
+      ...prev,
+      name: profile.full_name,
+      email: profile.email ?? prev.email,
+      status: profile.is_active ? "Active" : "Inactive",
+      isPrimaryAdmin: profile.is_primary_admin === true,
+    }));
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -84,12 +100,7 @@ export default function App() {
       .then((profile) => {
         if (!isMounted) return;
         if (profile) {
-          setAdminProfile(prev => ({
-            ...prev,
-            name: profile.full_name,
-            email: profile.email ?? prev.email,
-            status: profile.is_active ? "Active" : "Inactive",
-          }));
+          applyAdminProfile(profile);
           setIsLoggedIn(true);
         }
       })
@@ -109,15 +120,25 @@ export default function App() {
   const [passengers, setPassengers] = useState<Passenger[]>([]);
   const [rideRequests, setRideRequests] = useState<RideRequest[]>([]);
   const [earningsRecords, setEarningsRecords] = useState<EarningsRecord[]>([]);
+  const [adminAccounts, setAdminAccounts] = useState<AdminAccount[]>([]);
   const [fareSettings, setFareSettings] = useState<FareSetting[]>([]);
   const [notifications, setNotifications] = useState<AdminNotification[]>([]);
   const [isLoadingOperationalData, setIsLoadingOperationalData] = useState(false);
   const [isLoadingFareSettings, setIsLoadingFareSettings] = useState(false);
   const [isSavingFareSetting, setIsSavingFareSetting] = useState("");
+  const [isCreatingAdmin, setIsCreatingAdmin] = useState(false);
+  const [activeAdminActionId, setActiveAdminActionId] = useState("");
   const [operationalDataError, setOperationalDataError] = useState("");
   const [fareSettingsError, setFareSettingsError] = useState("");
   const [operationalReloadKey, setOperationalReloadKey] = useState(0);
   const [notificationReloadKey, setNotificationReloadKey] = useState(0);
+  const isSuperAdmin = adminProfile.isPrimaryAdmin === true;
+
+  useEffect(() => {
+    if (!isSuperAdmin && (activeTab === "fare-settings" || activeTab === "admin-management")) {
+      setActiveTab("dashboard");
+    }
+  }, [activeTab, isSuperAdmin]);
 
   useEffect(() => {
     if (!isLoggedIn) return;
@@ -139,6 +160,7 @@ export default function App() {
         setPassengers(data.passengers);
         setRideRequests(data.rideRequests);
         setEarningsRecords(data.earningsRecords);
+        setAdminAccounts(data.adminAccounts);
         setFareSettings(settings);
       } catch (error) {
         console.error("Unable to load Supabase operational data", error);
@@ -211,10 +233,8 @@ export default function App() {
   // Modal display states
   const [showEditDriverModal, setShowEditDriverModal] = useState(false);
   const [showEditPassengerModal, setShowEditPassengerModal] = useState(false);
-  const [showAddRequestModal, setShowAddRequestModal] = useState(false);
   const [showViewRequestModal, setShowViewRequestModal] = useState(false);
   const [showViewUserModal, setShowViewUserModal] = useState(false);
-  const [showViewEarningsModal, setShowViewEarningsModal] = useState(false);
   const [activeStatModal, setActiveStatModal] = useState<string | null>(null);
 
   // Selected item states
@@ -223,7 +243,6 @@ export default function App() {
   const [viewingRequest, setViewingRequest] = useState<RideRequest | null>(null);
   const [viewingUser, setViewingUser] = useState<Driver | Passenger | null>(null);
   const [viewingUserType, setViewingUserType] = useState<"driver" | "passenger" | null>(null);
-  const [viewingEarningsRecord, setViewingEarningsRecord] = useState<EarningsRecord | null>(null);
 
   // Form states
   const [formData, setFormData] = useState({
@@ -261,13 +280,11 @@ export default function App() {
     password: "",
   });
 
-  const [newRequestData, setNewRequestData] = useState({
-    passenger: "",
-    driverId: "",
-    location: "",
-    destination: "",
-    status: "Pending" as "Pending" | "In Transit" | "Scheduled" | "Completed" | "Cancelled",
-    fare: ""
+  const [newAdminForm, setNewAdminForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
   });
 
   // Search & Filter states
@@ -275,9 +292,6 @@ export default function App() {
   const [requestSearch, setRequestSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("Ongoing");
   const [requestTodaFilter, setRequestTodaFilter] = useState("All");
-  const [earningsTodaFilter, setEarningsTodaFilter] = useState("All");
-  const [earningsDriverFilter, setEarningsDriverFilter] = useState("All");
-  const [earningsDateRange, setEarningsDateRange] = useState("April 1, 2024- April 30, 2026");
   const [userTodaFilter, setUserTodaFilter] = useState("All");
   const [userStatusFilter, setUserStatusFilter] = useState("All");
   const [usersSubTab, setUsersSubTab] = useState<"all" | "drivers" | "passengers">("drivers");
@@ -286,7 +300,6 @@ export default function App() {
   const [requestsPage, setRequestsPage] = useState(1);
   const [driversPage, setDriversPage] = useState(1);
   const [passengersPage, setPassengersPage] = useState(1);
-  const [earningsPage, setEarningsPage] = useState(1);
 
   // Chart hover states
   const [hoveredBarIndex, setHoveredBarIndex] = useState<number | null>(null);
@@ -298,13 +311,22 @@ export default function App() {
   const activePassengersCount = passengers.filter(p => p.status === "Active").length;
   const registeredPassengersCount = passengers.length;
   const usersCount = passengers.length + drivers.length;
-  const tripsCount = rideRequests.length;
+  const tripsTodayCount = useMemo(() => {
+    const today = new Date().toDateString();
+    return rideRequests.filter((ride) => {
+      const rideDate = new Date(ride.requestedAt || ride.time);
+      return !Number.isNaN(rideDate.getTime()) && rideDate.toDateString() === today;
+    }).length;
+  }, [rideRequests]);
 
   const earningsToday = useMemo(() => {
     const today = new Date().toDateString();
     return rideRequests
-      .filter(r => r.status === "Completed" && new Date(r.time).toDateString() === today)
-      .reduce((sum, r) => sum + r.fare, 0);
+      .filter(r => {
+        const earningDate = new Date(r.earningDate || r.requestedAt || r.time);
+        return r.earningAmount > 0 && !Number.isNaN(earningDate.getTime()) && earningDate.toDateString() === today;
+      })
+      .reduce((sum, r) => sum + r.earningAmount, 0);
   }, [rideRequests]);
 
   const earningsWeekly = useMemo(() => {
@@ -314,33 +336,40 @@ export default function App() {
     weekStart.setHours(0, 0, 0, 0);
 
     return rideRequests
-      .filter(r => r.status === "Completed" && new Date(r.time) >= weekStart)
-      .reduce((sum, r) => sum + r.fare, 0);
+      .filter(r => {
+        const earningDate = new Date(r.earningDate || r.requestedAt || r.time);
+        return r.earningAmount > 0 && !Number.isNaN(earningDate.getTime()) && earningDate >= weekStart;
+      })
+      .reduce((sum, r) => sum + r.earningAmount, 0);
   }, [rideRequests]);
 
   const earningsMonthly = useMemo(() => {
     const now = new Date();
     return rideRequests
       .filter(r => {
-        const rideDate = new Date(r.time);
-        return r.status === "Completed" &&
-          rideDate.getMonth() === now.getMonth() &&
-          rideDate.getFullYear() === now.getFullYear();
+        const earningDate = new Date(r.earningDate || r.requestedAt || r.time);
+        return r.earningAmount > 0 &&
+          !Number.isNaN(earningDate.getTime()) &&
+          earningDate.getMonth() === now.getMonth() &&
+          earningDate.getFullYear() === now.getFullYear();
       })
-      .reduce((sum, r) => sum + r.fare, 0);
+      .reduce((sum, r) => sum + r.earningAmount, 0);
   }, [rideRequests]);
 
   const chartData = useMemo(() => {
-    const hours = [8, 9, 10, 11, 12, 13];
-    return hours.map(hour => {
+    const buckets = [0, 4, 8, 12, 16, 20];
+    const today = new Date().toDateString();
+    return buckets.map(hour => {
       const labelDate = new Date();
       labelDate.setHours(hour, 0, 0, 0);
       return {
         label: labelDate.toLocaleTimeString([], { hour: "numeric" }),
         val: rideRequests.filter(r => {
-          const rideDate = new Date(r.time);
-          return rideDate.toDateString() === new Date().toDateString() &&
-            rideDate.getHours() === hour;
+          const rideDate = new Date(r.requestedAt || r.time);
+          return !Number.isNaN(rideDate.getTime()) &&
+            rideDate.toDateString() === today &&
+            rideDate.getHours() >= hour &&
+            rideDate.getHours() < hour + 4;
         }).length,
       };
     });
@@ -399,6 +428,80 @@ export default function App() {
       alert(`Unexpected error: ${err.message || err}`);
     } finally {
       setIsCreatingDriver(false);
+    }
+  };
+
+  const handleCreateAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isSuperAdmin || isCreatingAdmin) return;
+    if (!newAdminForm.name || !newAdminForm.email || !newAdminForm.password) {
+      alert("Please fill in the admin name, email, and password.");
+      return;
+    }
+
+    setIsCreatingAdmin(true);
+    try {
+      const result = await createAdminAccount({
+        fullName: newAdminForm.name,
+        email: newAdminForm.email,
+        phone: newAdminForm.phone,
+        password: newAdminForm.password,
+      });
+
+      if (!result.success) {
+        alert(`Failed to create admin account: ${result.error}`);
+        return;
+      }
+
+      setNewAdminForm({ name: "", email: "", phone: "", password: "" });
+      setOperationalReloadKey(key => key + 1);
+      alert(`Admin account created successfully for ${result.adminName ?? newAdminForm.name}.`);
+    } catch (error) {
+      alert(`Unable to create admin account: ${error instanceof Error ? error.message : error}`);
+    } finally {
+      setIsCreatingAdmin(false);
+    }
+  };
+
+  const handleToggleAdminStatus = async (account: AdminAccount) => {
+    if (!isSuperAdmin || account.isPrimaryAdmin || activeAdminActionId) return;
+    const nextIsActive = account.status !== "Active";
+    setActiveAdminActionId(account.id);
+    try {
+      const result = await setAdminAccountActive(account.id, nextIsActive);
+      if (!result.success) {
+        alert(`Unable to update admin account: ${result.error}`);
+        return;
+      }
+
+      setAdminAccounts(prev =>
+        prev.map(item =>
+          item.id === account.id
+            ? { ...item, status: nextIsActive ? "Active" : "Inactive" }
+            : item,
+        ),
+      );
+    } catch (error) {
+      alert(`Unable to update admin account: ${error instanceof Error ? error.message : error}`);
+    } finally {
+      setActiveAdminActionId("");
+    }
+  };
+
+  const handleResetAdminPassword = async (account: AdminAccount, password: string) => {
+    if (!isSuperAdmin || activeAdminActionId) return;
+    setActiveAdminActionId(account.id);
+    try {
+      const result = await resetAdminPassword(account.id, password);
+      if (!result.success) {
+        alert(`Unable to reset admin password: ${result.error}`);
+        return;
+      }
+      alert(`Password reset for ${account.name}.`);
+    } catch (error) {
+      alert(`Unable to reset admin password: ${error instanceof Error ? error.message : error}`);
+    } finally {
+      setActiveAdminActionId("");
     }
   };
 
@@ -513,6 +616,11 @@ export default function App() {
   };
 
   const handleSaveFareSetting = async (setting: FareSetting) => {
+    if (!isSuperAdmin) {
+      setFareSettingsError("Only the primary administrator can change fare settings.");
+      return;
+    }
+
     setIsSavingFareSetting(setting.tripType);
     setFareSettingsError("");
     try {
@@ -621,44 +729,6 @@ export default function App() {
     }
   };
 
-  const handleAddRequest = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newRequestData.passenger || !newRequestData.location || !newRequestData.destination || !newRequestData.fare) {
-      alert("Please fill in all fields.");
-      return;
-    }
-    const assignedDriver = drivers.find(d => d.id === Number(newRequestData.driverId));
-    const assignedDriverName = assignedDriver?.name || "-";
-    const assignedDriverToda = assignedDriver?.toda || "-";
-
-    const newReq: RideRequest = {
-      id: Date.now(),
-      passenger: newRequestData.passenger,
-      driver: assignedDriverName,
-      location: newRequestData.location,
-      destination: newRequestData.destination,
-      pickupLatitude: null,
-      pickupLongitude: null,
-      dropoffLatitude: null,
-      dropoffLongitude: null,
-      status: newRequestData.status,
-      fare: Number(newRequestData.fare),
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      toda: assignedDriverToda
-    };
-    setRideRequests(prev => [newReq, ...prev]);
-    setShowAddRequestModal(false);
-    setNewRequestData({
-      passenger: "",
-      driverId: "",
-      location: "",
-      destination: "",
-      status: "Pending",
-      fare: ""
-    });
-    alert("Ride request dispatched successfully!");
-  };
-
   const handleDownloadReport = () => {
     const headers = "Date,TODA Association,Completed Rides,Total Earnings,Driver Assigned\n";
     const rows = earningsRecords.map(r =>
@@ -715,16 +785,12 @@ export default function App() {
       }
 
       return matchSearch && matchStatus && matchToda;
+    }).sort((a, b) => {
+      const bTime = Date.parse(b.requestedAt || b.time || "");
+      const aTime = Date.parse(a.requestedAt || a.time || "");
+      return (Number.isNaN(bTime) ? 0 : bTime) - (Number.isNaN(aTime) ? 0 : aTime);
     });
   }, [rideRequests, requestSearch, statusFilter, requestTodaFilter]);
-
-  const filteredEarnings = useMemo(() => {
-    return earningsRecords.filter(r => {
-      const matchToda = earningsTodaFilter === "All" || r.toda === earningsTodaFilter;
-      const matchDriver = earningsDriverFilter === "All" || r.driverName === earningsDriverFilter;
-      return matchToda && matchDriver;
-    });
-  }, [earningsRecords, earningsTodaFilter, earningsDriverFilter]);
 
   // Login View render condition
   if (isCheckingSession) {
@@ -747,6 +813,7 @@ export default function App() {
         showPassword={showPassword}
         setShowPassword={setShowPassword}
         setIsLoggedIn={setIsLoggedIn}
+        onLoginSuccess={applyAdminProfile}
       />
     );
   }
@@ -774,6 +841,7 @@ export default function App() {
           setMobileMenuOpen={setMobileMenuOpen}
           usersSubTab={usersSubTab}
           setUsersSubTab={setUsersSubTab}
+          isSuperAdmin={isSuperAdmin}
         />
 
         {/* MAIN PANEL CONTENT VIEW */}
@@ -805,7 +873,7 @@ export default function App() {
               totalDriversCount={totalDriversCount}
               activeDriversCount={activeDriversCount}
               usersCount={usersCount}
-              tripsCount={tripsCount}
+              tripsTodayCount={tripsTodayCount}
               earningsToday={earningsToday}
               earningsWeekly={earningsWeekly}
               earningsMonthly={earningsMonthly}
@@ -815,7 +883,6 @@ export default function App() {
               chartTooltip={chartTooltip}
               setChartTooltip={setChartTooltip}
               setActiveTab={setActiveTab}
-              setShowAddRequestModal={setShowAddRequestModal}
               setShowEditDriverModal={setShowEditDriverModal}
               setEditingDriver={setEditingDriver}
               setEditFormData={setEditFormData}
@@ -835,31 +902,14 @@ export default function App() {
               setRequestTodaFilter={setRequestTodaFilter}
               requestSearch={requestSearch}
               setRequestSearch={setRequestSearch}
+              handleDownloadReport={handleDownloadReport}
               setViewingRequest={setViewingRequest}
               setShowViewRequestModal={setShowViewRequestModal}
-            />
-          )}
-
-          {activeTab === "earnings" && (
-            <EarningsView
-              drivers={drivers}
-              filteredEarnings={filteredEarnings}
-              earningsTodaFilter={earningsTodaFilter}
-              setEarningsTodaFilter={setEarningsTodaFilter}
-              earningsDriverFilter={earningsDriverFilter}
-              setEarningsDriverFilter={setEarningsDriverFilter}
-              earningsDateRange={earningsDateRange}
-              setEarningsDateRange={setEarningsDateRange}
-              earningsPage={earningsPage}
-              setEarningsPage={setEarningsPage}
-              handleDownloadReport={handleDownloadReport}
-              setViewingEarningsRecord={setViewingEarningsRecord}
-              setShowViewEarningsModal={setShowViewEarningsModal}
               setActiveStatModal={setActiveStatModal}
             />
           )}
 
-          {activeTab === "fare-settings" && (
+          {activeTab === "fare-settings" && isSuperAdmin && (
             <FareSettingsView
               fareSettings={fareSettings}
               fareSettingsError={fareSettingsError}
@@ -867,6 +917,19 @@ export default function App() {
               isSavingFareSetting={isSavingFareSetting}
               onFareSettingChange={handleFareSettingChange}
               onSaveFareSetting={handleSaveFareSetting}
+            />
+          )}
+
+          {activeTab === "admin-management" && isSuperAdmin && (
+            <AdminManagementView
+              adminAccounts={adminAccounts}
+              newAdminForm={newAdminForm}
+              setNewAdminForm={setNewAdminForm}
+              isCreatingAdmin={isCreatingAdmin}
+              activeAdminActionId={activeAdminActionId}
+              onCreateAdmin={handleCreateAdmin}
+              onToggleAdminStatus={handleToggleAdminStatus}
+              onResetAdminPassword={handleResetAdminPassword}
             />
           )}
 
@@ -951,15 +1014,6 @@ export default function App() {
         onSubmit={handleEditPassenger}
       />
 
-      <AddRequestModal
-        isOpen={showAddRequestModal}
-        onClose={() => setShowAddRequestModal(false)}
-        newRequestData={newRequestData}
-        setNewRequestData={setNewRequestData}
-        drivers={drivers}
-        onSubmit={handleAddRequest}
-      />
-
       <ViewRequestModal
         isOpen={showViewRequestModal}
         onClose={() => {
@@ -1018,15 +1072,6 @@ export default function App() {
         }}
       />
 
-      <ViewEarningsModal
-        isOpen={showViewEarningsModal}
-        onClose={() => {
-          setShowViewEarningsModal(false);
-          setViewingEarningsRecord(null);
-        }}
-        viewingEarningsRecord={viewingEarningsRecord}
-      />
-
       <StatBreakdownModal
         isOpen={activeStatModal !== null}
         activeStatModal={activeStatModal}
@@ -1034,7 +1079,6 @@ export default function App() {
         drivers={drivers}
         passengers={passengers}
         rideRequests={rideRequests}
-        earningsToday={earningsToday}
       />
     </div>
   );

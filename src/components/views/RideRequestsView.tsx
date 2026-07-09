@@ -11,8 +11,10 @@ interface RideRequestsViewProps {
   setRequestTodaFilter: (val: string) => void;
   requestSearch: string;
   setRequestSearch: (val: string) => void;
+  handleDownloadReport: () => void;
   setViewingRequest: (val: RideRequest | null) => void;
   setShowViewRequestModal: (val: boolean) => void;
+  setActiveStatModal: (val: string | null) => void;
 }
 
 export default function RideRequestsView({
@@ -25,13 +27,63 @@ export default function RideRequestsView({
   setRequestTodaFilter,
   requestSearch,
   setRequestSearch,
+  handleDownloadReport,
   setViewingRequest,
   setShowViewRequestModal,
+  setActiveStatModal,
 }: RideRequestsViewProps) {
   const itemsPerPage = 7;
+  const totalEarnings = filteredRequests.reduce((sum, record) => sum + record.earningAmount, 0);
+  const totalCompletedRides = filteredRequests.filter((record) => record.status === "Completed").length;
 
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-2xl font-extrabold text-[#091b6f]">Booking Logs</h1>
+        <p className="text-sm font-semibold text-slate-500">
+          Review bookings, ride status, fare values, and driver earnings in one place.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <button
+          type="button"
+          onClick={() => setActiveStatModal("total-earnings")}
+          className="rounded-lg border border-slate-100 bg-[#091b6f] p-5 text-left text-white shadow-sm transition hover:bg-[#132b91]"
+        >
+          <p className="text-xs font-extrabold uppercase text-sky-200">Total Earnings</p>
+          <p className="mt-2 text-3xl font-extrabold">₱{totalEarnings.toLocaleString()}</p>
+          <p className="mt-3 text-xs font-semibold text-sky-200/80">From the visible ride history rows</p>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveStatModal("completed-rides")}
+          className="rounded-lg border border-slate-100 bg-white p-5 text-left shadow-sm transition hover:border-[#091b6f]/20"
+        >
+          <p className="text-xs font-extrabold uppercase text-slate-400">Completed Rides</p>
+          <p className="mt-2 text-3xl font-extrabold text-[#091b6f]">{totalCompletedRides.toLocaleString()}</p>
+          <p className="mt-3 text-xs font-semibold text-slate-500">Completed rides in the current history view</p>
+        </button>
+
+        <div className="rounded-lg border border-slate-100 bg-white p-5 shadow-sm">
+          <p className="text-xs font-extrabold uppercase text-slate-400">Logged Bookings</p>
+          <p className="mt-2 text-3xl font-extrabold text-[#091b6f]">{filteredRequests.length.toLocaleString()}</p>
+          <button
+            type="button"
+            onClick={handleDownloadReport}
+            className="mt-4 inline-flex items-center gap-2 rounded-md bg-[#4c75f2] px-4 py-2 text-xs font-extrabold text-white hover:bg-blue-600"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Download Earnings CSV
+          </button>
+        </div>
+      </div>
+
       {/* Category Filter Buttons Row */}
       <div className="bg-[#b3e2ff]/30 p-3 rounded-xl flex flex-wrap items-center gap-3 border border-[#b3e2ff]/50">
         <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
@@ -47,11 +99,11 @@ export default function RideRequestsView({
                 setRequestsPage(1);
               }}
               className={`px-4 py-2 rounded-md text-xs font-bold transition-all cursor-pointer ${statusFilter === tab.key
-                  ? "bg-[#091b6f] text-white shadow-sm"
-                  : "text-slate-600 hover:text-[#091b6f]"
+                ? "bg-[#091b6f] text-white shadow-sm"
+                : "text-slate-600 hover:text-[#091b6f]"
                 }`}
             >
-              {tab.label}
+              {tab.key === "Ongoing" ? "Ongoing Rides" : tab.label}
             </button>
           ))}
         </div>
@@ -86,9 +138,8 @@ export default function RideRequestsView({
         {/* Section Header with Search Bar */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <span className="text-xl">🔔</span>
             <h2 className="text-[#091b6f] font-bold text-lg">
-              {statusFilter} Ride Requests ({filteredRequests.length})
+              {statusFilter} Booking History ({filteredRequests.length})
             </h2>
           </div>
 
@@ -123,6 +174,9 @@ export default function RideRequestsView({
                 <th className="pb-3">Destination</th>
                 <th className="pb-3">Driver</th>
                 <th className="pb-3">TODA</th>
+                <th className="pb-3">Booking Date</th>
+                <th className="pb-3">Fare</th>
+                <th className="pb-3">Earning Date</th>
                 <th className="pb-3">Status</th>
                 <th className="pb-3 text-center pr-3">Actions</th>
               </tr>
@@ -137,15 +191,18 @@ export default function RideRequestsView({
                     <td className="py-5 px-2 text-slate-500">{r.destination}</td>
                     <td className="py-5 px-2 text-slate-700">{r.driver}</td>
                     <td className="py-5 px-2 text-slate-600">{r.toda}</td>
+                    <td className="py-5 px-2 text-slate-600">{r.time || "-"}</td>
+                    <td className="py-5 px-2 font-extrabold text-[#091b6f]">₱{r.fare.toLocaleString()}</td>
+                    <td className="py-5 px-2 text-slate-600">{r.earningDate || "-"}</td>
                     <td className="py-5">
                       <span
                         className={`inline-block px-4 py-1 rounded-full text-[10px] font-bold ${r.status === "Completed"
-                            ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                            : r.status === "In Transit"
-                              ? "bg-emerald-500 text-white border border-emerald-600"
-                              : r.status === "Pending"
-                                ? "bg-amber-100 text-amber-600 border border-amber-200"
-                                : "bg-rose-50 text-rose-600 border border-rose-100"
+                          ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                          : r.status === "In Transit"
+                            ? "bg-emerald-500 text-white border border-emerald-600"
+                            : r.status === "Pending"
+                              ? "bg-amber-100 text-amber-600 border border-amber-200"
+                              : "bg-rose-50 text-rose-600 border border-rose-100"
                           }`}
                       >
                         {r.status}
@@ -166,8 +223,8 @@ export default function RideRequestsView({
                 ))}
               {filteredRequests.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="py-16 text-center text-slate-400 font-medium">
-                    No requests found matching your query.
+                  <td colSpan={10} className="py-16 text-center text-slate-400 font-medium">
+                    No booking logs found matching your query.
                   </td>
                 </tr>
               )}
@@ -186,11 +243,10 @@ export default function RideRequestsView({
               <button
                 onClick={() => setRequestsPage((prev) => Math.max(prev - 1, 1))}
                 disabled={requestsPage === 1}
-                className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded-lg border ${
-                  requestsPage === 1
+                className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded-lg border ${requestsPage === 1
                     ? "opacity-30 border-slate-200 text-slate-400"
                     : "border-slate-200 hover:bg-slate-50 text-[#091b6f] cursor-pointer"
-                }`}
+                  }`}
               >
                 &lt;
               </button>
@@ -202,11 +258,10 @@ export default function RideRequestsView({
                   )
                 }
                 disabled={requestsPage === Math.ceil(filteredRequests.length / itemsPerPage)}
-                className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded-lg border ${
-                  requestsPage === Math.ceil(filteredRequests.length / itemsPerPage)
+                className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded-lg border ${requestsPage === Math.ceil(filteredRequests.length / itemsPerPage)
                     ? "opacity-30 border-slate-200 text-slate-400"
                     : "border-slate-200 hover:bg-slate-50 text-[#091b6f] cursor-pointer"
-                }`}
+                  }`}
               >
                 &gt;
               </button>

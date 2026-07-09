@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { loginAdmin } from "../../lib/authService";
+import { AdminProfile, loginAdmin } from "../../lib/authService";
 
 interface LoginViewProps {
   loginEmail: string;
@@ -11,6 +11,7 @@ interface LoginViewProps {
   showPassword: boolean;
   setShowPassword: (val: boolean) => void;
   setIsLoggedIn: (val: boolean) => void;
+  onLoginSuccess: (profile: AdminProfile) => void;
 }
 
 export default function LoginView({
@@ -23,6 +24,7 @@ export default function LoginView({
   showPassword,
   setShowPassword,
   setIsLoggedIn,
+  onLoginSuccess,
 }: LoginViewProps) {
   const [isLoading, setIsLoading] = useState(false);
 
@@ -32,7 +34,8 @@ export default function LoginView({
     setLoginError("");
 
     try {
-      await loginAdmin(loginEmail, loginPassword);
+      const profile = await loginAdmin(loginEmail, loginPassword);
+      onLoginSuccess(profile);
       setIsLoggedIn(true);
     } catch (error) {
       setLoginError(error instanceof Error ? error.message : "Login failed.");
@@ -46,14 +49,6 @@ export default function LoginView({
       <div className="flex flex-col items-center w-full max-w-sm mt-4">
         {/* Uploaded Logo */}
         <img src="/icons/login.png" alt="Tayabas TODA Go Logo" className="w-24 h-auto object-contain mt-10 mb-5" />
-
-        {/* App Name */}
-        <h1 className="text-[#091b6f] font-bold text-lg tracking-wide text-center leading-none mt-1">
-          Tayabas TODA Go
-        </h1>
-        <p className="text-[#2b4bb5] text-sm tracking-wide mt-1">
-          Booking App
-        </p>
 
         {/* Welcome Headers */}
         <h2 className="text-[#091b6f] font-extrabold text-[28px] tracking-tight mt-10 mb-1">
@@ -144,11 +139,10 @@ export default function LoginView({
           <button
             type="submit"
             disabled={isLoading}
-            className={`${
-              isLoading
+            className={`${isLoading
                 ? "bg-[#5b7af5]/70 cursor-not-allowed"
                 : "bg-[#5b7af5] hover:bg-[#4f73f6] active:bg-blue-700 cursor-pointer"
-            } text-white font-extrabold text-base py-4 px-6 rounded-2xl w-full shadow-md hover:shadow-lg transition-all mt-4`}
+              } text-white font-extrabold text-base py-4 px-6 rounded-2xl w-full shadow-md hover:shadow-lg transition-all mt-4`}
           >
             {isLoading ? "Authenticating..." : "Login"}
           </button>

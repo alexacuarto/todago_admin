@@ -9,29 +9,6 @@ interface FareSettingsViewProps {
   onSaveFareSetting: (setting: FareSetting) => void;
 }
 
-function discountedFare(baseFare: number, discountPercent: number) {
-  return Math.max(baseFare * (1 - Math.min(Math.max(discountPercent, 0), 100) / 100), 0);
-}
-
-function sampleFare(
-  setting: FareSetting,
-  distanceKm: number,
-  counts: { regular: number; student: number; pwd: number; senior: number },
-) {
-  const succeedingKm = Math.max(Math.ceil(distanceKm - setting.includedKm), 0);
-  const basePassengerFare = setting.baseFare + succeedingKm * setting.perSucceedingKm;
-  return (
-    basePassengerFare * counts.regular +
-    discountedFare(basePassengerFare, setting.studentDiscountPercent) * counts.student +
-    discountedFare(basePassengerFare, setting.pwdDiscountPercent) * counts.pwd +
-    discountedFare(basePassengerFare, setting.seniorDiscountPercent) * counts.senior
-  );
-}
-
-function peso(value: number) {
-  return `₱${Number(value || 0).toFixed(2)}`;
-}
-
 export default function FareSettingsView({
   fareSettings,
   fareSettingsError,

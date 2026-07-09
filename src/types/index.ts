@@ -47,7 +47,11 @@ export interface RideRequest {
   status: "Pending" | "In Transit" | "Scheduled" | "Completed" | "Cancelled";
   fare: number;
   time: string;
+  requestedAt: string;
   toda: string;
+  earningId?: string;
+  earningAmount: number;
+  earningDate: string;
 }
 
 export interface EarningsRecord {
@@ -63,8 +67,8 @@ export type TripType = "one_way" | "round_trip";
 export type AdminTab =
   | "dashboard"
   | "ride-requests"
-  | "earnings"
   | "fare-settings"
+  | "admin-management"
   | "users"
   | "profile"
   | "create-driver";
@@ -80,4 +84,14 @@ export interface FareSetting {
   seniorDiscountPercent: number;
   isActive: boolean;
   updatedAt: string;
+}
+
+export interface AdminAccount {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  status: "Active" | "Inactive";
+  isPrimaryAdmin: boolean;
+  createdAt: string;
 }

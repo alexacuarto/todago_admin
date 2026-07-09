@@ -123,6 +123,7 @@ export async function createDriverAccount(
       p_last_name: lastName,
       p_phone: contactNumber,
       p_plate_number: plateNumber,
+      p_toda_association: todaAssociation,
     });
 
     console.log("create_driver_account RPC Response Data:", data);
@@ -150,9 +151,10 @@ export async function createDriverAccount(
       const fileExt = licenseImage.name.split('.').pop() || 'png';
       const fileName = `${userId}-${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
+      const bucketName = 'driver-documents';
 
       const { data: uploadData, error: storageError } = await supabase.storage
-        .from('licenses')
+        .from(bucketName)
         .upload(filePath, licenseImage, {
           upsert: true,
         });
@@ -161,17 +163,28 @@ export async function createDriverAccount(
         console.error("Storage upload failed:", storageError);
         console.log("Rolling back user creation due to storage upload failure...");
         await supabase.rpc('rollback_user_creation', { p_user_id: userId });
-        return { success: false, error: `Storage upload failed: ${storageError.message || JSON.stringify(storageError)}` };
+        
+        let errorMsg = storageError.message || JSON.stringify(storageError);
+        if (
+          errorMsg.toLowerCase().includes('bucket not found') ||
+          errorMsg.toLowerCase().includes('does not exist') ||
+          (storageError as any).status === 404 ||
+          (storageError as any).statusCode === '404'
+        ) {
+          errorMsg = "Storage bucket driver-documents does not exist. Please create it in Supabase Storage.";
+        }
+        
+        return { success: false, error: `Storage upload failed: ${errorMsg}` };
       }
 
       console.log("Storage upload successful:", uploadData);
 
-      // Get public URL
+      // Get public URL structure (will be signed on-the-fly for private access)
       const { data: { publicUrl } } = supabase.storage
-        .from('licenses')
+        .from(bucketName)
         .getPublicUrl(filePath);
 
-      console.log("Retrieved public URL for license:", publicUrl);
+      console.log("Retrieved public URL structure for license:", publicUrl);
 
       // Update the driver's license photo url
       console.log("Updating drivers table with license photo URL...");

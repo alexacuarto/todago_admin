@@ -190,7 +190,7 @@ export default function UsersView({
                             View License
                           </button>
                         ) : (
-                          <span className="text-[10px] text-slate-400 font-semibold italic">No license uploaded</span>
+                          <span className="text-[10px] text-rose-500 font-bold uppercase">Not uploaded</span>
                         )}
                       </div>
                     </td>

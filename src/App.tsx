@@ -149,6 +149,7 @@ export default function App() {
           license_photo_url,
           is_online,
           created_at,
+          toda_association,
           profiles!profile_id (
             id,
             first_name,
@@ -207,9 +208,7 @@ export default function App() {
         const driverBookings = bookings.filter(b => b.driver_id === d.id && (b.status === "droppedOff" || b.status === "paymentSent"));
         const tripsCount = driverBookings.length;
 
-        const todaOptions = ["LHITC-TODA", "BYPASS ILAYANG BAGUIO-TODA", "CHOT-TODA"];
-        const todaIndex = Math.abs(d.id.split("").reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0)) % todaOptions.length;
-        const toda = todaOptions[todaIndex];
+        const toda = d.toda_association || "Not provided";
 
         // Compute activityStatus via single source of truth utility
         // Rules: 0–7d = Active, 8–14d = Moderate, 15+d / none = Inactive
@@ -260,11 +259,9 @@ export default function App() {
         const driverProfile: any = driverObj?.profiles || {};
         const driverName = driverObj ? `${driverProfile.first_name || ""} ${driverProfile.last_name || ""}`.trim() : "Not provided";
 
-        const todaOptions = ["LHITC-TODA", "BYPASS ILAYANG BAGUIO-TODA", "CHOT-TODA"];
         let toda = "Not provided";
         if (driverObj) {
-          const todaIndex = Math.abs(driverObj.id.split("").reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0)) % todaOptions.length;
-          toda = todaOptions[todaIndex];
+          toda = driverObj.toda_association || "Not provided";
         }
 
         let uiStatus: RideRequest["status"] = "Pending";
@@ -574,6 +571,12 @@ export default function App() {
       return;
     }
 
+    const isProduction = import.meta.env.PROD || import.meta.env.MODE === 'production';
+    if (isProduction && !formData.licenseImage) {
+      alert("Please upload the driver’s license copy before creating the account.");
+      return;
+    }
+
     console.log("Initiating driver signup request...", {
       name: formData.name,
       email: formData.email,
@@ -653,7 +656,8 @@ export default function App() {
       .from('drivers')
       .update({
         status: editFormData.status === "Active" ? "approved" : "pending",
-        license_number: editFormData.license
+        license_number: editFormData.license,
+        toda_association: editFormData.toda
       })
       .eq('id', editingDriver.id);
 

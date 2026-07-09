@@ -45,7 +45,7 @@ export default function EditDriverModal({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1">
               <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Phone</label>
               <input
@@ -68,7 +68,7 @@ export default function EditDriverModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1">
               <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Body Number</label>
               <input
@@ -93,7 +93,7 @@ export default function EditDriverModal({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1">
               <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Email Address</label>
               <input

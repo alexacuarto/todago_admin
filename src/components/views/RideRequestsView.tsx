@@ -85,8 +85,8 @@ export default function RideRequestsView({
       </div>
 
       {/* Category Filter Buttons Row */}
-      <div className="bg-[#b3e2ff]/30 p-3 rounded-xl flex flex-wrap items-center gap-3 border border-[#b3e2ff]/50">
-        <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
+      <div className="bg-[#b3e2ff]/30 p-3 rounded-xl flex flex-wrap items-center justify-between gap-3 border border-[#b3e2ff]/50">
+        <div className="flex flex-wrap sm:flex-nowrap bg-slate-100 p-1 rounded-lg border border-slate-200 w-full sm:w-auto justify-center">
           {[
             { key: "Ongoing", label: "Ongoing" },
             { key: "Completed", label: "Completed" },
@@ -98,7 +98,7 @@ export default function RideRequestsView({
                 setStatusFilter(tab.key);
                 setRequestsPage(1);
               }}
-              className={`px-4 py-2 rounded-md text-xs font-bold transition-all cursor-pointer ${statusFilter === tab.key
+              className={`px-4 py-2 rounded-md text-xs font-bold transition-all cursor-pointer w-full sm:w-auto text-center ${statusFilter === tab.key
                 ? "bg-[#091b6f] text-white shadow-sm"
                 : "text-slate-600 hover:text-[#091b6f]"
                 }`}
@@ -109,7 +109,7 @@ export default function RideRequestsView({
         </div>
 
         {/* TODA Dropdown Filter */}
-        <div className="relative">
+        <div className="relative w-full sm:w-auto">
           <select
             value={requestTodaFilter}
             onChange={(e) => {
@@ -168,7 +168,7 @@ export default function RideRequestsView({
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider">
+              <tr className="border-b border-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider whitespace-nowrap">
                 <th className="pb-3 pl-3">Passenger</th>
                 <th className="pb-3">Pickup</th>
                 <th className="pb-3">Destination</th>
@@ -185,10 +185,10 @@ export default function RideRequestsView({
               {filteredRequests
                 .slice((requestsPage - 1) * itemsPerPage, requestsPage * itemsPerPage)
                 .map((r) => (
-                  <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
+                  <tr key={r.id} className="hover:bg-slate-50/50 transition-colors whitespace-nowrap">
                     <td className="py-5 pl-3 text-[#091b6f] font-bold">{r.passenger}</td>
-                    <td className="py-5 px-2 text-slate-600">{r.location}</td>
-                    <td className="py-5 px-2 text-slate-500">{r.destination}</td>
+                    <td className="py-5 px-2 text-slate-600 max-w-[200px] truncate">{r.location}</td>
+                    <td className="py-5 px-2 text-slate-500 max-w-[200px] truncate">{r.destination}</td>
                     <td className="py-5 px-2 text-slate-700">{r.driver}</td>
                     <td className="py-5 px-2 text-slate-600">{r.toda}</td>
                     <td className="py-5 px-2 text-slate-600">{r.time || "-"}</td>

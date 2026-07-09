@@ -59,8 +59,8 @@ export default function UsersView({
 
 
       {/* Filters registry bar */}
-      <div className="bg-[#b3e2ff]/30 p-3 rounded-xl flex flex-wrap items-center gap-3 border border-[#b3e2ff]/50">
-        <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
+      <div className="bg-[#b3e2ff]/30 p-3 rounded-xl flex flex-wrap items-center justify-between gap-3 border border-[#b3e2ff]/50">
+        <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 w-full sm:w-auto justify-center">
           {[
             { key: "drivers", label: "Drivers" },
             { key: "passengers", label: "Passengers" },
@@ -83,7 +83,7 @@ export default function UsersView({
 
 
         {/* Search input */}
-        <div className="flex-1 max-w-md relative">
+        <div className="w-full sm:flex-1 sm:max-w-md relative">
           <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <circle cx="11" cy="11" r="8" />
@@ -108,7 +108,7 @@ export default function UsersView({
           onClick={() => {
             alert("Simulated registry list downloaded!");
           }}
-          className="ml-auto flex items-center gap-2 px-5 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-[#091b6f] font-bold text-xs rounded-lg shadow-xs hover:shadow-sm transition-all cursor-pointer"
+          className="w-full sm:w-auto sm:ml-auto flex items-center justify-center gap-2 px-5 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-[#091b6f] font-bold text-xs rounded-lg shadow-xs hover:shadow-sm transition-all cursor-pointer"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -128,7 +128,7 @@ export default function UsersView({
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider">
+                <tr className="border-b border-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider whitespace-nowrap">
                   <th className="pb-3 pl-3">Name</th>
                   <th className="pb-3">TODA</th>
                   <th className="pb-3">License</th>
@@ -141,7 +141,7 @@ export default function UsersView({
                 {filteredDrivers
                   .slice((driversPage - 1) * itemsPerPage, driversPage * itemsPerPage)
                   .map((d) => (
-                    <tr key={d.id} className="hover:bg-slate-50/50 transition-colors">
+                    <tr key={d.id} className="hover:bg-slate-50/50 transition-colors whitespace-nowrap">
                       <td className="py-4 pl-3 text-left">
                         <p className="text-[#091b6f] font-bold">{d.name}</p>
                         <p className="text-[10px] text-slate-400 font-bold">Body: {d.bodyNumber}</p>
@@ -276,7 +276,7 @@ export default function UsersView({
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider">
+                <tr className="border-b border-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider whitespace-nowrap">
                   <th className="pb-3 pl-3">Name</th>
                   <th className="pb-3">Contact</th>
                   <th className="pb-3">Status</th>
@@ -287,7 +287,7 @@ export default function UsersView({
                 {filteredPassengers
                   .slice((passengersPage - 1) * itemsPerPage, passengersPage * itemsPerPage)
                   .map((p) => (
-                    <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
+                    <tr key={p.id} className="hover:bg-slate-50/50 transition-colors whitespace-nowrap">
                       <td className="py-4 pl-3 text-left">
                         <p className="text-[#091b6f] font-bold">{p.name}</p>
                         <p className="text-[10px] text-slate-400 font-bold">

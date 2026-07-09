@@ -65,7 +65,7 @@ export default function LoginView({
             <label className="text-[#091b6f] text-sm font-medium self-start pl-1">
               Email
             </label>
-            <div className="bg-[#091b6f] text-white rounded-2xl flex items-center px-4 py-3.5 w-full transition-all">
+            <div className="bg-[#091b6f] text-white rounded-xl flex items-center px-4 py-3.5 w-full transition-all">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/80 mr-3 shrink-0">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                 <circle cx="12" cy="7" r="4" />
@@ -90,7 +90,7 @@ export default function LoginView({
             <label className="text-[#091b6f] text-sm font-medium self-start pl-1">
               Password
             </label>
-            <div className="bg-[#091b6f] text-white rounded-2xl flex items-center px-4 py-3.5 w-full transition-all relative">
+            <div className="bg-[#091b6f] text-white rounded-xl flex items-center px-4 py-3.5 w-full transition-all relative">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/80 mr-3 shrink-0">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                 <path d="M7 11V7a5 5 0 0 1 10 0v4" />
@@ -142,7 +142,7 @@ export default function LoginView({
             className={`${isLoading
                 ? "bg-[#5b7af5]/70 cursor-not-allowed"
                 : "bg-[#5b7af5] hover:bg-[#4f73f6] active:bg-blue-700 cursor-pointer"
-              } text-white font-extrabold text-base py-4 px-6 rounded-2xl w-full shadow-md hover:shadow-lg transition-all mt-4`}
+              } text-white font-extrabold text-base py-4 px-6 rounded-xl w-full shadow-sm hover:shadow transition-all mt-4`}
           >
             {isLoading ? "Authenticating..." : "Login"}
           </button>

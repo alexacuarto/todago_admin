@@ -63,7 +63,7 @@ export default function StatBreakdownModal({
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-3 transition-all animate-in fade-in duration-200 sm:p-4">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden border border-slate-100 flex flex-col max-h-[85vh]">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl overflow-hidden border border-slate-100 flex flex-col max-h-[85vh]">
         {/* Header */}
         <div className="bg-[#0b1b6e] text-white px-4 py-5 flex items-center justify-between gap-3 shrink-0 sm:px-6">
           <div className="min-w-0 text-left">
@@ -275,7 +275,7 @@ export default function StatBreakdownModal({
           {/* CONTENT FOR: total-earnings */}
           {activeStatModal === "total-earnings" && (
             <div className="flex flex-col gap-4">
-              <div className="bg-[#091b6f] text-white p-5 rounded-2xl text-center">
+              <div className="bg-[#091b6f] text-white p-5 rounded-xl text-center">
                 <p className="text-xs text-sky-200 font-bold uppercase tracking-wider">
                   Total Recorded Earnings
                 </p>
@@ -306,7 +306,7 @@ export default function StatBreakdownModal({
           {/* CONTENT FOR: completed-rides */}
           {activeStatModal === "completed-rides" && (
             <div className="flex flex-col gap-4">
-              <div className="bg-[#091b6f] text-white p-5 rounded-2xl text-center">
+              <div className="bg-[#091b6f] text-white p-5 rounded-xl text-center">
                 <p className="text-xs text-sky-200 font-bold uppercase tracking-wider">Total Completed Rides</p>
                 <p className="text-4xl font-extrabold mt-1">{completedRides.length.toLocaleString()}</p>
               </div>

@@ -1,12 +1,12 @@
 import React from "react";
-import { Driver } from "../../types";
+import { Driver, DriverEditFormData } from "../../types";
 
 interface EditDriverModalProps {
   isOpen: boolean;
   onClose: () => void;
   editingDriver: Driver | null;
-  editFormData: any;
-  setEditFormData: React.Dispatch<React.SetStateAction<any>>;
+  editFormData: DriverEditFormData;
+  setEditFormData: React.Dispatch<React.SetStateAction<DriverEditFormData>>;
   onSubmit: (e: React.FormEvent) => void;
 }
 
@@ -22,7 +22,7 @@ export default function EditDriverModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-3 transition-all sm:p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[92vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[92vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         <div className="bg-[#0b1b6e] text-white px-4 py-4 flex items-center justify-between gap-3 sm:px-6">
           <h3 className="break-anywhere font-bold text-base sm:text-lg">Edit Driver Account</h3>
           <button onClick={onClose} className="text-white/80 hover:text-white transition-colors cursor-pointer">
@@ -40,7 +40,7 @@ export default function EditDriverModal({
               type="text"
               required
               value={editFormData.name}
-              onChange={(e) => setEditFormData((prev: any) => ({ ...prev, name: e.target.value }))}
+              onChange={(e) => setEditFormData((prev) => ({ ...prev, name: e.target.value }))}
               className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f]"
             />
           </div>
@@ -52,7 +52,7 @@ export default function EditDriverModal({
                 type="tel"
                 required
                 value={editFormData.phone}
-                onChange={(e) => setEditFormData((prev: any) => ({ ...prev, phone: e.target.value }))}
+                onChange={(e) => setEditFormData((prev) => ({ ...prev, phone: e.target.value }))}
                 className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f]"
               />
             </div>
@@ -62,7 +62,7 @@ export default function EditDriverModal({
                 type="text"
                 required
                 value={editFormData.license}
-                onChange={(e) => setEditFormData((prev: any) => ({ ...prev, license: e.target.value }))}
+                onChange={(e) => setEditFormData((prev) => ({ ...prev, license: e.target.value }))}
                 className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f]"
               />
             </div>
@@ -70,20 +70,27 @@ export default function EditDriverModal({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Body Number</label>
+              <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">TODA / Body Assignment</label>
               <input
                 type="text"
                 required
                 value={editFormData.bodyNumber}
-                onChange={(e) => setEditFormData((prev: any) => ({ ...prev, bodyNumber: e.target.value }))}
+                onChange={(e) => setEditFormData((prev) => ({ ...prev, bodyNumber: e.target.value }))}
                 className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f]"
               />
+              <p className="text-[11px] text-slate-400 font-semibold">
+                This is the value shown in driver lists and booking logs.
+              </p>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">TODA</label>
+              <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Quick Select TODA</label>
               <select
                 value={editFormData.toda}
-                onChange={(e) => setEditFormData((prev: any) => ({ ...prev, toda: e.target.value }))}
+                onChange={(e) => setEditFormData((prev) => ({
+                  ...prev,
+                  toda: e.target.value,
+                  bodyNumber: e.target.value,
+                }))}
                 className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold bg-white outline-hidden focus:border-blue-500 transition-all cursor-pointer text-[#091b6f]"
               >
                 <option value="LHITC-TODA">LHITC-TODA</option>
@@ -100,7 +107,7 @@ export default function EditDriverModal({
                 type="email"
                 required
                 value={editFormData.email}
-                onChange={(e) => setEditFormData((prev: any) => ({ ...prev, email: e.target.value }))}
+                onChange={(e) => setEditFormData((prev) => ({ ...prev, email: e.target.value }))}
                 className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f]"
               />
             </div>
@@ -110,7 +117,7 @@ export default function EditDriverModal({
                 type="text"
                 required
                 value={editFormData.plateNumber}
-                onChange={(e) => setEditFormData((prev: any) => ({ ...prev, plateNumber: e.target.value }))}
+                onChange={(e) => setEditFormData((prev) => ({ ...prev, plateNumber: e.target.value }))}
                 className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f]"
               />
             </div>
@@ -122,7 +129,7 @@ export default function EditDriverModal({
               type="password"
               minLength={8}
               value={editFormData.password}
-              onChange={(e) => setEditFormData((prev: any) => ({ ...prev, password: e.target.value }))}
+              onChange={(e) => setEditFormData((prev) => ({ ...prev, password: e.target.value }))}
               placeholder="Leave blank to keep current password"
               className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f]"
             />
@@ -135,7 +142,7 @@ export default function EditDriverModal({
             <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Account Status</label>
             <select
               value={editFormData.status}
-              onChange={(e) => setEditFormData((prev: any) => ({ ...prev, status: e.target.value as "Active" | "Inactive" }))}
+              onChange={(e) => setEditFormData((prev) => ({ ...prev, status: e.target.value as "Active" | "Inactive" }))}
               className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold bg-white outline-hidden focus:border-blue-500 transition-all cursor-pointer text-[#091b6f]"
             >
               <option value="Active">Active</option>
@@ -147,7 +154,7 @@ export default function EditDriverModal({
             <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Driver Verification</label>
             <select
               value={editFormData.isVerified ? "Verified" : "Unverified"}
-              onChange={(e) => setEditFormData((prev: any) => ({ ...prev, isVerified: e.target.value === "Verified" }))}
+              onChange={(e) => setEditFormData((prev) => ({ ...prev, isVerified: e.target.value === "Verified" }))}
               className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold bg-white outline-hidden focus:border-blue-500 transition-all cursor-pointer text-[#091b6f]"
             >
               <option value="Verified">Verified</option>
@@ -167,7 +174,7 @@ export default function EditDriverModal({
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) {
-                    setEditFormData((prev: any) => ({
+                    setEditFormData((prev) => ({
                       ...prev,
                       licenseImage: file,
                       licenseImageName: file.name,
@@ -188,13 +195,13 @@ export default function EditDriverModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-xl font-bold text-sm transition-colors cursor-pointer"
+              className="px-6 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-lg font-bold text-sm transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-xl font-bold text-sm shadow-md transition-all hover:scale-[1.01] cursor-pointer"
+              className="px-6 py-2.5 bg-[#4c75f2] hover:bg-blue-600 text-white rounded-lg font-bold text-sm shadow-sm transition-all cursor-pointer"
             >
               Save Changes
             </button>

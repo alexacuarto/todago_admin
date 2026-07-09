@@ -95,3 +95,38 @@ export interface AdminAccount {
   isPrimaryAdmin: boolean;
   createdAt: string;
 }
+
+export interface CreateDriverFormData {
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
+  plateNumber: string;
+  toda: string;
+  status: "Active" | "Inactive";
+  licenseImage: File | null;
+  licenseImageName: string;
+}
+
+export interface DriverEditFormData {
+  name: string;
+  phone: string;
+  license: string;
+  bodyNumber: string;
+  toda: string;
+  status: "Active" | "Inactive";
+  email: string;
+  password: string;
+  plateNumber: string;
+  isVerified: boolean;
+  licenseImage: File | null;
+  licenseImageName: string;
+}
+
+export interface PassengerEditFormData {
+  name: string;
+  contact: string;
+  email: string;
+  status: "Active" | "Inactive";
+  password: string;
+}

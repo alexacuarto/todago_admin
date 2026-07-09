@@ -1,4 +1,4 @@
-import { AdminTab, Driver, RideRequest } from "../../types";
+import { AdminTab, Driver, DriverEditFormData, RideRequest } from "../../types";
 
 interface DashboardViewProps {
   rideRequests: RideRequest[];
@@ -18,7 +18,7 @@ interface DashboardViewProps {
   setActiveTab: (tab: AdminTab) => void;
   setShowEditDriverModal: (show: boolean) => void;
   setEditingDriver: (driver: Driver | null) => void;
-  setEditFormData: (formData: any) => void;
+  setEditFormData: (formData: DriverEditFormData) => void;
   handleDeactivateToggle: (id: number | string) => void;
   setActiveStatModal: (modal: string | null) => void;
 }
@@ -55,7 +55,7 @@ export default function DashboardView({
         {/* Total Drivers */}
         <div
           onClick={() => setActiveStatModal("total-drivers")}
-          className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md hover:scale-[1.02] hover:border-amber-200 transition-all duration-200 cursor-pointer sm:p-5 sm:gap-5"
+          className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md hover:border-amber-200 transition-all duration-200 cursor-pointer sm:p-5 sm:gap-5"
         >
           <div className="relative w-16 h-16 bg-[#f5efd7] rounded-full flex items-center justify-center shrink-0 overflow-hidden">
             <img
@@ -79,7 +79,7 @@ export default function DashboardView({
         {/* Active Drivers */}
         <div
           onClick={() => setActiveStatModal("active-drivers")}
-          className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md hover:scale-[1.02] hover:border-emerald-200 transition-all duration-200 cursor-pointer sm:p-5 sm:gap-5"
+          className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md hover:border-emerald-200 transition-all duration-200 cursor-pointer sm:p-5 sm:gap-5"
         >
           <div className="relative w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center shrink-0 overflow-hidden">
             <img
@@ -103,7 +103,7 @@ export default function DashboardView({
         {/* Users */}
         <div
           onClick={() => setActiveStatModal("users")}
-          className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md hover:scale-[1.02] hover:border-indigo-200 transition-all duration-200 cursor-pointer sm:p-5 sm:gap-5"
+          className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md hover:border-indigo-200 transition-all duration-200 cursor-pointer sm:p-5 sm:gap-5"
         >
           <div className="relative w-16 h-16 bg-[#c8d7ff] rounded-full flex items-center justify-center shrink-0 overflow-hidden">
             <img
@@ -127,7 +127,7 @@ export default function DashboardView({
         {/* Trips Today */}
         <div
           onClick={() => setActiveStatModal("trips-today")}
-          className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md hover:scale-[1.02] hover:border-rose-200 transition-all duration-200 cursor-pointer sm:p-5 sm:gap-5"
+          className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center gap-4 hover:shadow-md hover:border-rose-200 transition-all duration-200 cursor-pointer sm:p-5 sm:gap-5"
         >
           <div className="relative w-16 h-16 bg-[#ffe7cc] rounded-full flex items-center justify-center shrink-0 overflow-hidden">
             <img
@@ -154,7 +154,7 @@ export default function DashboardView({
         {/* Left Columns (7 grid units) */}
         <div className="lg:col-span-7 flex flex-col gap-6">
           {/* Ride Activity Chart Card */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 relative overflow-visible">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-5 relative overflow-visible">
             <div className="flex flex-col gap-2 mb-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-[#091b6f] font-bold text-lg">Ride Activity</h2>
@@ -265,14 +265,14 @@ export default function DashboardView({
         {/* Right Columns (5 grid units) */}
         <div className="lg:col-span-5 flex flex-col gap-6">
           {/* Quick Actions Card */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-5">
             <div className="flex items-center justify-between gap-3 mb-4">
               <h2 className="text-[#091b6f] font-bold text-lg">Quick Actions</h2>
             </div>
 
             <button
               onClick={() => setActiveTab("create-driver")}
-              className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold py-4 px-6 rounded-xl shadow-md transition-all duration-200 flex items-center justify-center gap-3 group cursor-pointer hover:scale-[1.01]"
+              className="w-full bg-[#4c75f2] hover:bg-blue-600 text-white font-bold py-4 px-6 rounded-lg shadow-sm transition-all duration-200 flex items-center justify-center gap-3 group cursor-pointer"
             >
               <svg
                 width="18"
@@ -291,7 +291,7 @@ export default function DashboardView({
           </div>
 
           {/* Recent Management Card */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="break-anywhere text-[#091b6f] font-bold text-lg">Recent Management</h2>
               <button
@@ -309,7 +309,7 @@ export default function DashboardView({
             <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               <table className="min-w-[560px] w-full text-left border-collapse border-b border-slate-50">
                 <thead>
-                  <tr className="border-b border-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider">
+                  <tr className="border-b border-slate-100 bg-slate-50 text-slate-400 text-xs font-bold uppercase">
                     <th className="pb-3 pl-3 text-left">Driver</th>
                     <th className="pb-3 px-3 text-left">TODA</th>
                     <th className="pb-3 text-center">Status</th>
@@ -389,7 +389,7 @@ export default function DashboardView({
         {/* Left Column (Recent Ride Requests) */}
         <div className="lg:col-span-7">
           {/* Recent Ride Requests Card */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 min-h-[260px] sm:p-5">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4 min-h-[260px] sm:p-5">
             <div className="flex items-center justify-between gap-3 mb-4">
               <h2 className="break-anywhere text-[#091b6f] font-bold text-lg">Recent Ride Request</h2>
               <div className="flex items-center gap-3">
@@ -409,7 +409,7 @@ export default function DashboardView({
             <div className="overflow-x-auto">
               <table className="min-w-[620px] w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider">
+                  <tr className="border-b border-slate-100 bg-slate-50 text-slate-400 text-xs font-bold uppercase">
                     <th className="pb-3 pl-3 text-left">Passenger</th>
                     <th className="pb-3 px-3 text-left">Driver</th>
                     <th className="pb-3 px-3 text-left">Location</th>
@@ -452,7 +452,7 @@ export default function DashboardView({
         {/* Right Column (Earnings Summary) */}
         <div className="lg:col-span-5">
           {/* Earnings Summary Card */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 min-h-[260px] flex flex-col justify-between gap-4 sm:p-5">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4 min-h-[260px] flex flex-col justify-between gap-4 sm:p-5">
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-[#091b6f] font-bold text-lg">Earnings Summary</h2>

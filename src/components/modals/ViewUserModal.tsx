@@ -3,7 +3,7 @@ import { Driver, Passenger } from "../../types";
 interface ViewUserModalProps {
   isOpen: boolean;
   onClose: () => void;
-  viewingUser: any;
+  viewingUser: Driver | Passenger | null;
   viewingUserType: "driver" | "passenger" | null;
   onDeactivateDriverToggle: (id: number | string) => void;
   onDriverVerificationToggle: (id: number | string) => void;
@@ -27,9 +27,15 @@ export default function ViewUserModal({
 }: ViewUserModalProps) {
   if (!isOpen || !viewingUser) return null;
 
+  const driverLicenseUrl =
+    viewingUserType === "driver" ? (viewingUser as Driver).licenseImageUrl : undefined;
+  const driverLicenseName =
+    viewingUserType === "driver" ? (viewingUser as Driver).licenseImageName : undefined;
+  const isDriverLicensePdf = driverLicenseName?.toLowerCase().endsWith(".pdf") ?? false;
+
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-3 transition-all animate-in fade-in duration-200 sm:p-4">
-      <div className="bg-white rounded-3xl shadow-xl w-full max-w-lg max-h-[92vh] overflow-hidden border border-slate-100 flex flex-col animate-in zoom-in-95">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[92vh] overflow-hidden border border-slate-100 flex flex-col animate-in zoom-in-95">
         <div className="bg-[#0b1b6e] text-white px-4 py-5 flex items-center justify-between gap-3 sm:px-6">
           <div className="min-w-0 text-left">
             <span className="text-xs font-bold uppercase tracking-wider text-sky-200">
@@ -47,7 +53,7 @@ export default function ViewUserModal({
 
         <div className="p-4 flex flex-col gap-6 text-left overflow-y-auto sm:p-6">
           {/* Account Overview Cards */}
-          <div className="flex flex-col items-start gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 min-[420px]:flex-row min-[420px]:items-center">
+          <div className="flex flex-col items-start gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100 min-[420px]:flex-row min-[420px]:items-center">
             <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 shrink-0 font-extrabold text-xl overflow-hidden">
               {viewingUser.avatarUrl ? (
                 <img
@@ -127,12 +133,29 @@ export default function ViewUserModal({
                 <p className="font-extrabold text-[#091b6f] text-md mt-0.5">{(viewingUser as Driver).trips} Rides</p>
               </div>
               <div className="sm:col-span-2">
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">License Image</p>
-                {(viewingUser as Driver).licenseImageUrl ? (
-                  <div className="mt-2 rounded-2xl border border-slate-100 bg-slate-50 p-3">
-                    {(viewingUser as Driver).licenseImageName?.toLowerCase().endsWith(".pdf") ? (
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Uploaded License</p>
+                    <p className="break-anywhere mt-0.5 text-xs font-semibold text-slate-500">
+                      {driverLicenseName || "No license file attached"}
+                    </p>
+                  </div>
+                  {driverLicenseUrl && (
+                    <a
+                      href={driverLicenseUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center justify-center rounded-lg bg-[#4c75f2] px-4 py-2 text-xs font-extrabold text-white transition-colors hover:bg-blue-600"
+                    >
+                      View License
+                    </a>
+                  )}
+                </div>
+                {driverLicenseUrl ? (
+                  <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50 p-3">
+                    {isDriverLicensePdf ? (
                       <a
-                        href={(viewingUser as Driver).licenseImageUrl}
+                        href={driverLicenseUrl}
                         target="_blank"
                         rel="noreferrer"
                         className="text-sm font-bold text-blue-600 hover:text-blue-700"
@@ -141,7 +164,7 @@ export default function ViewUserModal({
                       </a>
                     ) : (
                       <img
-                        src={(viewingUser as Driver).licenseImageUrl}
+                        src={driverLicenseUrl}
                         alt="Driver license"
                         className="max-h-56 w-full rounded-xl object-contain"
                       />
@@ -194,7 +217,7 @@ export default function ViewUserModal({
             <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
               <button
                 onClick={onEdit}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-[#091b6f] rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-[#091b6f] rounded-lg text-xs font-bold transition-all cursor-pointer shadow-xs"
               >
                 Edit Account Info
               </button>
@@ -204,7 +227,7 @@ export default function ViewUserModal({
                 <>
                   <button
                     onClick={() => onDriverVerificationToggle(viewingUser.id)}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs ${
+                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-xs ${
                       (viewingUser as Driver).isVerified
                         ? "bg-amber-50 text-amber-600 hover:bg-amber-100"
                         : "bg-blue-50 text-blue-600 hover:bg-blue-100"
@@ -214,19 +237,33 @@ export default function ViewUserModal({
                   </button>
                   <button
                     onClick={() => onDeactivateDriverToggle(viewingUser.id)}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs ${
+                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-xs ${
                       viewingUser.status === "Active" ? "bg-rose-50 text-rose-600 hover:bg-rose-100" : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
                     }`}
                   >
                     {viewingUser.status === "Active" ? "Deactivate Driver" : "Activate Driver"}
                   </button>
+                  {driverLicenseUrl ? (
+                    <a
+                      href={driverLicenseUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-xs bg-blue-50 text-blue-600 hover:bg-blue-100 text-center"
+                    >
+                      View License
+                    </a>
+                  ) : (
+                    <span className="px-4 py-2 rounded-lg text-xs font-bold bg-slate-50 text-slate-400 border border-slate-100">
+                      No License Uploaded
+                    </span>
+                  )}
                 </>
               ) : (
                 <div className="flex flex-col gap-2 items-stretch sm:flex-row sm:items-center sm:flex-wrap">
                   <button
                     onClick={() => onDeactivatePassengerToggle(viewingUser.id)}
                     disabled={(viewingUser as Passenger).canceledTrips >= 3 && viewingUser.status === "Inactive"}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs disabled:opacity-30 disabled:cursor-not-allowed ${
+                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-xs disabled:opacity-30 disabled:cursor-not-allowed ${
                       viewingUser.status === "Active" ? "bg-rose-50 text-rose-600 hover:bg-rose-100" : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
                     }`}
                   >
@@ -236,7 +273,7 @@ export default function ViewUserModal({
                   {/* Passenger Cancel Trips Simulation */}
                   <button
                     onClick={() => onIncrementCanceledTrips(viewingUser.id)}
-                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs"
+                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold transition-all cursor-pointer shadow-xs"
                   >
                     Simulate Canceled Trip
                   </button>
@@ -245,7 +282,7 @@ export default function ViewUserModal({
                   {(viewingUser as Passenger).canceledTrips > 0 && (
                     <button
                       onClick={() => onResetCanceledTrips(viewingUser.id)}
-                      className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                      className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg text-xs font-bold transition-all cursor-pointer"
                     >
                       Reset & Reactivate
                     </button>
@@ -256,7 +293,7 @@ export default function ViewUserModal({
 
             {/* Auto deactivation note */}
             {viewingUserType === "passenger" && (viewingUser as Passenger).canceledTrips >= 3 && (
-              <div className="bg-rose-50 text-rose-700 p-3.5 rounded-xl border border-rose-100 text-xs font-semibold flex items-start gap-2 mt-1">
+              <div className="bg-rose-50 text-rose-700 p-3.5 rounded-lg border border-rose-100 text-xs font-semibold flex items-start gap-2 mt-1">
                 <span className="text-lg">⚠️</span>
                 <span className="break-anywhere">Passenger is deactivated. Canceled trip threshold (3) has been reached! Reset canceled trips to reactivate.</span>
               </div>
@@ -266,7 +303,7 @@ export default function ViewUserModal({
           <div className="border-t border-slate-100 pt-5 mt-2 flex items-stretch justify-end sm:items-center">
             <button
               onClick={onClose}
-              className="w-full px-6 py-2.5 bg-[#091b6f] hover:bg-blue-800 text-white rounded-xl font-bold text-sm transition-colors cursor-pointer shadow-xs hover:shadow sm:w-auto"
+              className="w-full px-6 py-2.5 bg-[#091b6f] hover:bg-blue-800 text-white rounded-lg font-bold text-sm transition-colors cursor-pointer shadow-xs hover:shadow sm:w-auto"
             >
               Close Account Audit
             </button>

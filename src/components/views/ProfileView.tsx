@@ -57,7 +57,7 @@ export default function ProfileView({
         </h2>
 
         {/* Main Rounded Card */}
-        <div className="bg-white rounded-3xl shadow-xl w-full p-5 flex flex-col items-center gap-6 relative border border-blue-100 sm:p-8">
+        <div className="bg-white rounded-xl shadow-lg w-full p-5 flex flex-col items-center gap-6 relative border border-blue-100 sm:p-8">
           {/* Back Button / Close Icon */}
           <button
             onClick={() => setActiveTab("dashboard")}
@@ -190,7 +190,7 @@ export default function ProfileView({
                 if (setLoginError) setLoginError("");
               }
             }}
-            className="w-full bg-[#ef2b2b] hover:bg-red-600 text-white font-bold py-3.5 px-6 rounded-2xl shadow-md hover:shadow-lg transition-all cursor-pointer text-center text-sm uppercase tracking-wider"
+            className="w-full bg-[#ef2b2b] hover:bg-red-600 text-white font-bold py-3.5 px-6 rounded-lg shadow-sm hover:shadow transition-all cursor-pointer text-center text-sm uppercase tracking-wider"
           >
             Logout
           </button>
@@ -200,7 +200,7 @@ export default function ProfileView({
       {/* CHANGE PASSWORD SUB-MODAL */}
       {showChangePasswordSubModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 transition-all animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100 p-6 flex flex-col gap-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100 p-6 flex flex-col gap-4">
             <h3 className="text-[#091b6f] font-bold text-lg">Change Admin Password</h3>
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-1 text-left">
@@ -334,7 +334,7 @@ export default function ProfileView({
       {/* EDIT NAME SUB-MODAL */}
       {showEditNameSubModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 transition-all animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100 p-6 flex flex-col gap-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100 p-6 flex flex-col gap-4">
             <h3 className="text-[#091b6f] font-bold text-lg text-left">Edit Administrator Name</h3>
             <div className="flex flex-col gap-1 text-left">
               <label className="text-xs text-slate-500 font-bold uppercase tracking-wider">New Name</label>
@@ -378,11 +378,11 @@ export default function ProfileView({
       {/* CHANGE PICTURE SUB-MODAL */}
       {showChangePictureSubModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 transition-all animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100 p-6 flex flex-col gap-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100 p-6 flex flex-col gap-4">
             <h3 className="text-[#091b6f] font-bold text-lg text-left">Change Profile Picture</h3>
 
             {/* Image Upload Area */}
-            <div className="flex flex-col items-center gap-3 p-4 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50 hover:bg-slate-100/50 transition-all relative">
+            <div className="flex flex-col items-center gap-3 p-4 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50 hover:bg-slate-100/50 transition-all relative">
               <input
                 type="file"
                 accept="image/*"
@@ -449,7 +449,7 @@ export default function ProfileView({
                     setShowChangePictureSubModal(false);
                     alert(`Profile accent updated to ${theme.name}!`);
                   }}
-                  className={`border rounded-2xl p-3 flex flex-col items-center gap-2.5 transition-all hover:scale-[1.02] cursor-pointer ${
+                  className={`border rounded-xl p-3 flex flex-col items-center gap-2.5 transition-all cursor-pointer ${
                     !adminProfile.avatarUrl && adminProfile.avatarColor === theme.color
                       ? "border-blue-500 bg-blue-50/50"
                       : "border-slate-200 hover:border-blue-300 hover:bg-slate-50/50"

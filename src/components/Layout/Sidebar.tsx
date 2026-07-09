@@ -22,7 +22,7 @@ export default function Sidebar({
     <>
       <aside
         className={`
-          bg-[#c7ebff] w-64 flex flex-col shrink-0 transition-transform duration-300 z-10
+          bg-[#c7ebff] w-64 flex flex-col shrink-0 transition-transform duration-300 z-20
           absolute inset-y-0 left-0 md:relative md:translate-x-0
           ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
           shadow-lg md:shadow-none

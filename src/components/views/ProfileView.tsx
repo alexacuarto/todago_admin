@@ -49,15 +49,15 @@ export default function ProfileView({
   const [profileActionError, setProfileActionError] = useState("");
 
   return (
-    <div className="absolute inset-0 bg-[#bde5ff] flex items-start justify-center p-4 py-12 overflow-y-auto z-40 transition-all">
+    <div className="absolute inset-0 bg-[#bde5ff] flex items-start justify-center p-3 py-8 overflow-y-auto z-40 transition-all sm:p-4 sm:py-12">
       <div className="w-full max-w-lg flex flex-col items-center gap-4">
         {/* Header Title */}
-        <h2 className="text-[#091b6f] text-3xl font-extrabold tracking-wide text-center">
+        <h2 className="text-[#091b6f] text-2xl font-extrabold tracking-wide text-center sm:text-3xl">
           Profile (Admin)
         </h2>
 
         {/* Main Rounded Card */}
-        <div className="bg-white rounded-3xl shadow-xl w-full p-8 flex flex-col items-center gap-6 relative border border-blue-100">
+        <div className="bg-white rounded-3xl shadow-xl w-full p-5 flex flex-col items-center gap-6 relative border border-blue-100 sm:p-8">
           {/* Back Button / Close Icon */}
           <button
             onClick={() => setActiveTab("dashboard")}
@@ -96,8 +96,8 @@ export default function ProfileView({
             </div>
 
             {/* Admin Name & Badge */}
-            <h3 className="text-xl font-bold text-[#091b6f]">{adminProfile.name}</h3>
-            <span className="px-4 py-0.5 bg-blue-100 text-blue-700 font-extrabold text-[10px] rounded-full uppercase tracking-wider border border-blue-200/50">
+            <h3 className="break-anywhere text-center text-xl font-bold text-[#091b6f]">{adminProfile.name}</h3>
+            <span className="break-anywhere px-4 py-0.5 bg-blue-100 text-blue-700 font-extrabold text-[10px] rounded-full uppercase tracking-wider border border-blue-200/50 text-center">
               {adminProfile.isPrimaryAdmin ? "Primary Administrator" : "Administrator"}
             </span>
           </div>
@@ -107,22 +107,22 @@ export default function ProfileView({
             {/* Email Section */}
             <div className="py-4 flex flex-col gap-1 text-left">
               <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Email</span>
-              <span className="text-sm font-semibold text-slate-700">{adminProfile.email}</span>
+              <span className="break-anywhere text-sm font-semibold text-slate-700">{adminProfile.email}</span>
             </div>
 
             {/* Account Status Section */}
             <div className="py-4 flex flex-col gap-1 text-left">
               <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Account Status</span>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
                 <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-700 font-extrabold text-[10px] rounded-md">
                   {adminProfile.status}
                 </span>
-                <span className="text-xs text-slate-400 font-semibold">Your account is active and in good standing.</span>
+                <span className="break-anywhere text-xs text-slate-400 font-semibold">Your account is active and in good standing.</span>
               </div>
             </div>
 
             {/* Password Section */}
-            <div className="py-4 flex items-center justify-between gap-4">
+            <div className="py-4 flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
               <div className="flex flex-col gap-1 text-left">
                 <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Password</span>
                 <span className="text-sm font-bold text-slate-600">{"•".repeat(adminProfile.password.length)}</span>
@@ -138,17 +138,17 @@ export default function ProfileView({
                   setShowConfirmPassword(false);
                   setShowChangePasswordSubModal(true);
                 }}
-                className="px-5 py-1.5 border border-[#091b6f] hover:bg-sky-50 text-[#091b6f] text-xs font-bold rounded-full transition-colors cursor-pointer"
+                className="px-5 py-2 border border-[#091b6f] hover:bg-sky-50 text-[#091b6f] text-xs font-bold rounded-full transition-colors cursor-pointer"
               >
                 Change Password
               </button>
             </div>
 
             {/* Name Section */}
-            <div className="py-4 flex items-center justify-between gap-4">
+            <div className="py-4 flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
               <div className="flex flex-col gap-1 text-left">
                 <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Name</span>
-                <span className="text-sm font-bold text-slate-700">{adminProfile.name}</span>
+                <span className="break-anywhere text-sm font-bold text-slate-700">{adminProfile.name}</span>
               </div>
               <button
                 onClick={() => {
@@ -156,14 +156,14 @@ export default function ProfileView({
                   setProfileActionError("");
                   setShowEditNameSubModal(true);
                 }}
-                className="px-5 py-1.5 border border-[#091b6f] hover:bg-sky-50 text-[#091b6f] text-xs font-bold rounded-full transition-colors cursor-pointer"
+                className="px-5 py-2 border border-[#091b6f] hover:bg-sky-50 text-[#091b6f] text-xs font-bold rounded-full transition-colors cursor-pointer"
               >
                 Edit Name
               </button>
             </div>
 
             {/* Profile Picture Section */}
-            <div className="py-4 flex items-center justify-between gap-4">
+            <div className="py-4 flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
               <div className="flex flex-col gap-1 text-left">
                 <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Profile Picture</span>
                 <span className="text-xs text-slate-400 font-semibold">Update your profile picture</span>
@@ -172,7 +172,7 @@ export default function ProfileView({
                 onClick={() => {
                   setShowChangePictureSubModal(true);
                 }}
-                className="px-5 py-1.5 border border-[#091b6f] hover:bg-sky-50 text-[#091b6f] text-xs font-bold rounded-full transition-colors cursor-pointer"
+                className="px-5 py-2 border border-[#091b6f] hover:bg-sky-50 text-[#091b6f] text-xs font-bold rounded-full transition-colors cursor-pointer"
               >
                 Change Picture
               </button>

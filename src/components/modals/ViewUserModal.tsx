@@ -28,14 +28,14 @@ export default function ViewUserModal({
   if (!isOpen || !viewingUser) return null;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 transition-all animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-100 flex flex-col animate-in zoom-in-95">
-        <div className="bg-[#0b1b6e] text-white px-6 py-5 flex items-center justify-between">
-          <div className="text-left">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-3 transition-all animate-in fade-in duration-200 sm:p-4">
+      <div className="bg-white rounded-3xl shadow-xl w-full max-w-lg max-h-[92vh] overflow-hidden border border-slate-100 flex flex-col animate-in zoom-in-95">
+        <div className="bg-[#0b1b6e] text-white px-4 py-5 flex items-center justify-between gap-3 sm:px-6">
+          <div className="min-w-0 text-left">
             <span className="text-xs font-bold uppercase tracking-wider text-sky-200">
               {viewingUserType === "driver" ? "Driver Profile Audit" : "Passenger Account Audit"}
             </span>
-            <h3 className="font-bold text-lg">{viewingUser.name}</h3>
+            <h3 className="break-anywhere font-bold text-base sm:text-lg">{viewingUser.name}</h3>
           </div>
           <button onClick={onClose} className="text-white/85 hover:text-white transition-colors cursor-pointer">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -45,9 +45,9 @@ export default function ViewUserModal({
           </button>
         </div>
 
-        <div className="p-6 flex flex-col gap-6 text-left">
+        <div className="p-4 flex flex-col gap-6 text-left overflow-y-auto sm:p-6">
           {/* Account Overview Cards */}
-          <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+          <div className="flex flex-col items-start gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 min-[420px]:flex-row min-[420px]:items-center">
             <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 shrink-0 font-extrabold text-xl overflow-hidden">
               {viewingUser.avatarUrl ? (
                 <img
@@ -59,8 +59,8 @@ export default function ViewUserModal({
                 viewingUser.name.charAt(0)
               )}
             </div>
-            <div className="flex-1">
-              <h4 className="font-bold text-[#091b6f] text-md">{viewingUser.name}</h4>
+            <div className="min-w-0 flex-1">
+              <h4 className="break-anywhere font-bold text-[#091b6f] text-md">{viewingUser.name}</h4>
               <p className="text-xs text-slate-400 font-bold uppercase mt-0.5">
                 {viewingUserType === "driver" ? "Tricycle Operator / Driver" : "Passenger Client"}
               </p>
@@ -81,14 +81,14 @@ export default function ViewUserModal({
           {/* Data Grid based on Type */}
           {viewingUserType === "driver" ? (
             // Driver Specific Data
-            <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm border-b border-slate-100 pb-5">
+            <div className="grid grid-cols-1 gap-x-6 gap-y-4 text-sm border-b border-slate-100 pb-5 sm:grid-cols-2">
               <div>
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">TODA Association</p>
-                <p className="font-bold text-slate-700 mt-0.5">{(viewingUser as Driver).toda}</p>
+                <p className="break-anywhere font-bold text-slate-700 mt-0.5">{(viewingUser as Driver).toda}</p>
               </div>
               <div>
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">License Number</p>
-                <p className="font-bold text-slate-700 mt-0.5 font-mono">{(viewingUser as Driver).license}</p>
+                <p className="break-anywhere font-bold text-slate-700 mt-0.5 font-mono">{(viewingUser as Driver).license}</p>
               </div>
               <div>
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Verification</p>
@@ -120,13 +120,13 @@ export default function ViewUserModal({
               </div>
               <div>
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Email Address</p>
-                <p className="font-bold text-slate-600 mt-0.5">{(viewingUser as Driver).email || "N/A"}</p>
+                <p className="break-anywhere font-bold text-slate-600 mt-0.5">{(viewingUser as Driver).email || "N/A"}</p>
               </div>
               <div>
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Total Completed Trips</p>
                 <p className="font-extrabold text-[#091b6f] text-md mt-0.5">{(viewingUser as Driver).trips} Rides</p>
               </div>
-              <div className="col-span-2">
+              <div className="sm:col-span-2">
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">License Image</p>
                 {(viewingUser as Driver).licenseImageUrl ? (
                   <div className="mt-2 rounded-2xl border border-slate-100 bg-slate-50 p-3">
@@ -154,14 +154,14 @@ export default function ViewUserModal({
             </div>
           ) : (
             // Passenger Specific Data
-            <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm border-b border-slate-100 pb-5">
+            <div className="grid grid-cols-1 gap-x-6 gap-y-4 text-sm border-b border-slate-100 pb-5 sm:grid-cols-2">
               <div>
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Contact Number</p>
                 <p className="font-bold text-slate-700 mt-0.5">{(viewingUser as Passenger).contact}</p>
               </div>
               <div>
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Email Address</p>
-                <p className="font-bold text-slate-600 mt-0.5">{(viewingUser as Passenger).email || "N/A"}</p>
+                <p className="break-anywhere font-bold text-slate-600 mt-0.5">{(viewingUser as Passenger).email || "N/A"}</p>
               </div>
               <div>
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Joined Date</p>
@@ -191,7 +191,7 @@ export default function ViewUserModal({
           {/* Action Controls */}
           <div className="flex flex-col gap-3">
             <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider">Administrative Actions</h4>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
               <button
                 onClick={onEdit}
                 className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-[#091b6f] rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs"
@@ -222,7 +222,7 @@ export default function ViewUserModal({
                   </button>
                 </>
               ) : (
-                <div className="flex gap-2 items-center flex-wrap">
+                <div className="flex flex-col gap-2 items-stretch sm:flex-row sm:items-center sm:flex-wrap">
                   <button
                     onClick={() => onDeactivatePassengerToggle(viewingUser.id)}
                     disabled={(viewingUser as Passenger).canceledTrips >= 3 && viewingUser.status === "Inactive"}
@@ -256,17 +256,17 @@ export default function ViewUserModal({
 
             {/* Auto deactivation note */}
             {viewingUserType === "passenger" && (viewingUser as Passenger).canceledTrips >= 3 && (
-              <div className="bg-rose-50 text-rose-700 p-3.5 rounded-xl border border-rose-100 text-xs font-semibold flex items-center gap-2 mt-1">
+              <div className="bg-rose-50 text-rose-700 p-3.5 rounded-xl border border-rose-100 text-xs font-semibold flex items-start gap-2 mt-1">
                 <span className="text-lg">⚠️</span>
-                <span>Passenger is deactivated. Canceled trip threshold (3) has been reached! Reset canceled trips to reactivate.</span>
+                <span className="break-anywhere">Passenger is deactivated. Canceled trip threshold (3) has been reached! Reset canceled trips to reactivate.</span>
               </div>
             )}
           </div>
 
-          <div className="border-t border-slate-100 pt-5 mt-2 flex items-center justify-end">
+          <div className="border-t border-slate-100 pt-5 mt-2 flex items-stretch justify-end sm:items-center">
             <button
               onClick={onClose}
-              className="px-6 py-2.5 bg-[#091b6f] hover:bg-blue-800 text-white rounded-xl font-bold text-sm transition-colors cursor-pointer shadow-xs hover:shadow"
+              className="w-full px-6 py-2.5 bg-[#091b6f] hover:bg-blue-800 text-white rounded-xl font-bold text-sm transition-colors cursor-pointer shadow-xs hover:shadow sm:w-auto"
             >
               Close Account Audit
             </button>

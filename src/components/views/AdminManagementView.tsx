@@ -39,15 +39,15 @@ export default function AdminManagementView({
   const activeAdminCount = adminAccounts.filter((account) => account.status === "Active").length;
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-6">
+    <div className="mx-auto flex max-w-6xl flex-col gap-4 sm:gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-extrabold text-[#091b6f]">Admin Management</h1>
-          <p className="mt-1 text-sm font-semibold text-slate-500">
+        <div className="min-w-0">
+          <h1 className="text-xl font-extrabold text-[#091b6f] sm:text-2xl">Admin Management</h1>
+          <p className="break-anywhere mt-1 text-sm font-semibold text-slate-500">
             Configure dashboard access without opening Supabase.
           </p>
         </div>
-        <div className="grid grid-cols-2 gap-3 text-right">
+        <div className="grid grid-cols-1 gap-3 text-left min-[420px]:grid-cols-2 sm:text-right">
           <div className="rounded-lg border border-slate-100 bg-white px-4 py-3 shadow-sm">
             <p className="text-xs font-extrabold uppercase text-slate-400">Active Admins</p>
             <p className="text-2xl font-extrabold text-[#091b6f]">{activeAdminCount}</p>
@@ -59,7 +59,7 @@ export default function AdminManagementView({
         </div>
       </div>
 
-      <section className="rounded-lg border border-slate-100 bg-white p-6 shadow-sm">
+      <section className="rounded-lg border border-slate-100 bg-white p-4 shadow-sm sm:p-6">
         <h2 className="text-lg font-extrabold text-[#091b6f]">Create Admin Account</h2>
         <form onSubmit={onCreateAdmin} className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-4">
           <label className="space-y-1">
@@ -110,7 +110,7 @@ export default function AdminManagementView({
             <button
               type="submit"
               disabled={isCreatingAdmin}
-              className="rounded-md bg-[#091b6f] px-5 py-2.5 text-sm font-extrabold text-white transition-colors hover:bg-[#142a8f] disabled:cursor-not-allowed disabled:bg-slate-300"
+              className="w-full rounded-md bg-[#091b6f] px-5 py-2.5 text-sm font-extrabold text-white transition-colors hover:bg-[#142a8f] disabled:cursor-not-allowed disabled:bg-slate-300 sm:w-auto"
             >
               {isCreatingAdmin ? "Creating..." : "Create Admin"}
             </button>
@@ -124,7 +124,7 @@ export default function AdminManagementView({
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-100 text-left">
+          <table className="min-w-[920px] divide-y divide-slate-100 text-left">
             <thead className="bg-slate-50 whitespace-nowrap">
               <tr>
                 <th className="px-6 py-3 text-xs font-extrabold uppercase text-slate-500">Name</th>
@@ -142,11 +142,11 @@ export default function AdminManagementView({
                 return (
                   <tr key={account.id} className="align-top whitespace-nowrap">
                     <td className="px-6 py-4">
-                      <p className="font-extrabold text-[#091b6f]">{account.name}</p>
-                      <p className="mt-1 text-xs font-semibold text-slate-400">{account.id}</p>
+                      <p className="max-w-[170px] truncate font-extrabold text-[#091b6f]" title={account.name}>{account.name}</p>
+                      <p className="mt-1 max-w-[170px] truncate text-xs font-semibold text-slate-400" title={account.id}>{account.id}</p>
                     </td>
                     <td className="px-6 py-4">
-                      <p className="text-sm font-semibold text-slate-700">{account.email || "-"}</p>
+                      <p className="max-w-[220px] truncate text-sm font-semibold text-slate-700" title={account.email || "-"}>{account.email || "-"}</p>
                       <p className="mt-1 text-xs font-semibold text-slate-400">{account.phone || "-"}</p>
                     </td>
                     <td className="px-6 py-4">

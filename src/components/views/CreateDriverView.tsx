@@ -16,21 +16,21 @@ export default function CreateDriverView({
   isCreatingDriver = false,
 }: CreateDriverViewProps) {
   return (
-    <div className="flex flex-col gap-6 max-w-4xl mx-auto">
+    <div className="flex flex-col gap-4 max-w-4xl mx-auto sm:gap-6">
       {/* Page Title */}
       <div className="flex items-center justify-between pb-2">
         <div>
-          <h2 className="text-[#091b6f] text-2xl font-extrabold tracking-wide">
+          <h2 className="text-[#091b6f] text-xl font-extrabold tracking-wide sm:text-2xl">
             Create Driver Account
           </h2>
-          <p className="text-xs text-slate-400 font-medium mt-1">
+          <p className="break-anywhere text-xs text-slate-400 font-medium mt-1">
             Register a new tricycle driver in the TodaGo
           </p>
         </div>
       </div>
 
       {/* Main Card */}
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 flex flex-col gap-6 animate-in fade-in duration-200">
+      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-4 flex flex-col gap-6 animate-in fade-in duration-200 sm:p-8">
         <form onSubmit={onSubmit} className="flex flex-col gap-6">
           {/* Form Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
@@ -191,7 +191,7 @@ export default function CreateDriverView({
                     <line x1="7" y1="16" x2="13" y2="16" />
                   </svg>
                 </div>
-                <div className="flex-1 text-center md:text-left">
+                <div className="min-w-0 flex-1 text-center md:text-left">
                   <p className="text-sm font-bold text-[#091b6f]">Driver's License Copy</p>
                   <p className="text-xs text-slate-400 font-semibold">Upload a photo/scan of the license document</p>
                 </div>
@@ -228,7 +228,7 @@ export default function CreateDriverView({
                     <polyline points="17 8 12 3 7 8" />
                     <line x1="12" y1="3" x2="12" y2="15" />
                   </svg>
-                  <p className="text-xs font-bold text-[#091b6f]">
+                  <p className="break-anywhere text-center text-xs font-bold text-[#091b6f]">
                     {formData.licenseImageName ? formData.licenseImageName : "Drag and Drop or"}
                   </p>
                   {!formData.licenseImageName && (
@@ -245,7 +245,7 @@ export default function CreateDriverView({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-end gap-3 mt-6 pt-5 border-t border-slate-100">
+          <div className="flex flex-col-reverse items-stretch justify-end gap-3 mt-6 pt-5 border-t border-slate-100 sm:flex-row sm:items-center">
             <button
               type="button"
               onClick={onCancel}
@@ -256,7 +256,7 @@ export default function CreateDriverView({
             <button
               type="submit"
               disabled={isCreatingDriver}
-              className="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition-all hover:scale-[1.01] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center gap-2"
+              className="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition-all hover:scale-[1.01] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
             >
               {isCreatingDriver && (
                 <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24">

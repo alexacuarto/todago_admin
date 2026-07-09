@@ -22,13 +22,13 @@ export default function Sidebar({
     <>
       <aside
         className={`
-          bg-[#c7ebff] w-64 flex flex-col shrink-0 transition-transform duration-300 z-20
+          bg-[#c7ebff] w-[min(18rem,82vw)] md:w-64 flex flex-col shrink-0 transition-transform duration-300 z-20
           absolute inset-y-0 left-0 md:relative md:translate-x-0
           ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
           shadow-lg md:shadow-none
         `}
       >
-        <nav className="flex-1 py-4 flex flex-col gap-1">
+        <nav className="flex-1 py-4 flex flex-col gap-1 overflow-y-auto">
           {/* Dashboard Tab */}
           <button
             onClick={() => {
@@ -65,7 +65,7 @@ export default function Sidebar({
               <path d="M5.5 16h13M8.5 10l2-4h5v4M4 11.5a2.5 2.5 0 0 1 2.5-2.5h2" />
               <path d="M12 10v6M18.5 16v-6h-7M3.5 13.5h2" />
             </svg>
-            <span>Create Driver</span>
+            <span className="break-anywhere">Create Driver</span>
           </button>
 
           {/* History Logs Tab */}
@@ -123,7 +123,7 @@ export default function Sidebar({
                   <path d="M20 8v6" />
                   <path d="M23 11h-6" />
                 </svg>
-                <span>Admin Management</span>
+                <span className="break-anywhere">Admin Management</span>
               </button>
             </>
           )}
@@ -146,7 +146,7 @@ export default function Sidebar({
               <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
               <path d="M16 3.13a4 4 0 0 1 0 7.75" />
             </svg>
-            <span>Users Management</span>
+            <span className="break-anywhere">Users Management</span>
           </button>
         </nav>
       </aside>

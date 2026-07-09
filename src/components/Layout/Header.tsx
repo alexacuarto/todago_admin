@@ -97,7 +97,7 @@ export default function Header({
               </span>
             )}
           </button>
-          <div className="invisible fixed right-2 top-16 z-30 w-[calc(100vw-1rem)] max-w-80 translate-y-1 rounded-2xl border border-slate-100 bg-white p-3 text-slate-700 opacity-0 shadow-xl transition-all group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 sm:absolute sm:right-0 sm:top-11 sm:w-80">
+          <div className="invisible fixed right-2 top-16 z-30 w-[calc(100vw-1rem)] max-w-80 translate-y-1 rounded-xl border border-slate-100 bg-white p-3 text-slate-700 opacity-0 shadow-xl transition-all group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 sm:absolute sm:right-0 sm:top-11 sm:w-80">
             <div className="mb-2 flex items-center justify-between">
               <p className="text-xs font-extrabold uppercase tracking-wider text-[#091b6f]">Notifications</p>
               <span className="text-[10px] font-bold text-slate-400">{unreadCount} unread</span>
@@ -109,7 +109,7 @@ export default function Header({
                 {notifications.slice(0, 8).map((notification) => (
                   <div
                     key={notification.id}
-                    className={`mb-2 rounded-xl p-3 text-left ${notification.isRead ? "bg-slate-50" : "bg-blue-50"
+                    className={`mb-2 rounded-lg p-3 text-left ${notification.isRead ? "bg-slate-50" : "bg-blue-50"
                       }`}
                   >
                     <p className="break-anywhere text-sm font-extrabold text-[#091b6f]">{notification.title}</p>

@@ -44,7 +44,7 @@ export default function FareSettingsView({
         {fareSettings.map((setting) => {
           const isSaving = isSavingFareSetting === setting.tripType;
           return (
-            <section key={setting.tripType} className="rounded-lg border border-slate-100 bg-white shadow-sm">
+            <section key={setting.tripType} className="rounded-xl border border-slate-100 bg-white shadow-sm overflow-hidden">
               <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                 <div>
                   <h2 className="break-anywhere text-lg font-extrabold text-[#091b6f]">{setting.label}</h2>

@@ -15,7 +15,7 @@ export default function ViewRequestModal({
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-3 transition-all animate-in fade-in duration-200 sm:p-4">
-      <div className="bg-white rounded-3xl shadow-xl w-full max-w-lg max-h-[92vh] overflow-hidden border border-slate-100 flex flex-col">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[92vh] overflow-hidden border border-slate-100 flex flex-col">
         <div className="bg-[#0b1b6e] text-white px-4 py-5 flex items-center justify-between gap-3 sm:px-6">
           <div className="min-w-0 text-left">
             <span className="text-xs font-bold uppercase tracking-wider text-sky-200">Ride Booking Audit</span>

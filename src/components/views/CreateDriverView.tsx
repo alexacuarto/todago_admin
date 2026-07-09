@@ -1,8 +1,9 @@
 import React from "react";
+import { CreateDriverFormData } from "../../types";
 
 interface CreateDriverViewProps {
-  formData: any;
-  setFormData: React.Dispatch<React.SetStateAction<any>>;
+  formData: CreateDriverFormData;
+  setFormData: React.Dispatch<React.SetStateAction<CreateDriverFormData>>;
   onSubmit: (e: React.FormEvent) => void;
   onCancel: () => void;
   isCreatingDriver?: boolean;
@@ -30,7 +31,7 @@ export default function CreateDriverView({
       </div>
 
       {/* Main Card */}
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-4 flex flex-col gap-6 animate-in fade-in duration-200 sm:p-8">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4 flex flex-col gap-6 animate-in fade-in duration-200 sm:p-8">
         <form onSubmit={onSubmit} className="flex flex-col gap-6">
           {/* Form Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
@@ -49,7 +50,7 @@ export default function CreateDriverView({
                   required
                   placeholder="Enter Full Name"
                   value={formData.name}
-                  onChange={(e) => setFormData((prev: any) => ({ ...prev, name: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
                   className="w-full pl-11 pr-4 py-3 border border-slate-200 rounded-xl text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f] placeholder-slate-300"
                 />
               </div>
@@ -70,7 +71,7 @@ export default function CreateDriverView({
                   required
                   placeholder="Enter Email Address"
                   value={formData.email}
-                  onChange={(e) => setFormData((prev: any) => ({ ...prev, email: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
                   className="w-full pl-11 pr-4 py-3 border border-slate-200 rounded-xl text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f] placeholder-slate-300"
                 />
               </div>
@@ -90,7 +91,7 @@ export default function CreateDriverView({
                   required
                   placeholder="Enter Contact Number"
                   value={formData.phone}
-                  onChange={(e) => setFormData((prev: any) => ({ ...prev, phone: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
                   className="w-full pl-11 pr-4 py-3 border border-slate-200 rounded-xl text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f] placeholder-slate-300"
                 />
               </div>
@@ -111,7 +112,7 @@ export default function CreateDriverView({
                   required
                   placeholder="Enter Password"
                   value={formData.password}
-                  onChange={(e) => setFormData((prev: any) => ({ ...prev, password: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
                   className="w-full pl-11 pr-4 py-3 border border-slate-200 rounded-xl text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f] placeholder-slate-300"
                 />
               </div>
@@ -133,7 +134,7 @@ export default function CreateDriverView({
                   required
                   placeholder="Enter Plate Number"
                   value={formData.plateNumber}
-                  onChange={(e) => setFormData((prev: any) => ({ ...prev, plateNumber: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, plateNumber: e.target.value }))}
                   className="w-full pl-11 pr-4 py-3 border border-slate-200 rounded-xl text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f] placeholder-slate-300"
                 />
               </div>
@@ -151,7 +152,7 @@ export default function CreateDriverView({
                 </span>
                 <select
                   value={formData.toda}
-                  onChange={(e) => setFormData((prev: any) => ({ ...prev, toda: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, toda: e.target.value }))}
                   className="w-full pl-11 pr-10 py-3 border border-slate-200 rounded-xl text-sm font-semibold bg-white outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f] cursor-pointer appearance-none"
                 >
                   <option value="LHITC-TODA">LHITC-TODA</option>
@@ -173,8 +174,8 @@ export default function CreateDriverView({
 
             <div className="grid grid-cols-1 gap-4">
               {/* Driver's License Box */}
-              <div className="border border-slate-200 rounded-2xl p-5 flex flex-col md:flex-row items-center gap-4 hover:border-blue-300 transition-all bg-slate-50/50">
-                <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+              <div className="border border-slate-200 rounded-xl p-5 flex flex-col md:flex-row items-center gap-4 hover:border-blue-300 transition-all bg-slate-50/50">
+                <div className="w-12 h-12 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
                   <svg
                     width="24"
                     height="24"
@@ -197,14 +198,14 @@ export default function CreateDriverView({
                 </div>
 
                 {/* Upload Input */}
-                <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 flex flex-col items-center justify-center bg-white hover:bg-slate-50 transition-colors w-full md:w-64 relative cursor-pointer group">
+                <div className="border-2 border-dashed border-slate-200 rounded-lg p-4 flex flex-col items-center justify-center bg-white hover:bg-slate-50 transition-colors w-full md:w-64 relative cursor-pointer group">
                   <input
                     type="file"
                     accept=".jpg,.png,.pdf"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
-                        setFormData((prev: any) => ({
+                        setFormData((prev) => ({
                           ...prev,
                           licenseImage: file,
                           licenseImageName: file.name,
@@ -222,7 +223,7 @@ export default function CreateDriverView({
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="text-blue-500 mb-1 group-hover:scale-110 transition-transform"
+                    className="text-blue-500 mb-1"
                   >
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                     <polyline points="17 8 12 3 7 8" />
@@ -256,7 +257,7 @@ export default function CreateDriverView({
             <button
               type="submit"
               disabled={isCreatingDriver}
-              className="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition-all hover:scale-[1.01] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
+              className="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-sm shadow-sm hover:shadow-md transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isCreatingDriver && (
                 <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24">

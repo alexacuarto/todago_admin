@@ -335,7 +335,7 @@ export async function updateDriverAccount(
     .from("drivers")
     .update({
       license_number: updates.license,
-      tricycle_body_number: updates.toda || updates.bodyNumber || null,
+      tricycle_body_number: updates.bodyNumber || updates.toda || null,
       plate_number: updates.plateNumber || null,
       status: updates.status === "Inactive" ? "suspended" : "offline",
       is_verified: updates.isVerified,

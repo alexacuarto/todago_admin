@@ -85,7 +85,7 @@ export default function RideRequestsView({
       </div>
 
       {/* Category Filter Buttons Row */}
-      <div className="bg-[#b3e2ff]/30 p-3 rounded-xl flex flex-wrap items-center justify-between gap-3 border border-[#b3e2ff]/50">
+      <div className="bg-[#b3e2ff]/30 p-3 rounded-lg flex flex-wrap items-center justify-between gap-3 border border-[#b3e2ff]/50">
         <div className="flex flex-wrap sm:flex-nowrap bg-slate-100 p-1 rounded-lg border border-slate-200 w-full sm:w-auto justify-center">
           {[
             { key: "Ongoing", label: "Ongoing" },
@@ -134,7 +134,7 @@ export default function RideRequestsView({
       </div>
 
       {/* Main List Container */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4 flex flex-col gap-4 sm:p-6">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4 flex flex-col gap-4 sm:p-6">
         {/* Section Header with Search Bar */}
         <div className="flex flex-col items-stretch justify-between gap-4 sm:flex-row sm:items-center">
           <div className="flex min-w-0 items-center gap-2">
@@ -168,7 +168,7 @@ export default function RideRequestsView({
         <div className="overflow-x-auto">
           <table className="min-w-[980px] w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider whitespace-nowrap">
+              <tr className="border-b border-slate-100 bg-slate-50 text-slate-400 text-xs font-bold uppercase whitespace-nowrap">
                 <th className="pb-3 pl-3">Passenger</th>
                 <th className="pb-3">Pickup</th>
                 <th className="pb-3">Destination</th>

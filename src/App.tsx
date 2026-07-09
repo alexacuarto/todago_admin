@@ -30,6 +30,9 @@ import {
   RideRequest,
   EarningsRecord,
   AdminAccount,
+  CreateDriverFormData,
+  DriverEditFormData,
+  PassengerEditFormData,
 } from "./types";
 
 // Layout components
@@ -136,7 +139,7 @@ export default function App() {
 
   useEffect(() => {
     if (!isSuperAdmin && (activeTab === "fare-settings" || activeTab === "admin-management")) {
-      setActiveTab("dashboard");
+      queueMicrotask(() => setActiveTab("dashboard"));
     }
   }, [activeTab, isSuperAdmin]);
 
@@ -245,7 +248,7 @@ export default function App() {
   const [viewingUserType, setViewingUserType] = useState<"driver" | "passenger" | null>(null);
 
   // Form states
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<CreateDriverFormData>({
     name: "",
     email: "",
     phone: "",
@@ -257,7 +260,7 @@ export default function App() {
     licenseImageName: ""
   });
 
-  const [editFormData, setEditFormData] = useState({
+  const [editFormData, setEditFormData] = useState<DriverEditFormData>({
     name: "",
     phone: "",
     license: "",
@@ -272,7 +275,7 @@ export default function App() {
     licenseImageName: ""
   });
 
-  const [passengerEditFormData, setPassengerEditFormData] = useState({
+  const [passengerEditFormData, setPassengerEditFormData] = useState<PassengerEditFormData>({
     name: "",
     contact: "",
     email: "",
@@ -424,8 +427,8 @@ export default function App() {
       setUsersSubTab("drivers");
       setOperationalReloadKey(key => key + 1);
       alert(`Driver account created successfully for ${result.driverName}!\nThe driver can now log in with the Flutter app.`);
-    } catch (err: any) {
-      alert(`Unexpected error: ${err.message || err}`);
+    } catch (err: unknown) {
+      alert(`Unexpected error: ${err instanceof Error ? err.message : err}`);
     } finally {
       setIsCreatingDriver(false);
     }
@@ -510,6 +513,7 @@ export default function App() {
     if (!editingDriver) return;
     try {
       await updateDriverAccount(editingDriver, editFormData);
+      const savedBodyNumber = editFormData.bodyNumber || editFormData.toda || "";
       let licenseImageUrl = editingDriver.licenseImageUrl;
       let licenseImageName = editingDriver.licenseImageName;
       if (editFormData.licenseImage) {
@@ -527,8 +531,8 @@ export default function App() {
                 name: editFormData.name,
                 phone: editFormData.phone,
                 license: editFormData.license,
-                bodyNumber: editFormData.bodyNumber,
-                toda: editFormData.toda,
+                bodyNumber: savedBodyNumber,
+                toda: savedBodyNumber,
                 status: editFormData.status,
                 email: editFormData.email,
                 plateNumber: editFormData.plateNumber,
@@ -539,6 +543,26 @@ export default function App() {
             : d
         )
       );
+      if (viewingUser?.id === editingDriver.id && viewingUserType === "driver") {
+        setViewingUser(prev =>
+          prev
+            ? {
+                ...prev,
+                name: editFormData.name,
+                phone: editFormData.phone,
+                license: editFormData.license,
+                bodyNumber: savedBodyNumber,
+                toda: savedBodyNumber,
+                status: editFormData.status,
+                email: editFormData.email,
+                plateNumber: editFormData.plateNumber,
+                isVerified: editFormData.isVerified,
+                licenseImageUrl,
+                licenseImageName
+              } as Driver
+            : null
+        );
+      }
       setShowEditDriverModal(false);
       setEditingDriver(null);
       setEditFormData(prev => ({ ...prev, password: "" }));
@@ -777,12 +801,9 @@ export default function App() {
 
       const matchToda = requestTodaFilter === "All" || r.toda === requestTodaFilter;
 
-      let matchStatus = false;
-      if (statusFilter === "Ongoing") {
-        matchStatus = r.status === "Pending" || r.status === "In Transit";
-      } else {
-        matchStatus = r.status === statusFilter;
-      }
+      const matchStatus = statusFilter === "Ongoing"
+        ? r.status === "Pending" || r.status === "In Transit"
+        : r.status === statusFilter;
 
       return matchSearch && matchStatus && matchToda;
     }).sort((a, b) => {

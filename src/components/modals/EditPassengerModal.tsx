@@ -1,18 +1,12 @@
 import React from "react";
-import { Passenger } from "../../types";
+import { Passenger, PassengerEditFormData } from "../../types";
 
 interface EditPassengerModalProps {
   isOpen: boolean;
   onClose: () => void;
   editingPassenger: Passenger | null;
-  editFormData: {
-    name: string;
-    contact: string;
-    email: string;
-    status: "Active" | "Inactive";
-    password: string;
-  };
-  setEditFormData: React.Dispatch<React.SetStateAction<any>>;
+  editFormData: PassengerEditFormData;
+  setEditFormData: React.Dispatch<React.SetStateAction<PassengerEditFormData>>;
   onSubmit: (e: React.FormEvent) => void;
 }
 
@@ -28,7 +22,7 @@ export default function EditPassengerModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-3 transition-all sm:p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[92vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[92vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         <div className="bg-[#0b1b6e] text-white px-4 py-4 flex items-center justify-between gap-3 sm:px-6">
           <h3 className="break-anywhere font-bold text-base sm:text-lg">Edit Passenger Account</h3>
           <button onClick={onClose} className="text-white/80 hover:text-white transition-colors cursor-pointer">
@@ -46,7 +40,7 @@ export default function EditPassengerModal({
               type="text"
               required
               value={editFormData.name}
-              onChange={(e) => setEditFormData((prev: any) => ({ ...prev, name: e.target.value }))}
+              onChange={(e) => setEditFormData((prev) => ({ ...prev, name: e.target.value }))}
               className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f]"
             />
           </div>
@@ -58,7 +52,7 @@ export default function EditPassengerModal({
                 type="tel"
                 required
                 value={editFormData.contact}
-                onChange={(e) => setEditFormData((prev: any) => ({ ...prev, contact: e.target.value }))}
+                onChange={(e) => setEditFormData((prev) => ({ ...prev, contact: e.target.value }))}
                 className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f]"
               />
             </div>
@@ -66,7 +60,7 @@ export default function EditPassengerModal({
               <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Status</label>
               <select
                 value={editFormData.status}
-                onChange={(e) => setEditFormData((prev: any) => ({ ...prev, status: e.target.value as "Active" | "Inactive" }))}
+                onChange={(e) => setEditFormData((prev) => ({ ...prev, status: e.target.value as "Active" | "Inactive" }))}
                 className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold bg-white outline-hidden focus:border-blue-500 transition-all cursor-pointer text-[#091b6f]"
               >
                 <option value="Active">Active</option>
@@ -81,7 +75,7 @@ export default function EditPassengerModal({
               type="email"
               required
               value={editFormData.email}
-              onChange={(e) => setEditFormData((prev: any) => ({ ...prev, email: e.target.value }))}
+              onChange={(e) => setEditFormData((prev) => ({ ...prev, email: e.target.value }))}
               className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f]"
             />
           </div>
@@ -92,7 +86,7 @@ export default function EditPassengerModal({
               type="password"
               minLength={8}
               value={editFormData.password}
-              onChange={(e) => setEditFormData((prev: any) => ({ ...prev, password: e.target.value }))}
+              onChange={(e) => setEditFormData((prev) => ({ ...prev, password: e.target.value }))}
               placeholder="Leave blank to keep current password"
               className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f]"
             />
@@ -105,13 +99,13 @@ export default function EditPassengerModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-xl font-bold text-sm transition-colors cursor-pointer"
+              className="px-6 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-lg font-bold text-sm transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-xl font-bold text-sm shadow-md transition-all hover:scale-[1.01] cursor-pointer"
+              className="px-6 py-2.5 bg-[#4c75f2] hover:bg-blue-600 text-white rounded-lg font-bold text-sm shadow-sm transition-all cursor-pointer"
             >
               Save Changes
             </button>

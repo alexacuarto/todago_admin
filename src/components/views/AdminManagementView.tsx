@@ -59,7 +59,7 @@ export default function AdminManagementView({
         </div>
       </div>
 
-      <section className="rounded-lg border border-slate-100 bg-white p-4 shadow-sm sm:p-6">
+      <section className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm sm:p-6">
         <h2 className="text-lg font-extrabold text-[#091b6f]">Create Admin Account</h2>
         <form onSubmit={onCreateAdmin} className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-4">
           <label className="space-y-1">
@@ -118,7 +118,7 @@ export default function AdminManagementView({
         </form>
       </section>
 
-      <section className="overflow-hidden rounded-lg border border-slate-100 bg-white shadow-sm">
+      <section className="overflow-hidden rounded-xl border border-slate-100 bg-white shadow-sm">
         <div className="border-b border-slate-100 px-6 py-4">
           <h2 className="text-lg font-extrabold text-[#091b6f]">Administrator Accounts</h2>
         </div>

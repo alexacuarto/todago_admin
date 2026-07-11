@@ -49,6 +49,10 @@ export interface RideRequest {
   time: string;
   requestedAt: string;
   toda: string;
+  regularPassengerCount?: number;
+  studentPassengerCount?: number;
+  pwdPassengerCount?: number;
+  seniorPassengerCount?: number;
   earningId?: string;
   earningAmount: number;
   earningDate: string;

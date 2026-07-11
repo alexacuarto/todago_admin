@@ -110,11 +110,10 @@ export default function StatBreakdownModal({
                         </td>
                         <td className="p-3">
                           <span
-                            className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                              d.status === "Active"
-                                ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                                : "bg-rose-50 text-rose-600 border border-rose-100"
-                            }`}
+                            className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-bold ${d.status === "Active"
+                              ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                              : "bg-rose-50 text-rose-600 border border-rose-100"
+                              }`}
                           >
                             {d.status}
                           </span>
@@ -202,11 +201,10 @@ export default function StatBreakdownModal({
                         <td className="p-3">{p.ridesTaken} Rides</td>
                         <td className="p-3">
                           <span
-                            className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                              p.status === "Active"
-                                ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                                : "bg-rose-50 text-rose-600 border border-rose-100"
-                            }`}
+                            className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-bold ${p.status === "Active"
+                              ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                              : "bg-rose-50 text-rose-600 border border-rose-100"
+                              }`}
                           >
                             {p.status}
                           </span>
@@ -251,15 +249,14 @@ export default function StatBreakdownModal({
                         <td className="p-3 font-bold text-[#091b6f]">₱{r.fare}</td>
                         <td className="p-3 text-right">
                           <span
-                            className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                              r.status === "Completed"
-                                ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                                : r.status === "In Transit"
+                            className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-bold ${r.status === "Completed"
+                              ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                              : r.status === "In Transit"
                                 ? "bg-blue-50 text-blue-600 border border-blue-100"
                                 : r.status === "Pending"
-                                ? "bg-amber-50 text-amber-600 border border-amber-100"
-                                : "bg-rose-50 text-rose-600 border border-rose-100"
-                            }`}
+                                  ? "bg-amber-50 text-amber-600 border border-amber-100"
+                                  : "bg-rose-50 text-rose-600 border border-rose-100"
+                              }`}
                           >
                             {r.status}
                           </span>
@@ -395,11 +392,10 @@ export default function StatBreakdownModal({
                         <td className="p-3">{p.ridesTaken} Rides</td>
                         <td className="p-3">
                           <span
-                            className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                              p.status === "Active"
-                                ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                                : "bg-rose-50 text-rose-600 border border-rose-100"
-                            }`}
+                            className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-bold ${p.status === "Active"
+                              ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                              : "bg-rose-50 text-rose-600 border border-rose-100"
+                              }`}
                           >
                             {p.status}
                           </span>
@@ -419,7 +415,7 @@ export default function StatBreakdownModal({
             onClick={onClose}
             className="px-5 py-2 bg-[#091b6f] hover:bg-blue-800 text-white rounded-xl font-bold text-xs transition-colors cursor-pointer shadow-sm hover:shadow"
           >
-            Close Audit Detail
+            Close
           </button>
         </div>
       </div>

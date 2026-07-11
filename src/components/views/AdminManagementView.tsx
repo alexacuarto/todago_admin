@@ -113,7 +113,7 @@ export default function AdminManagementView({
             <button
               type="submit"
               disabled={isCreatingAdmin}
-              className="w-full rounded-md bg-[#091b6f] px-5 py-2.5 text-sm font-extrabold text-white transition-colors hover:bg-[#142a8f] disabled:cursor-not-allowed disabled:bg-slate-300 sm:w-auto"
+              className="w-full rounded-md bg-[#091b6f] px-5 py-2.5 text-sm font-extrabold text-white transition-colors hover:bg-[#142a8f] cursor-pointer disabled:cursor-not-allowed disabled:bg-slate-300 sm:w-auto"
             >
               {isCreatingAdmin ? "Creating..." : "Create Admin"}
             </button>
@@ -129,16 +129,18 @@ export default function AdminManagementView({
         <div className="overflow-hidden">
           <table className="w-full table-fixed text-left border-collapse">
             <colgroup>
-              <col className="w-[25%]" />
-              <col className="w-[30%]" />
-              <col className="w-[15%]" />
+              <col className="w-[20%]" />
+              <col className="w-[24%]" />
+              <col className="w-[16%]" />
               <col className="w-[12%]" />
-              <col className="w-[10%]" />
+              <col className="w-[12%]" />
+              <col className="w-[8%]" />
               <col className="w-[8%]" />
             </colgroup>
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50 text-slate-400 text-[11px] font-bold uppercase whitespace-nowrap">
                 <th className="px-2 pb-3">Name</th>
+                <th className="px-2 pb-3">Email</th>
                 <th className="px-2 pb-3">Contact</th>
                 <th className="px-2 pb-3">Role</th>
                 <th className="px-2 pb-3">Status</th>
@@ -152,11 +154,12 @@ export default function AdminManagementView({
                   <tr key={account.id} className="hover:bg-slate-50/50 transition-colors whitespace-nowrap">
                     <td className="px-2 py-4">
                       <p className="truncate font-bold text-[#091b6f]" title={account.name}>{account.name}</p>
-                      <p className="truncate text-[10px] text-slate-400 font-bold" title={account.id}>{account.id}</p>
                     </td>
                     <td className="px-2 py-4">
                       <p className="truncate font-semibold text-slate-700" title={account.email || "-"}>{account.email || "-"}</p>
-                      <p className="truncate text-[10px] text-slate-400 font-bold" title={account.phone || "-"}>{account.phone || "-"}</p>
+                    </td>
+                    <td className="px-2 py-4">
+                      <p className="truncate font-semibold text-slate-700" title={account.phone || "-"}>{account.phone || "-"}</p>
                     </td>
                     <td className="px-2 py-4 text-left">
                       <p
@@ -187,7 +190,7 @@ export default function AdminManagementView({
                             password: "",
                           });
                         }}
-                        className="w-full rounded-lg bg-[#4c75f2] px-2 py-1.5 text-[10px] font-bold text-white shadow-xs transition-all hover:bg-blue-600"
+                        className="w-full rounded-lg bg-[#4c75f2] px-2 py-1.5 text-[10px] font-bold text-white shadow-xs transition-all hover:bg-blue-600 cursor-pointer"
                       >
                         View
                       </button>
@@ -209,7 +212,7 @@ export default function AdminManagementView({
               <button
                 onClick={() => setAdminPage((prev) => Math.max(prev - 1, 1))}
                 disabled={adminPage === 1}
-                className="w-7 h-7 flex items-center justify-center text-xs font-bold rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:hover:bg-transparent text-[#091b6f] cursor-pointer"
+                className="w-7 h-7 flex items-center justify-center text-xs font-bold rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:hover:bg-transparent text-[#091b6f] cursor-pointer disabled:cursor-not-allowed"
               >
                 &lt;
               </button>
@@ -218,9 +221,9 @@ export default function AdminManagementView({
                 <button
                   key={page}
                   onClick={() => setAdminPage(page)}
-                  className={`w-7 h-7 flex items-center justify-center text-xs font-bold rounded-lg border ${adminPage === page
+                  className={`w-7 h-7 flex items-center justify-center text-xs font-bold rounded-lg border cursor-pointer ${adminPage === page
                     ? "bg-blue-100 border-blue-200 text-blue-600 font-extrabold"
-                    : "border-slate-200 hover:bg-slate-50 text-slate-600 cursor-pointer"
+                    : "border-slate-200 hover:bg-slate-50 text-slate-600"
                     }`}
                 >
                   {page}
@@ -230,7 +233,7 @@ export default function AdminManagementView({
               <button
                 onClick={() => setAdminPage((prev) => Math.min(prev + 1, totalAdminPages))}
                 disabled={adminPage === totalAdminPages}
-                className="w-7 h-7 flex items-center justify-center text-xs font-bold rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:hover:bg-transparent text-[#091b6f] cursor-pointer"
+                className="w-7 h-7 flex items-center justify-center text-xs font-bold rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:hover:bg-transparent text-[#091b6f] cursor-pointer disabled:cursor-not-allowed"
               >
                 &gt;
               </button>
@@ -250,7 +253,7 @@ export default function AdminManagementView({
               <button
                 type="button"
                 onClick={() => setViewingAdmin(null)}
-                className="text-white/85 transition-colors hover:text-white"
+                className="text-white/85 transition-colors hover:text-white cursor-pointer"
               >
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <line x1="18" y1="6" x2="6" y2="18" />
@@ -350,7 +353,7 @@ export default function AdminManagementView({
                     });
                   }}
                   disabled={viewingAdmin.isPrimaryAdmin || activeAdminActionId === viewingAdmin.id}
-                  className="rounded-md bg-rose-600 px-5 py-2.5 text-sm font-extrabold text-white transition-colors hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                  className="rounded-md bg-rose-600 px-5 py-2.5 text-sm font-extrabold text-white transition-colors hover:bg-rose-700 cursor-pointer disabled:cursor-not-allowed disabled:bg-slate-300"
                 >
                   Delete Account
                 </button>
@@ -358,14 +361,14 @@ export default function AdminManagementView({
                   <button
                     type="button"
                     onClick={() => setViewingAdmin(null)}
-                    className="rounded-md border border-slate-200 px-5 py-2.5 text-sm font-extrabold text-slate-600 hover:bg-slate-50"
+                    className="rounded-md border border-slate-200 px-5 py-2.5 text-sm font-extrabold text-slate-600 hover:bg-slate-50 cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={activeAdminActionId === viewingAdmin.id}
-                    className="rounded-md bg-[#091b6f] px-5 py-2.5 text-sm font-extrabold text-white transition-colors hover:bg-[#142a8f] disabled:cursor-wait disabled:bg-slate-300"
+                    className="rounded-md bg-[#091b6f] px-5 py-2.5 text-sm font-extrabold text-white transition-colors hover:bg-[#142a8f] cursor-pointer disabled:cursor-wait disabled:bg-slate-300"
                   >
                     {activeAdminActionId === viewingAdmin.id ? "Saving..." : "Save Changes"}
                   </button>

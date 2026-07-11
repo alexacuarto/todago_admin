@@ -172,7 +172,7 @@ export default function FareSettingsView({
                     type="button"
                     onClick={() => onSaveFareSetting(setting)}
                     disabled={isSaving}
-                    className="rounded-md bg-[#091b6f] px-5 py-2 text-sm font-extrabold text-white shadow-sm transition hover:bg-[#132b91] disabled:cursor-wait disabled:bg-slate-400"
+                    className="rounded-md bg-[#091b6f] px-5 py-2 text-sm font-extrabold text-white shadow-sm transition hover:bg-[#132b91] cursor-pointer disabled:cursor-wait disabled:bg-slate-400"
                   >
                     {isSaving ? "Saving..." : "Save Changes"}
                   </button>

@@ -4,12 +4,16 @@ interface ViewRequestModalProps {
   isOpen: boolean;
   onClose: () => void;
   viewingRequest: RideRequest | null;
+  isSuperAdmin: boolean;
+  onDeleteBooking: (rideId: string | number) => Promise<boolean>;
 }
 
 export default function ViewRequestModal({
   isOpen,
   onClose,
   viewingRequest,
+  isSuperAdmin,
+  onDeleteBooking,
 }: ViewRequestModalProps) {
   if (!isOpen || !viewingRequest) return null;
 
@@ -108,6 +112,28 @@ export default function ViewRequestModal({
                 </span>
               </div>
             </div>
+          </div>
+
+          <div className="pt-2 mt-1 flex flex-col-reverse items-stretch justify-end gap-3 sm:flex-row sm:items-center">
+            {isSuperAdmin && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (!window.confirm(`Delete booking #${viewingRequest.id.toString().slice(-6)}? This cannot be undone.`)) return;
+                  void onDeleteBooking(viewingRequest.id);
+                }}
+                className="px-6 py-2.5 rounded-lg text-sm font-bold transition-all cursor-pointer shadow-xs bg-rose-600 text-white hover:bg-rose-700"
+              >
+                Delete Booking
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full px-6 py-2.5 bg-[#091b6f] hover:bg-blue-800 text-white rounded-lg font-bold text-sm transition-colors cursor-pointer shadow-xs hover:shadow sm:w-auto"
+            >
+              Close Booking Audit
+            </button>
           </div>
         </div>
       </div>

@@ -136,7 +136,6 @@ export default function UsersView({
                     <tr key={d.id} className="hover:bg-slate-50/50 transition-colors whitespace-nowrap">
                       <td className="px-2 py-4 text-left">
                         <p className="truncate text-[#091b6f] font-bold" title={d.name}>{d.name}</p>
-                        <p className="truncate text-[10px] text-slate-400 font-bold" title={d.bodyNumber}>Body: {d.bodyNumber}</p>
                       </td>
                       <td className="px-2 py-4 text-slate-600 text-left truncate" title={d.toda}>{d.toda}</td>
                       <td className="px-2 py-4 text-slate-500 font-mono text-xs text-left truncate" title={d.license}>{d.license}</td>
@@ -194,7 +193,7 @@ export default function UsersView({
                 <button
                   onClick={() => setDriversPage((prev) => Math.max(prev - 1, 1))}
                   disabled={driversPage === 1}
-                  className="w-7 h-7 flex items-center justify-center text-xs font-bold rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:hover:bg-transparent text-[#091b6f] cursor-pointer"
+                  className="w-7 h-7 flex items-center justify-center text-xs font-bold rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:hover:bg-transparent text-[#091b6f] cursor-pointer disabled:cursor-not-allowed"
                 >
                   &lt;
                 </button>
@@ -206,9 +205,9 @@ export default function UsersView({
                   <button
                     key={p}
                     onClick={() => setDriversPage(p)}
-                    className={`w-7 h-7 flex items-center justify-center text-xs font-bold rounded-lg border ${driversPage === p
+                    className={`w-7 h-7 flex items-center justify-center text-xs font-bold rounded-lg border cursor-pointer ${driversPage === p
                       ? "bg-blue-100 border-blue-200 text-blue-600 font-extrabold"
-                      : "border-slate-200 hover:bg-slate-50 text-slate-600 cursor-pointer"
+                      : "border-slate-200 hover:bg-slate-50 text-slate-600"
                       }`}
                   >
                     {p}
@@ -222,7 +221,7 @@ export default function UsersView({
                     )
                   }
                   disabled={driversPage === Math.ceil(filteredDrivers.length / itemsPerPage)}
-                  className="w-7 h-7 flex items-center justify-center text-xs font-bold rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:hover:bg-transparent text-[#091b6f] cursor-pointer"
+                  className="w-7 h-7 flex items-center justify-center text-xs font-bold rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:hover:bg-transparent text-[#091b6f] cursor-pointer disabled:cursor-not-allowed"
                 >
                   &gt;
                 </button>
@@ -261,9 +260,6 @@ export default function UsersView({
                     <tr key={p.id} className="hover:bg-slate-50/50 transition-colors whitespace-nowrap">
                       <td className="px-2 py-4 text-left">
                         <p className="truncate text-[#091b6f] font-bold" title={p.name}>{p.name}</p>
-                        <p className="text-[10px] text-slate-400 font-bold">
-                          Canceled: {p.canceledTrips} trips
-                        </p>
                       </td>
                       <td className="px-2 py-4 text-slate-600 text-left truncate" title={p.contact}>{p.contact}</td>
                       <td className="px-2 py-4 text-left">
@@ -312,7 +308,7 @@ export default function UsersView({
                 <button
                   onClick={() => setPassengersPage((prev) => Math.max(prev - 1, 1))}
                   disabled={passengersPage === 1}
-                  className="w-7 h-7 flex items-center justify-center text-xs font-bold rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:hover:bg-transparent text-[#091b6f] cursor-pointer"
+                  className="w-7 h-7 flex items-center justify-center text-xs font-bold rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:hover:bg-transparent text-[#091b6f] cursor-pointer disabled:cursor-not-allowed"
                 >
                   &lt;
                 </button>
@@ -324,9 +320,9 @@ export default function UsersView({
                   <button
                     key={p}
                     onClick={() => setPassengersPage(p)}
-                    className={`w-7 h-7 flex items-center justify-center text-xs font-bold rounded-lg border ${passengersPage === p
+                    className={`w-7 h-7 flex items-center justify-center text-xs font-bold rounded-lg border cursor-pointer ${passengersPage === p
                       ? "bg-blue-100 border-blue-200 text-blue-600 font-extrabold"
-                      : "border-slate-200 hover:bg-slate-50 text-slate-600 cursor-pointer"
+                      : "border-slate-200 hover:bg-slate-50 text-slate-600"
                       }`}
                   >
                     {p}
@@ -340,7 +336,7 @@ export default function UsersView({
                     )
                   }
                   disabled={passengersPage === Math.ceil(filteredPassengers.length / itemsPerPage)}
-                  className="w-7 h-7 flex items-center justify-center text-xs font-bold rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:hover:bg-transparent text-[#091b6f] cursor-pointer"
+                  className="w-7 h-7 flex items-center justify-center text-xs font-bold rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-30 disabled:hover:bg-transparent text-[#091b6f] cursor-pointer disabled:cursor-not-allowed"
                 >
                   &gt;
                 </button>

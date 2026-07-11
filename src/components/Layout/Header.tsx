@@ -33,7 +33,7 @@ export default function Header({
         {/* Mobile menu hamburger */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="md:hidden p-1.5 rounded hover:bg-white/10 transition-colors"
+          className="md:hidden p-1.5 rounded hover:bg-white/10 transition-colors cursor-pointer"
           aria-label="Toggle Menu"
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -60,7 +60,7 @@ export default function Header({
           type="button"
           onClick={onRefreshDashboard}
           disabled={isRefreshingDashboard}
-          className="rounded-full bg-white/15 p-2 transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60 sm:p-2.5"
+          className="rounded-full bg-white/15 p-2 transition-colors hover:bg-white/20 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 sm:p-2.5"
           aria-label="Refresh dashboard"
           title="Refresh dashboard"
         >
@@ -81,7 +81,7 @@ export default function Header({
         </button>
         <div className="relative group">
           <button
-            className="relative rounded-full bg-white/15 p-2 hover:bg-white/20 transition-colors sm:p-2.5"
+            className="relative rounded-full bg-white/15 p-2 hover:bg-white/20 transition-colors cursor-pointer sm:p-2.5"
             aria-label="Notifications"
             onClick={onMarkNotificationsRead}
           >

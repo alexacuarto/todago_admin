@@ -57,7 +57,7 @@ export default function RideRequestsView({
         <button
           type="button"
           onClick={() => setActiveStatModal("total-earnings")}
-          className="rounded-lg border border-slate-100 bg-[#091b6f] p-5 text-left text-white shadow-sm transition hover:bg-[#132b91]"
+          className="rounded-lg border border-slate-100 bg-[#091b6f] p-5 text-left text-white shadow-sm transition hover:bg-[#132b91] cursor-pointer"
         >
           <p className="text-xs font-extrabold uppercase text-sky-200">Total Earnings</p>
           <p className="break-anywhere mt-2 text-2xl font-extrabold sm:text-3xl">₱{totalEarnings.toLocaleString()}</p>
@@ -67,7 +67,7 @@ export default function RideRequestsView({
         <button
           type="button"
           onClick={() => setActiveStatModal("completed-rides")}
-          className="rounded-lg border border-slate-100 bg-white p-5 text-left shadow-sm transition hover:border-[#091b6f]/20"
+          className="rounded-lg border border-slate-100 bg-white p-5 text-left shadow-sm transition hover:border-[#091b6f]/20 cursor-pointer"
         >
           <p className="text-xs font-extrabold uppercase text-slate-400">Completed Rides</p>
           <p className="mt-2 text-2xl font-extrabold text-[#091b6f] sm:text-3xl">{totalCompletedRides.toLocaleString()}</p>
@@ -80,7 +80,7 @@ export default function RideRequestsView({
           <button
             type="button"
             onClick={handleDownloadReport}
-            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#4c75f2] px-4 py-2 text-xs font-extrabold text-white hover:bg-blue-600 sm:w-auto"
+            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#4c75f2] px-4 py-2 text-xs font-extrabold text-white hover:bg-blue-600 cursor-pointer sm:w-auto"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -289,7 +289,7 @@ export default function RideRequestsView({
                 onClick={() => setRequestsPage((prev) => Math.max(prev - 1, 1))}
                 disabled={requestsPage === 1}
                 className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded-lg border ${requestsPage === 1
-                  ? "opacity-30 border-slate-200 text-slate-400"
+                  ? "opacity-30 border-slate-200 text-slate-400 cursor-not-allowed"
                   : "border-slate-200 hover:bg-slate-50 text-[#091b6f] cursor-pointer"
                   }`}
               >
@@ -304,7 +304,7 @@ export default function RideRequestsView({
                 }
                 disabled={requestsPage === Math.ceil(filteredRequests.length / itemsPerPage)}
                 className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded-lg border ${requestsPage === Math.ceil(filteredRequests.length / itemsPerPage)
-                  ? "opacity-30 border-slate-200 text-slate-400"
+                  ? "opacity-30 border-slate-200 text-slate-400 cursor-not-allowed"
                   : "border-slate-200 hover:bg-slate-50 text-[#091b6f] cursor-pointer"
                   }`}
               >

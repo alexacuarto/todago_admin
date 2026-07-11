@@ -8,6 +8,7 @@ import {
   updateDriverAccount,
   updateDriverActiveStatus,
   deleteUserAccount,
+  deleteBookingLog,
   updateFareSetting,
   updatePassengerAccount,
   uploadDriverLicenseImage,
@@ -536,7 +537,8 @@ export default function App() {
     if (!editingDriver) return;
     try {
       await updateDriverAccount(editingDriver, editFormData);
-      const savedBodyNumber = editFormData.bodyNumber || editFormData.toda || "";
+      const savedToda = editFormData.toda || "";
+      const savedBodyNumber = editFormData.bodyNumber && editFormData.bodyNumber !== savedToda ? editFormData.bodyNumber : "";
       let licenseImageUrl = editingDriver.licenseImageUrl;
       let licenseImageName = editingDriver.licenseImageName;
       if (editFormData.licenseImage) {
@@ -555,7 +557,7 @@ export default function App() {
                 phone: editingDriver.phone,
                 license: editFormData.license,
                 bodyNumber: savedBodyNumber,
-                toda: savedBodyNumber,
+                toda: savedToda,
                 status: editFormData.status,
                 email: editingDriver.email,
                 plateNumber: editFormData.plateNumber,
@@ -575,7 +577,7 @@ export default function App() {
                 phone: editingDriver.phone,
                 license: editFormData.license,
                 bodyNumber: savedBodyNumber,
-                toda: savedBodyNumber,
+                toda: savedToda,
                 status: editFormData.status,
                 email: editingDriver.email,
                 plateNumber: editFormData.plateNumber,
@@ -713,6 +715,25 @@ export default function App() {
     }
   };
 
+  const handleDeleteBookingLog = async (rideId: string | number) => {
+    if (!isSuperAdmin) {
+      alert("Only the primary administrator can delete booking logs.");
+      return false;
+    }
+
+    try {
+      await deleteBookingLog(rideId);
+      setRideRequests(prev => prev.filter(ride => ride.id !== rideId));
+      setShowViewRequestModal(false);
+      setViewingRequest(null);
+      alert("Booking log deleted successfully.");
+      return true;
+    } catch (error) {
+      alert(`Unable to delete booking log: ${error instanceof Error ? error.message : error}`);
+      return false;
+    }
+  };
+
   const handleDownloadReport = () => {
     const headers = "Date,TODA Association,Completed Rides,Total Earnings,Driver Assigned\n";
     const rows = earningsRecords.map(r =>
@@ -846,7 +867,7 @@ export default function App() {
                 type="button"
                 onClick={() => setOperationalReloadKey(key => key + 1)}
                 disabled={isLoadingOperationalData}
-                className="rounded-lg bg-rose-600 px-3 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:bg-rose-300"
+                className="rounded-lg bg-rose-600 px-3 py-2 text-xs font-bold text-white cursor-pointer disabled:cursor-not-allowed disabled:bg-rose-300"
               >
                 Retry
               </button>
@@ -995,6 +1016,8 @@ export default function App() {
           setViewingRequest(null);
         }}
         viewingRequest={viewingRequest}
+        isSuperAdmin={isSuperAdmin}
+        onDeleteBooking={handleDeleteBookingLog}
       />
 
       <ViewUserModal

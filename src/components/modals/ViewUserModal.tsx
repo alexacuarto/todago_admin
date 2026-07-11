@@ -69,7 +69,7 @@ export default function ViewUserModal({
         <div className="bg-[#0b1b6e] text-white px-4 py-5 flex items-center justify-between gap-3 sm:px-6">
           <div className="min-w-0 text-left">
             <span className="text-xs font-bold uppercase tracking-wider text-sky-200">
-              {viewingUserType === "driver" ? "Driver Profile Audit" : "Passenger Account Audit"}
+              {viewingUserType === "driver" ? "Driver Profile" : "Passenger Account"}
             </span>
             <h3 className="break-anywhere font-bold text-base sm:text-lg">{viewingUser.name}</h3>
           </div>
@@ -119,11 +119,10 @@ export default function ViewUserModal({
             </div>
             <div>
               <span
-                className={`inline-block px-3 py-1 rounded-full text-xs font-extrabold border ${
-                  viewingUser.status === "Active"
-                    ? "bg-emerald-50 text-emerald-600 border-emerald-100"
-                    : "bg-rose-50 text-rose-600 border-rose-100"
-                }`}
+                className={`inline-block px-3 py-1 rounded-full text-xs font-extrabold border ${viewingUser.status === "Active"
+                  ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+                  : "bg-rose-50 text-rose-600 border-rose-100"
+                  }`}
               >
                 {viewingUser.status}
               </span>
@@ -359,11 +358,10 @@ export default function ViewUserModal({
               <div>
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Verification</p>
                 <span
-                  className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-extrabold border ${
-                    (viewingUser as Driver).isVerified
-                      ? "bg-blue-50 text-blue-600 border-blue-100"
-                      : "bg-amber-50 text-amber-600 border-amber-100"
-                  }`}
+                  className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-extrabold border ${(viewingUser as Driver).isVerified
+                    ? "bg-blue-50 text-blue-600 border-blue-100"
+                    : "bg-amber-50 text-amber-600 border-amber-100"
+                    }`}
                 >
                   {(viewingUser as Driver).isVerified ? "Verified" : "Unverified"}
                 </span>
@@ -460,9 +458,8 @@ export default function ViewUserModal({
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Canceled Trips</p>
                 <div className="flex items-center gap-2 mt-0.5">
                   <span
-                    className={`font-extrabold text-sm px-2 py-0.5 rounded-md ${
-                      (viewingUser as Passenger).canceledTrips >= 3 ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700"
-                    }`}
+                    className={`font-extrabold text-sm px-2 py-0.5 rounded-md ${(viewingUser as Passenger).canceledTrips >= 3 ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700"
+                      }`}
                   >
                     {(viewingUser as Passenger).canceledTrips} / 3 Cancelled
                   </span>
@@ -505,7 +502,7 @@ export default function ViewUserModal({
               onClick={onClose}
               className="w-full px-6 py-2.5 bg-[#091b6f] hover:bg-blue-800 text-white rounded-lg font-bold text-sm transition-colors cursor-pointer shadow-xs hover:shadow sm:w-auto"
             >
-              Close Account Audit
+              Close
             </button>
           </div>
         </div>

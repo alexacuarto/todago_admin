@@ -1,16 +1,16 @@
 import { useEffect, useState, useMemo } from "react";
-import { getCurrentAdminProfile } from "./lib/authService";
-import { createAdminAccount, resetAdminPassword, setAdminAccountActive } from "./lib/adminAccountService";
+import { getCurrentAdminProfile, logoutAdmin, updateCurrentAdminPassword, updateCurrentAdminProfile } from "./lib/authService";
+import { createAdminAccount, deleteAdminAccount, updateAdminAccount } from "./lib/adminAccountService";
 import {
   fetchAdminDashboardData,
   fetchFareSettings,
   subscribeAdminOperationalData,
   updateDriverAccount,
   updateDriverActiveStatus,
-  updateDriverVerification,
+  deleteUserAccount,
+  deleteBookingLog,
   updateFareSetting,
   updatePassengerAccount,
-  updatePassengerActiveStatus,
   uploadDriverLicenseImage,
 } from "./lib/adminDataService";
 import { createDriverAccount } from "./lib/driverService";
@@ -84,6 +84,8 @@ export default function App() {
   const applyAdminProfile = (profile: {
     full_name: string;
     email: string | null;
+    avatar_url: string | null;
+    avatar_color: string | null;
     is_active: boolean;
     is_primary_admin: boolean;
   }) => {
@@ -91,6 +93,8 @@ export default function App() {
       ...prev,
       name: profile.full_name,
       email: profile.email ?? prev.email,
+      avatarUrl: profile.avatar_url ?? "",
+      avatarColor: profile.avatar_color ?? prev.avatarColor,
       status: profile.is_active ? "Active" : "Inactive",
       isPrimaryAdmin: profile.is_primary_admin === true,
     }));
@@ -238,6 +242,7 @@ export default function App() {
   const [showEditPassengerModal, setShowEditPassengerModal] = useState(false);
   const [showViewRequestModal, setShowViewRequestModal] = useState(false);
   const [showViewUserModal, setShowViewUserModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [activeStatModal, setActiveStatModal] = useState<string | null>(null);
 
   // Selected item states
@@ -253,6 +258,7 @@ export default function App() {
     email: "",
     phone: "",
     password: "",
+    licenseNumber: "",
     plateNumber: "",
     toda: "LHITC-TODA",
     status: "Active" as "Active" | "Inactive",
@@ -295,6 +301,8 @@ export default function App() {
   const [requestSearch, setRequestSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("Ongoing");
   const [requestTodaFilter, setRequestTodaFilter] = useState("All");
+  const [bookingStartDate, setBookingStartDate] = useState("");
+  const [bookingEndDate, setBookingEndDate] = useState("");
   const [userTodaFilter, setUserTodaFilter] = useState("All");
   const [userStatusFilter, setUserStatusFilter] = useState("All");
   const [usersSubTab, setUsersSubTab] = useState<"all" | "drivers" | "passengers">("drivers");
@@ -382,7 +390,7 @@ export default function App() {
   const handleAddDriver = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isCreatingDriver) return;
-    if (!formData.name || !formData.phone || !formData.email || !formData.password || !formData.plateNumber) {
+    if (!formData.name || !formData.phone || !formData.email || !formData.password || !formData.licenseNumber || !formData.plateNumber) {
       alert("Please fill in all fields.");
       return;
     }
@@ -395,6 +403,7 @@ export default function App() {
         email: formData.email,
         password: formData.password,
         contactNumber: formData.phone,
+        licenseNumber: formData.licenseNumber,
         plateNumber: formData.plateNumber,
         todaAssociation: formData.toda,
       });
@@ -417,6 +426,7 @@ export default function App() {
         email: "",
         phone: "",
         password: "",
+        licenseNumber: "",
         plateNumber: "",
         toda: "LHITC-TODA",
         status: "Active",
@@ -466,43 +476,57 @@ export default function App() {
     }
   };
 
-  const handleToggleAdminStatus = async (account: AdminAccount) => {
-    if (!isSuperAdmin || account.isPrimaryAdmin || activeAdminActionId) return;
-    const nextIsActive = account.status !== "Active";
+  const handleUpdateAdminAccount = async (
+    account: AdminAccount,
+    updates: { name: string; email: string; phone: string; password?: string },
+  ) => {
+    if (!isSuperAdmin || activeAdminActionId) return false;
     setActiveAdminActionId(account.id);
     try {
-      const result = await setAdminAccountActive(account.id, nextIsActive);
+      const result = await updateAdminAccount(account.id, {
+        fullName: updates.name,
+        email: updates.email,
+        phone: updates.phone,
+        password: updates.password,
+      });
       if (!result.success) {
         alert(`Unable to update admin account: ${result.error}`);
-        return;
+        return false;
       }
 
       setAdminAccounts(prev =>
         prev.map(item =>
           item.id === account.id
-            ? { ...item, status: nextIsActive ? "Active" : "Inactive" }
+            ? { ...item, name: updates.name, email: updates.email, phone: updates.phone }
             : item,
         ),
       );
+      alert(`Admin account updated for ${updates.name}.`);
+      return true;
     } catch (error) {
       alert(`Unable to update admin account: ${error instanceof Error ? error.message : error}`);
+      return false;
     } finally {
       setActiveAdminActionId("");
     }
   };
 
-  const handleResetAdminPassword = async (account: AdminAccount, password: string) => {
-    if (!isSuperAdmin || activeAdminActionId) return;
+  const handleDeleteAdminAccount = async (account: AdminAccount) => {
+    if (!isSuperAdmin || account.isPrimaryAdmin || activeAdminActionId) return false;
     setActiveAdminActionId(account.id);
     try {
-      const result = await resetAdminPassword(account.id, password);
+      const result = await deleteAdminAccount(account.id);
       if (!result.success) {
-        alert(`Unable to reset admin password: ${result.error}`);
-        return;
+        alert(`Unable to delete admin account: ${result.error}`);
+        return false;
       }
-      alert(`Password reset for ${account.name}.`);
+
+      setAdminAccounts(prev => prev.filter(item => item.id !== account.id));
+      alert(`Admin account deleted for ${account.name}.`);
+      return true;
     } catch (error) {
-      alert(`Unable to reset admin password: ${error instanceof Error ? error.message : error}`);
+      alert(`Unable to delete admin account: ${error instanceof Error ? error.message : error}`);
+      return false;
     } finally {
       setActiveAdminActionId("");
     }
@@ -513,7 +537,8 @@ export default function App() {
     if (!editingDriver) return;
     try {
       await updateDriverAccount(editingDriver, editFormData);
-      const savedBodyNumber = editFormData.bodyNumber || editFormData.toda || "";
+      const savedToda = editFormData.toda || "";
+      const savedBodyNumber = editFormData.bodyNumber && editFormData.bodyNumber !== savedToda ? editFormData.bodyNumber : "";
       let licenseImageUrl = editingDriver.licenseImageUrl;
       let licenseImageName = editingDriver.licenseImageName;
       if (editFormData.licenseImage) {
@@ -529,12 +554,12 @@ export default function App() {
             ? {
                 ...d,
                 name: editFormData.name,
-                phone: editFormData.phone,
+                phone: editingDriver.phone,
                 license: editFormData.license,
                 bodyNumber: savedBodyNumber,
-                toda: savedBodyNumber,
+                toda: savedToda,
                 status: editFormData.status,
-                email: editFormData.email,
+                email: editingDriver.email,
                 plateNumber: editFormData.plateNumber,
                 isVerified: editFormData.isVerified,
                 licenseImageUrl,
@@ -549,12 +574,12 @@ export default function App() {
             ? {
                 ...prev,
                 name: editFormData.name,
-                phone: editFormData.phone,
+                phone: editingDriver.phone,
                 license: editFormData.license,
                 bodyNumber: savedBodyNumber,
-                toda: savedBodyNumber,
+                toda: savedToda,
                 status: editFormData.status,
-                email: editFormData.email,
+                email: editingDriver.email,
                 plateNumber: editFormData.plateNumber,
                 isVerified: editFormData.isVerified,
                 licenseImageUrl,
@@ -582,8 +607,8 @@ export default function App() {
             ? {
                 ...p,
                 name: passengerEditFormData.name,
-                contact: passengerEditFormData.contact,
-                email: passengerEditFormData.email,
+                contact: editingPassenger.contact,
+                email: editingPassenger.email,
                 status: passengerEditFormData.status,
               }
             : p
@@ -595,8 +620,8 @@ export default function App() {
             ? {
                 ...prev,
                 name: passengerEditFormData.name,
-                contact: passengerEditFormData.contact,
-                email: passengerEditFormData.email,
+                contact: editingPassenger.contact,
+                email: editingPassenger.email,
                 status: passengerEditFormData.status,
               } as Passenger
             : null
@@ -607,24 +632,6 @@ export default function App() {
       setPassengerEditFormData(prev => ({ ...prev, password: "" }));
     } catch (error) {
       alert(`Unable to update passenger account: ${error instanceof Error ? error.message : error}`);
-    }
-  };
-
-  const handleDriverVerificationToggle = async (id: number | string) => {
-    const driver = drivers.find(d => d.id === id);
-    if (!driver) return;
-    const nextIsVerified = !driver.isVerified;
-
-    try {
-      await updateDriverVerification(id, nextIsVerified);
-      setDrivers(prev =>
-        prev.map(d => d.id === id ? { ...d, isVerified: nextIsVerified } : d)
-      );
-      if (viewingUser && viewingUser.id === id && viewingUserType === "driver") {
-        setViewingUser(prev => prev ? { ...prev, isVerified: nextIsVerified } as Driver : null);
-      }
-    } catch (error) {
-      alert(`Unable to update driver verification: ${error instanceof Error ? error.message : error}`);
     }
   };
 
@@ -685,71 +692,45 @@ export default function App() {
     }
   };
 
-  const handleDeactivatePassengerToggle = async (id: number | string) => {
-    const passenger = passengers.find(p => p.id === id);
-    if (!passenger) return;
-
-    if (passenger.canceledTrips >= 3 && passenger.status === "Inactive") {
-      alert("Cannot reactivate passenger! Canceled trips limit (3) exceeded.");
-      return;
+  const handleDeleteUserAccount = async (
+    accountType: "driver" | "passenger",
+    id: number | string,
+  ) => {
+    if (!isSuperAdmin) return false;
+    try {
+      await deleteUserAccount(accountType, id);
+      if (accountType === "driver") {
+        setDrivers(prev => prev.filter(driver => driver.id !== id));
+      } else {
+        setPassengers(prev => prev.filter(passenger => passenger.id !== id));
+      }
+      setViewingUser(null);
+      setViewingUserType(null);
+      setShowViewUserModal(false);
+      alert(`${accountType === "driver" ? "Driver" : "Passenger"} account deleted.`);
+      return true;
+    } catch (error) {
+      alert(`Unable to delete ${accountType} account: ${error instanceof Error ? error.message : error}`);
+      return false;
     }
+  };
 
-    const nextStatus = passenger.status === "Active" ? "Inactive" : "Active";
+  const handleDeleteBookingLog = async (rideId: string | number) => {
+    if (!isSuperAdmin) {
+      alert("Only the primary administrator can delete booking logs.");
+      return false;
+    }
 
     try {
-      await updatePassengerActiveStatus(passenger, nextStatus);
-      setPassengers(prev =>
-        prev.map(p => p.id === id ? { ...p, status: nextStatus } : p)
-      );
-      if (viewingUser && viewingUser.id === id && viewingUserType === "passenger") {
-        setViewingUser(prev => prev ? { ...prev, status: nextStatus } : null);
-      }
+      await deleteBookingLog(rideId);
+      setRideRequests(prev => prev.filter(ride => ride.id !== rideId));
+      setShowViewRequestModal(false);
+      setViewingRequest(null);
+      alert("Booking log deleted successfully.");
+      return true;
     } catch (error) {
-      alert(`Unable to update passenger status: ${error instanceof Error ? error.message : error}`);
-    }
-  };
-
-  const handleIncrementCanceledTrips = (id: number | string) => {
-    setPassengers(prev =>
-      prev.map(p => {
-        if (p.id === id) {
-          const nextCanceled = p.canceledTrips + 1;
-          const nextStatus = nextCanceled >= 3 ? "Inactive" : p.status;
-          if (nextCanceled >= 3) {
-            alert(`Passenger ${p.name} has reached 3 canceled trips and is now automatically deactivated!`);
-          }
-          return { ...p, canceledTrips: nextCanceled, status: nextStatus };
-        }
-        return p;
-      })
-    );
-    // Sync view modal if active
-    if (viewingUser && viewingUser.id === id && viewingUserType === "passenger") {
-      setViewingUser(prev => {
-        if (!prev) return null;
-        const p = prev as Passenger;
-        const nextCanceled = p.canceledTrips + 1;
-        const nextStatus = nextCanceled >= 3 ? "Inactive" : p.status;
-        return { ...p, canceledTrips: nextCanceled, status: nextStatus };
-      });
-    }
-  };
-
-  const handleResetCanceledTrips = (id: number | string) => {
-    setPassengers(prev =>
-      prev.map(p => {
-        if (p.id === id) {
-          return { ...p, canceledTrips: 0, status: "Active" };
-        }
-        return p;
-      })
-    );
-    if (viewingUser && viewingUser.id === id && viewingUserType === "passenger") {
-      setViewingUser(prev => {
-        if (!prev) return null;
-        const p = prev as Passenger;
-        return { ...p, canceledTrips: 0, status: "Active" };
-      });
+      alert(`Unable to delete booking log: ${error instanceof Error ? error.message : error}`);
+      return false;
     }
   };
 
@@ -805,13 +786,19 @@ export default function App() {
         ? r.status === "Pending" || r.status === "In Transit"
         : r.status === statusFilter;
 
-      return matchSearch && matchStatus && matchToda;
+      const requestedTime = Date.parse(r.requestedAt || r.time || "");
+      const startTime = bookingStartDate ? new Date(`${bookingStartDate}T00:00:00`).getTime() : null;
+      const endTime = bookingEndDate ? new Date(`${bookingEndDate}T23:59:59.999`).getTime() : null;
+      const matchStartDate = startTime === null || (!Number.isNaN(requestedTime) && requestedTime >= startTime);
+      const matchEndDate = endTime === null || (!Number.isNaN(requestedTime) && requestedTime <= endTime);
+
+      return matchSearch && matchStatus && matchToda && matchStartDate && matchEndDate;
     }).sort((a, b) => {
       const bTime = Date.parse(b.requestedAt || b.time || "");
       const aTime = Date.parse(a.requestedAt || a.time || "");
       return (Number.isNaN(bTime) ? 0 : bTime) - (Number.isNaN(aTime) ? 0 : aTime);
     });
-  }, [rideRequests, requestSearch, statusFilter, requestTodaFilter]);
+  }, [rideRequests, requestSearch, statusFilter, requestTodaFilter, bookingStartDate, bookingEndDate]);
 
   // Login View render condition
   if (isCheckingSession) {
@@ -848,7 +835,7 @@ export default function App() {
         onMarkNotificationsRead={handleMarkNotificationsRead}
         onRefreshDashboard={handleRefreshDashboard}
         isRefreshingDashboard={isLoadingOperationalData || isLoadingFareSettings}
-        setActiveTab={setActiveTab}
+        onOpenProfile={() => setShowProfileModal(true)}
         mobileMenuOpen={mobileMenuOpen}
         setMobileMenuOpen={setMobileMenuOpen}
       />
@@ -866,7 +853,7 @@ export default function App() {
         />
 
         {/* MAIN PANEL CONTENT VIEW */}
-        <main className="flex-1 overflow-y-auto z-0 relative p-3 sm:p-5 lg:p-6">
+        <main className="flex-1 overflow-y-auto relative px-3 py-5 sm:px-5 sm:py-7 lg:px-6 lg:py-8">
           {isLoadingOperationalData && (
             <div className="mb-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-[#091b6f]">
               Loading Supabase operational data...
@@ -880,7 +867,7 @@ export default function App() {
                 type="button"
                 onClick={() => setOperationalReloadKey(key => key + 1)}
                 disabled={isLoadingOperationalData}
-                className="rounded-lg bg-rose-600 px-3 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:bg-rose-300"
+                className="rounded-lg bg-rose-600 px-3 py-2 text-xs font-bold text-white cursor-pointer disabled:cursor-not-allowed disabled:bg-rose-300"
               >
                 Retry
               </button>
@@ -921,6 +908,10 @@ export default function App() {
               setRequestsPage={setRequestsPage}
               requestTodaFilter={requestTodaFilter}
               setRequestTodaFilter={setRequestTodaFilter}
+              bookingStartDate={bookingStartDate}
+              setBookingStartDate={setBookingStartDate}
+              bookingEndDate={bookingEndDate}
+              setBookingEndDate={setBookingEndDate}
               requestSearch={requestSearch}
               setRequestSearch={setRequestSearch}
               handleDownloadReport={handleDownloadReport}
@@ -949,8 +940,8 @@ export default function App() {
               isCreatingAdmin={isCreatingAdmin}
               activeAdminActionId={activeAdminActionId}
               onCreateAdmin={handleCreateAdmin}
-              onToggleAdminStatus={handleToggleAdminStatus}
-              onResetAdminPassword={handleResetAdminPassword}
+              onUpdateAdmin={handleUpdateAdminAccount}
+              onDeleteAdmin={handleDeleteAdminAccount}
             />
           )}
 
@@ -973,12 +964,6 @@ export default function App() {
               setViewingUser={setViewingUser}
               setViewingUserType={setViewingUserType}
               setShowViewUserModal={setShowViewUserModal}
-              setEditingDriver={setEditingDriver}
-              setEditFormData={setEditFormData}
-              setShowEditDriverModal={setShowEditDriverModal}
-              setEditingPassenger={setEditingPassenger}
-              setPassengerEditFormData={setPassengerEditFormData}
-              setShowEditPassengerModal={setShowEditPassengerModal}
               setActiveStatModal={setActiveStatModal}
               activePassengerCount={activePassengersCount}
               activeDriverCount={activeDriversCount}
@@ -986,17 +971,6 @@ export default function App() {
             />
           )}
 
-          {activeTab === "profile" && (
-            <ProfileView
-              adminProfile={adminProfile}
-              setAdminProfile={setAdminProfile}
-              setActiveTab={setActiveTab}
-              setIsLoggedIn={setIsLoggedIn}
-              setLoginEmail={setLoginEmail}
-              setLoginPassword={setLoginPassword}
-              setLoginError={setLoginError}
-            />
-          )}
           {activeTab === "create-driver" && (
             <CreateDriverView
               formData={formData}
@@ -1042,6 +1016,8 @@ export default function App() {
           setViewingRequest(null);
         }}
         viewingRequest={viewingRequest}
+        isSuperAdmin={isSuperAdmin}
+        onDeleteBooking={handleDeleteBookingLog}
       />
 
       <ViewUserModal
@@ -1053,12 +1029,8 @@ export default function App() {
         }}
         viewingUser={viewingUser}
         viewingUserType={viewingUserType}
-        onDeactivateDriverToggle={handleDeactivateToggle}
-        onDriverVerificationToggle={handleDriverVerificationToggle}
-        onDeactivatePassengerToggle={handleDeactivatePassengerToggle}
-        onIncrementCanceledTrips={handleIncrementCanceledTrips}
-        onResetCanceledTrips={handleResetCanceledTrips}
-        onEdit={() => {
+        isSuperAdmin={isSuperAdmin}
+        onBeginEdit={() => {
           if (!viewingUser || !viewingUserType) return;
           if (viewingUserType === "driver") {
             const driver = viewingUser as Driver;
@@ -1077,7 +1049,6 @@ export default function App() {
               licenseImage: null,
               licenseImageName: driver.licenseImageName || "",
             });
-            setShowEditDriverModal(true);
           } else {
             const passenger = viewingUser as Passenger;
             setEditingPassenger(passenger);
@@ -1088,8 +1059,32 @@ export default function App() {
               status: passenger.status,
               password: "",
             });
-            setShowEditPassengerModal(true);
           }
+        }}
+        driverEditFormData={editFormData}
+        setDriverEditFormData={setEditFormData}
+        passengerEditFormData={passengerEditFormData}
+        setPassengerEditFormData={setPassengerEditFormData}
+        onSubmitDriverEdit={handleEditDriver}
+        onSubmitPassengerEdit={handleEditPassenger}
+        onDeleteUser={handleDeleteUserAccount}
+      />
+
+      <ProfileView
+        isOpen={showProfileModal}
+        adminProfile={adminProfile}
+        setAdminProfile={setAdminProfile}
+        onClose={() => setShowProfileModal(false)}
+        onSaveProfile={updateCurrentAdminProfile}
+        onSavePassword={updateCurrentAdminPassword}
+        onLogout={async () => {
+          await logoutAdmin();
+          setShowProfileModal(false);
+          setIsLoggedIn(false);
+          setActiveTab("dashboard");
+          setLoginEmail("");
+          setLoginPassword("");
+          setLoginError("");
         }}
       />
 

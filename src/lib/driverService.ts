@@ -6,6 +6,7 @@ export interface CreateDriverParams {
   email: string;
   password: string;
   contactNumber: string;
+  licenseNumber: string;
   plateNumber: string;
   todaAssociation: string;
 }
@@ -15,6 +16,7 @@ export interface CreateDriverResult {
   error?: string;
   driverName?: string;
   driverId?: string;
+  licenseNumber?: string;
 }
 
 function withTimeout<T>(promise: PromiseLike<T>, label: string, timeoutMs = 20000): Promise<T> {
@@ -36,9 +38,9 @@ function withTimeout<T>(promise: PromiseLike<T>, label: string, timeoutMs = 2000
 export async function createDriverAccount(
   params: CreateDriverParams
 ): Promise<CreateDriverResult> {
-  const { fullName, email, contactNumber, plateNumber } = params;
+  const { fullName, email, contactNumber, licenseNumber, plateNumber } = params;
 
-  if (!fullName || !email || !contactNumber || !plateNumber) {
+  if (!fullName || !email || !contactNumber || !licenseNumber || !plateNumber) {
     return { success: false, error: 'Please fill in all required fields.' };
   }
 
@@ -64,6 +66,15 @@ export async function createDriverAccount(
     return { success: false, error: data.error ?? "Driver account creation failed." };
   }
 
+  if (data?.driverId) {
+    return {
+      success: true,
+      driverName: data.driverName ?? fullName,
+      driverId: data.driverId,
+      licenseNumber: data.licenseNumber ?? licenseNumber,
+    };
+  }
+
   const { data: profile } = await withTimeout(supabase
     .from("profiles")
     .select("id")
@@ -77,7 +88,7 @@ export async function createDriverAccount(
 
   const { data: driver } = await withTimeout(supabase
     .from("drivers")
-    .select("id")
+    .select("id, license_number")
     .eq("user_id", userId)
     .maybeSingle(), "resolve driver record");
 
@@ -85,5 +96,6 @@ export async function createDriverAccount(
     success: true,
     driverName: fullName,
     driverId: (driver as { id?: string } | null)?.id,
+    licenseNumber: (driver as { license_number?: string } | null)?.license_number ?? licenseNumber,
   };
 }

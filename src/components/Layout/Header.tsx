@@ -1,6 +1,4 @@
 import { AdminNotification } from "../../lib/notificationService";
-import { AdminTab } from "../../types";
-
 interface HeaderProps {
   adminProfile: {
     name: string;
@@ -12,7 +10,7 @@ interface HeaderProps {
   onMarkNotificationsRead: () => void;
   onRefreshDashboard: () => void;
   isRefreshingDashboard: boolean;
-  setActiveTab: (tab: AdminTab) => void;
+  onOpenProfile: () => void;
   mobileMenuOpen: boolean;
   setMobileMenuOpen: (open: boolean) => void;
 }
@@ -23,7 +21,7 @@ export default function Header({
   onMarkNotificationsRead,
   onRefreshDashboard,
   isRefreshingDashboard,
-  setActiveTab,
+  onOpenProfile,
   mobileMenuOpen,
   setMobileMenuOpen,
 }: HeaderProps) {
@@ -35,7 +33,7 @@ export default function Header({
         {/* Mobile menu hamburger */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="md:hidden p-1.5 rounded hover:bg-white/10 transition-colors"
+          className="md:hidden p-1.5 rounded hover:bg-white/10 transition-colors cursor-pointer"
           aria-label="Toggle Menu"
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -62,7 +60,7 @@ export default function Header({
           type="button"
           onClick={onRefreshDashboard}
           disabled={isRefreshingDashboard}
-          className="rounded-full bg-white/15 p-2 transition-colors hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60 sm:p-2.5"
+          className="rounded-full bg-white/15 p-2 transition-colors hover:bg-white/20 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 sm:p-2.5"
           aria-label="Refresh dashboard"
           title="Refresh dashboard"
         >
@@ -83,7 +81,7 @@ export default function Header({
         </button>
         <div className="relative group">
           <button
-            className="relative rounded-full bg-white/15 p-2 hover:bg-white/20 transition-colors sm:p-2.5"
+            className="relative rounded-full bg-white/15 p-2 hover:bg-white/20 transition-colors cursor-pointer sm:p-2.5"
             aria-label="Notifications"
             onClick={onMarkNotificationsRead}
           >
@@ -124,13 +122,13 @@ export default function Header({
           </div>
         </div>
         <div
-          onClick={() => setActiveTab("profile")}
+          onClick={onOpenProfile}
           className="flex items-center gap-3 cursor-pointer group relative"
         >
           <div className="text-right hidden sm:block">
             <p className="max-w-36 truncate text-sm font-bold tracking-wide">{adminProfile.name}</p>
             <p className="text-[10px] text-sky-200">
-              {adminProfile.isPrimaryAdmin ? "Primary Administrator" : "Administrator"}
+              {adminProfile.isPrimaryAdmin ? "Super Admin" : "Administrator"}
             </p>
           </div>
 

@@ -17,7 +17,7 @@ export default function CreateDriverView({
   isCreatingDriver = false,
 }: CreateDriverViewProps) {
   return (
-    <div className="flex flex-col gap-4 max-w-4xl mx-auto sm:gap-6">
+    <div className="flex w-full max-w-7xl flex-col gap-4 mx-auto sm:gap-6">
       {/* Page Title */}
       <div className="flex items-center justify-between pb-2">
         <div>
@@ -31,10 +31,10 @@ export default function CreateDriverView({
       </div>
 
       {/* Main Card */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4 flex flex-col gap-6 animate-in fade-in duration-200 sm:p-8">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4 flex w-full flex-col gap-6 animate-in fade-in duration-200 sm:p-8">
         <form onSubmit={onSubmit} className="flex flex-col gap-6">
           {/* Form Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-x-6 gap-y-5">
             {/* Name */}
             <div className="flex flex-col gap-1.5 text-left">
               <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Name</label>
@@ -113,6 +113,29 @@ export default function CreateDriverView({
                   placeholder="Enter Password"
                   value={formData.password}
                   onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
+                  className="w-full pl-11 pr-4 py-3 border border-slate-200 rounded-xl text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f] placeholder-slate-300"
+                />
+              </div>
+            </div>
+
+            {/* License Number */}
+            <div className="flex flex-col gap-1.5 text-left">
+              <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">License Number</label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <rect x="3" y="4" width="18" height="16" rx="2" />
+                    <line x1="7" y1="8" x2="17" y2="8" />
+                    <line x1="7" y1="12" x2="17" y2="12" />
+                    <line x1="7" y1="16" x2="13" y2="16" />
+                  </svg>
+                </span>
+                <input
+                  type="text"
+                  required
+                  placeholder="Enter License Number"
+                  value={formData.licenseNumber}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, licenseNumber: e.target.value }))}
                   className="w-full pl-11 pr-4 py-3 border border-slate-200 rounded-xl text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f] placeholder-slate-300"
                 />
               </div>

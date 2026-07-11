@@ -17,6 +17,7 @@ type DriverRow = {
   id: string;
   user_id: string;
   license_number: string | null;
+  toda_association: string | null;
   tricycle_body_number: string | null;
   plate_number: string | null;
   status: "offline" | "online" | "busy" | "suspended";
@@ -44,6 +45,10 @@ type RideRow = {
   status: string;
   fare_amount: number;
   requested_at: string;
+  regular_passenger_count?: number | null;
+  student_passenger_count?: number | null;
+  pwd_passenger_count?: number | null;
+  senior_passenger_count?: number | null;
 };
 
 type DriverEarningRow = {
@@ -108,13 +113,13 @@ export async function fetchAdminDashboardData() {
       .select("id, full_name, phone, email, role, is_active, avatar_url, is_primary_admin, created_at"), "profiles load"),
     withTimeout(supabase
       .from("drivers")
-      .select("id, user_id, license_number, license_image_url, tricycle_body_number, plate_number, status, is_verified, created_at"), "drivers load"),
+      .select("id, user_id, license_number, license_image_url, toda_association, tricycle_body_number, plate_number, status, is_verified, created_at"), "drivers load"),
     withTimeout(supabase
       .from("passengers")
       .select("id, user_id, created_at"), "passengers load"),
     withTimeout(supabase
       .from("rides")
-      .select("id, passenger_id, driver_id, pickup_address, pickup_latitude, pickup_longitude, dropoff_address, dropoff_latitude, dropoff_longitude, status, fare_amount, requested_at"), "rides load"),
+      .select("id, passenger_id, driver_id, pickup_address, pickup_latitude, pickup_longitude, dropoff_address, dropoff_latitude, dropoff_longitude, status, fare_amount, requested_at, regular_passenger_count, student_passenger_count, pwd_passenger_count, senior_passenger_count"), "rides load"),
     withTimeout(supabase
       .from("driver_earnings")
       .select("id, driver_id, ride_id, created_at, gross_fare"), "earnings load"),
@@ -146,11 +151,11 @@ export async function fetchAdminDashboardData() {
     return {
       id: row.id,
       name: profile?.full_name ?? "Driver",
-      toda: row.tricycle_body_number ?? "Unassigned",
+      toda: row.toda_association ?? row.tricycle_body_number ?? "Unassigned",
       status: profile?.is_active === false || row.status === "suspended" ? "Inactive" : "Active",
       isVerified: row.is_verified === true,
       phone: profile?.phone ?? "",
-      license: row.license_number ?? "PENDING",
+      license: row.license_number?.trim() || "-",
       bodyNumber: row.tricycle_body_number ?? "-",
       trips: rideRows.filter((ride) => ride.driver_id === row.id && ride.status === "completed").length,
       joinedDate: row.created_at?.split("T")[0] ?? "",
@@ -199,7 +204,11 @@ export async function fetchAdminDashboardData() {
       fare: Number(row.fare_amount ?? 0),
       time: row.requested_at ? new Date(row.requested_at).toLocaleString() : "",
       requestedAt: row.requested_at ?? "",
-      toda: driver?.tricycle_body_number ?? "-",
+      toda: driver?.toda_association ?? driver?.tricycle_body_number ?? "-",
+      regularPassengerCount: Number(row.regular_passenger_count ?? 0),
+      studentPassengerCount: Number(row.student_passenger_count ?? 0),
+      pwdPassengerCount: Number(row.pwd_passenger_count ?? 0),
+      seniorPassengerCount: Number(row.senior_passenger_count ?? 0),
       earningId: earning?.id,
       earningAmount: Number(earning?.gross_fare ?? 0),
       earningDate: earning?.created_at ? new Date(earning.created_at).toLocaleString() : "",
@@ -218,7 +227,7 @@ export async function fetchAdminDashboardData() {
     return {
       id: row.id,
       date: row.created_at ? new Date(row.created_at).toLocaleDateString() : "",
-      toda: driver?.tricycle_body_number ?? "-",
+      toda: driver?.toda_association ?? driver?.tricycle_body_number ?? "-",
       completedRides: ride?.status === "completed" ? 1 : 0,
       totalEarnings: Number(row.gross_fare ?? 0),
       driverName: driverProfile?.full_name ?? "Driver",
@@ -315,7 +324,6 @@ export async function updateDriverAccount(
   const userId = (driverRow as { user_id: string }).user_id;
 
   await updateAuthAccount(userId, {
-    email: updates.email.trim() !== (driver.email ?? "").trim() ? updates.email : undefined,
     password: updates.password,
   });
 
@@ -323,8 +331,6 @@ export async function updateDriverAccount(
     .from("profiles")
     .update({
       full_name: updates.name,
-      phone: updates.phone,
-      email: updates.email || null,
       is_active: updates.status === "Active",
     })
     .eq("id", userId), "update driver profile");
@@ -335,7 +341,8 @@ export async function updateDriverAccount(
     .from("drivers")
     .update({
       license_number: updates.license,
-      tricycle_body_number: updates.bodyNumber || updates.toda || null,
+      toda_association: updates.toda || null,
+      tricycle_body_number: updates.bodyNumber && updates.bodyNumber !== updates.toda ? updates.bodyNumber : null,
       plate_number: updates.plateNumber || null,
       status: updates.status === "Inactive" ? "suspended" : "offline",
       is_verified: updates.isVerified,
@@ -368,7 +375,6 @@ export async function updatePassengerAccount(
   const userId = (passengerRow as { user_id: string }).user_id;
 
   await updateAuthAccount(userId, {
-    email: updates.email.trim() !== (passenger.email ?? "").trim() ? updates.email : undefined,
     password: updates.password,
   });
 
@@ -376,13 +382,26 @@ export async function updatePassengerAccount(
     .from("profiles")
     .update({
       full_name: updates.name,
-      phone: updates.contact,
-      email: updates.email || null,
       is_active: updates.status === "Active",
     })
     .eq("id", userId), "update passenger profile");
 
   assertNoError("update passenger profile", profileError);
+}
+
+export async function deleteBookingLog(rideId: string | number) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("You must be logged in to delete booking logs.");
+
+  const { error } = await withTimeout(supabase.rpc("delete_booking_log_data", {
+    target_ride_id: String(rideId),
+    actor_admin_id: user.id,
+  }), "delete booking log");
+
+  assertNoError("delete booking log", error);
 }
 
 export async function updatePassengerActiveStatus(
@@ -407,6 +426,23 @@ export async function updatePassengerActiveStatus(
     .eq("id", userId), "update passenger active status");
 
   assertNoError("update passenger active status", profileError);
+}
+
+export async function deleteUserAccount(
+  accountType: "driver" | "passenger",
+  recordId: string | number,
+) {
+  const { data, error } = await withTimeout(supabase.functions.invoke("delete-user-account", {
+    body: {
+      accountType,
+      recordId: String(recordId),
+    },
+  }), "delete user account", 25000);
+
+  assertNoError("delete user account", error);
+  if (data && data.success === false) {
+    throw new Error(data.error || "delete user account failed");
+  }
 }
 
 async function updateAuthAccount(

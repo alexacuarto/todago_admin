@@ -51,9 +51,9 @@ export default function EditDriverModal({
               <input
                 type="tel"
                 required
+                disabled
                 value={editFormData.phone}
-                onChange={(e) => setEditFormData((prev) => ({ ...prev, phone: e.target.value }))}
-                className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f]"
+                className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold bg-slate-100 text-slate-500 cursor-not-allowed"
               />
             </div>
             <div className="flex flex-col gap-1">
@@ -106,9 +106,9 @@ export default function EditDriverModal({
               <input
                 type="email"
                 required
+                disabled
                 value={editFormData.email}
-                onChange={(e) => setEditFormData((prev) => ({ ...prev, email: e.target.value }))}
-                className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f]"
+                className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold bg-slate-100 text-slate-500 cursor-not-allowed"
               />
             </div>
             <div className="flex flex-col gap-1">

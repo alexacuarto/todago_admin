@@ -9,6 +9,10 @@ interface RideRequestsViewProps {
   setRequestsPage: React.Dispatch<React.SetStateAction<number>>;
   requestTodaFilter: string;
   setRequestTodaFilter: (val: string) => void;
+  bookingStartDate: string;
+  setBookingStartDate: (val: string) => void;
+  bookingEndDate: string;
+  setBookingEndDate: (val: string) => void;
   requestSearch: string;
   setRequestSearch: (val: string) => void;
   handleDownloadReport: () => void;
@@ -25,6 +29,10 @@ export default function RideRequestsView({
   setRequestsPage,
   requestTodaFilter,
   setRequestTodaFilter,
+  bookingStartDate,
+  setBookingStartDate,
+  bookingEndDate,
+  setBookingEndDate,
   requestSearch,
   setRequestSearch,
   handleDownloadReport,
@@ -49,7 +57,7 @@ export default function RideRequestsView({
         <button
           type="button"
           onClick={() => setActiveStatModal("total-earnings")}
-          className="rounded-lg border border-slate-100 bg-[#091b6f] p-5 text-left text-white shadow-sm transition hover:bg-[#132b91]"
+          className="rounded-lg border border-slate-100 bg-[#091b6f] p-5 text-left text-white shadow-sm transition hover:bg-[#132b91] cursor-pointer"
         >
           <p className="text-xs font-extrabold uppercase text-sky-200">Total Earnings</p>
           <p className="break-anywhere mt-2 text-2xl font-extrabold sm:text-3xl">₱{totalEarnings.toLocaleString()}</p>
@@ -59,7 +67,7 @@ export default function RideRequestsView({
         <button
           type="button"
           onClick={() => setActiveStatModal("completed-rides")}
-          className="rounded-lg border border-slate-100 bg-white p-5 text-left shadow-sm transition hover:border-[#091b6f]/20"
+          className="rounded-lg border border-slate-100 bg-white p-5 text-left shadow-sm transition hover:border-[#091b6f]/20 cursor-pointer"
         >
           <p className="text-xs font-extrabold uppercase text-slate-400">Completed Rides</p>
           <p className="mt-2 text-2xl font-extrabold text-[#091b6f] sm:text-3xl">{totalCompletedRides.toLocaleString()}</p>
@@ -72,7 +80,7 @@ export default function RideRequestsView({
           <button
             type="button"
             onClick={handleDownloadReport}
-            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#4c75f2] px-4 py-2 text-xs font-extrabold text-white hover:bg-blue-600 sm:w-auto"
+            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#4c75f2] px-4 py-2 text-xs font-extrabold text-white hover:bg-blue-600 cursor-pointer sm:w-auto"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -108,6 +116,34 @@ export default function RideRequestsView({
           ))}
         </div>
 
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+          <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
+            <span className="text-[10px] font-extrabold uppercase text-slate-400">Start</span>
+            <input
+              type="date"
+              value={bookingStartDate}
+              onChange={(e) => {
+                setBookingStartDate(e.target.value);
+                setRequestsPage(1);
+              }}
+              className="text-xs font-bold text-[#091b6f] outline-none"
+            />
+          </label>
+          <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
+            <span className="text-[10px] font-extrabold uppercase text-slate-400">End</span>
+            <input
+              type="date"
+              value={bookingEndDate}
+              min={bookingStartDate || undefined}
+              onChange={(e) => {
+                setBookingEndDate(e.target.value);
+                setRequestsPage(1);
+              }}
+              className="text-xs font-bold text-[#091b6f] outline-none"
+            />
+          </label>
+        </div>
+
         {/* TODA Dropdown Filter */}
         <div className="relative w-full sm:w-auto">
           <select
@@ -139,7 +175,7 @@ export default function RideRequestsView({
         <div className="flex flex-col items-stretch justify-between gap-4 sm:flex-row sm:items-center">
           <div className="flex min-w-0 items-center gap-2">
             <h2 className="break-anywhere text-[#091b6f] font-bold text-base sm:text-lg">
-              {statusFilter} Booking History ({filteredRequests.length})
+              {statusFilter} Booking History
             </h2>
           </div>
 
@@ -166,19 +202,29 @@ export default function RideRequestsView({
 
         {/* Table */}
         <div className="overflow-x-auto">
-          <table className="min-w-[980px] w-full text-left border-collapse">
+          <table className="min-w-[1120px] w-full table-fixed text-left border-collapse">
+            <colgroup>
+              <col className="w-[150px]" />
+              <col className="w-[210px]" />
+              <col className="w-[210px]" />
+              <col className="w-[150px]" />
+              <col className="w-[145px]" />
+              <col className="w-[135px]" />
+              <col className="w-[95px]" />
+              <col className="w-[115px]" />
+              <col className="w-[110px]" />
+            </colgroup>
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50 text-slate-400 text-xs font-bold uppercase whitespace-nowrap">
-                <th className="pb-3 pl-3">Passenger</th>
-                <th className="pb-3">Pickup</th>
-                <th className="pb-3">Destination</th>
-                <th className="pb-3">Driver</th>
-                <th className="pb-3">TODA</th>
-                <th className="pb-3">Booking Date</th>
-                <th className="pb-3">Fare</th>
-                <th className="pb-3">Earning Date</th>
-                <th className="pb-3">Status</th>
-                <th className="pb-3 text-center pr-3">Actions</th>
+                <th className="px-3 pb-3">Passenger</th>
+                <th className="px-3 pb-3">Pickup</th>
+                <th className="px-3 pb-3">Destination</th>
+                <th className="px-3 pb-3">Driver</th>
+                <th className="px-3 pb-3">TODA</th>
+                <th className="px-3 pb-3">Booking Date</th>
+                <th className="px-3 pb-3">Fare</th>
+                <th className="px-3 pb-3">Status</th>
+                <th className="px-3 pb-3 text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="text-sm font-semibold divide-y divide-slate-50">
@@ -186,17 +232,16 @@ export default function RideRequestsView({
                 .slice((requestsPage - 1) * itemsPerPage, requestsPage * itemsPerPage)
                 .map((r) => (
                   <tr key={r.id} className="hover:bg-slate-50/50 transition-colors whitespace-nowrap">
-                    <td className="py-5 pl-3 text-[#091b6f] font-bold max-w-[160px] truncate" title={r.passenger}>{r.passenger}</td>
-                    <td className="py-5 px-2 text-slate-600 max-w-[200px] truncate">{r.location}</td>
-                    <td className="py-5 px-2 text-slate-500 max-w-[200px] truncate">{r.destination}</td>
-                    <td className="py-5 px-2 text-slate-700 max-w-[160px] truncate" title={r.driver}>{r.driver}</td>
-                    <td className="py-5 px-2 text-slate-600">{r.toda}</td>
-                    <td className="py-5 px-2 text-slate-600">{r.time || "-"}</td>
-                    <td className="py-5 px-2 font-extrabold text-[#091b6f]">₱{r.fare.toLocaleString()}</td>
-                    <td className="py-5 px-2 text-slate-600">{r.earningDate || "-"}</td>
-                    <td className="py-5">
+                    <td className="px-3 py-5 text-[#091b6f] font-bold truncate" title={r.passenger}>{r.passenger}</td>
+                    <td className="px-3 py-5 text-slate-600 truncate" title={r.location}>{r.location}</td>
+                    <td className="px-3 py-5 text-slate-500 truncate" title={r.destination}>{r.destination}</td>
+                    <td className="px-3 py-5 text-slate-700 truncate" title={r.driver}>{r.driver}</td>
+                    <td className="px-3 py-5 text-slate-600 truncate" title={r.toda}>{r.toda}</td>
+                    <td className="px-3 py-5 text-slate-600 truncate" title={r.time || "-"}>{r.time || "-"}</td>
+                    <td className="px-3 py-5 font-extrabold text-[#091b6f] truncate">₱{r.fare.toLocaleString()}</td>
+                    <td className="px-3 py-5">
                       <span
-                        className={`inline-block px-4 py-1 rounded-full text-[10px] font-bold ${r.status === "Completed"
+                        className={`inline-flex w-[92px] justify-center px-2 py-1 rounded-full text-[10px] font-bold ${r.status === "Completed"
                           ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
                           : r.status === "In Transit"
                             ? "bg-emerald-500 text-white border border-emerald-600"
@@ -208,7 +253,7 @@ export default function RideRequestsView({
                         {r.status}
                       </span>
                     </td>
-                    <td className="py-5 text-center pr-3">
+                    <td className="px-3 py-5 text-center">
                       <button
                         onClick={() => {
                           setViewingRequest(r);
@@ -223,7 +268,7 @@ export default function RideRequestsView({
                 ))}
               {filteredRequests.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="py-16 text-center text-slate-400 font-medium">
+                  <td colSpan={9} className="py-16 text-center text-slate-400 font-medium">
                     No booking logs found matching your query.
                   </td>
                 </tr>
@@ -244,8 +289,8 @@ export default function RideRequestsView({
                 onClick={() => setRequestsPage((prev) => Math.max(prev - 1, 1))}
                 disabled={requestsPage === 1}
                 className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded-lg border ${requestsPage === 1
-                    ? "opacity-30 border-slate-200 text-slate-400"
-                    : "border-slate-200 hover:bg-slate-50 text-[#091b6f] cursor-pointer"
+                  ? "opacity-30 border-slate-200 text-slate-400 cursor-not-allowed"
+                  : "border-slate-200 hover:bg-slate-50 text-[#091b6f] cursor-pointer"
                   }`}
               >
                 &lt;
@@ -259,8 +304,8 @@ export default function RideRequestsView({
                 }
                 disabled={requestsPage === Math.ceil(filteredRequests.length / itemsPerPage)}
                 className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded-lg border ${requestsPage === Math.ceil(filteredRequests.length / itemsPerPage)
-                    ? "opacity-30 border-slate-200 text-slate-400"
-                    : "border-slate-200 hover:bg-slate-50 text-[#091b6f] cursor-pointer"
+                  ? "opacity-30 border-slate-200 text-slate-400 cursor-not-allowed"
+                  : "border-slate-200 hover:bg-slate-50 text-[#091b6f] cursor-pointer"
                   }`}
               >
                 &gt;

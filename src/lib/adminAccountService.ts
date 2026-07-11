@@ -51,7 +51,10 @@ export async function createAdminAccount(
   }
 
   const { data, error } = await withTimeout(supabase.functions.invoke("create-admin-account", {
-    body: params,
+    body: {
+      ...params,
+      phone: params.phone?.trim() || undefined,
+    },
   }), "create admin account", 25000);
 
   if (error) return resultFromError(error);
@@ -77,6 +80,52 @@ export async function setAdminAccountActive(
   if (error) return resultFromError(error);
   if (data?.success === false) {
     return { success: false, error: data.error ?? "Admin account update failed." };
+  }
+
+  return { success: true };
+}
+
+export async function updateAdminAccount(
+  adminId: string,
+  updates: {
+    fullName: string;
+    email: string;
+    phone: string;
+    password?: string;
+  },
+): Promise<AdminAccountActionResult> {
+  if (!updates.fullName.trim() || !updates.email.trim()) {
+    return { success: false, error: "Name and email are required." };
+  }
+
+  const { data, error } = await withTimeout(supabase.functions.invoke("manage-admin-account", {
+    body: {
+      adminId,
+      fullName: updates.fullName,
+      email: updates.email,
+      phone: updates.phone,
+      password: updates.password?.trim() || undefined,
+    },
+  }), "update admin account", 20000);
+
+  if (error) return resultFromError(error);
+  if (data?.success === false) {
+    return { success: false, error: data.error ?? "Admin account update failed." };
+  }
+
+  return { success: true };
+}
+
+export async function deleteAdminAccount(
+  adminId: string,
+): Promise<AdminAccountActionResult> {
+  const { data, error } = await withTimeout(supabase.functions.invoke("manage-admin-account", {
+    body: { adminId, deleteAccount: true },
+  }), "delete admin account", 20000);
+
+  if (error) return resultFromError(error);
+  if (data?.success === false) {
+    return { success: false, error: data.error ?? "Admin account deletion failed." };
   }
 
   return { success: true };

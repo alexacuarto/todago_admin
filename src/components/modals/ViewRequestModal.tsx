@@ -15,7 +15,7 @@ export default function ViewRequestModal({
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-3 transition-all animate-in fade-in duration-200 sm:p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[92vh] overflow-hidden border border-slate-100 flex flex-col">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[92vh] overflow-hidden border border-slate-100 flex flex-col">
         <div className="bg-[#0b1b6e] text-white px-4 py-5 flex items-center justify-between gap-3 sm:px-6">
           <div className="min-w-0 text-left">
             <span className="text-xs font-bold uppercase tracking-wider text-sky-200">Ride Booking Audit</span>
@@ -30,7 +30,7 @@ export default function ViewRequestModal({
         </div>
 
         <div className="p-4 flex flex-col gap-6 text-left overflow-y-auto sm:p-6">
-          <div className="grid grid-cols-1 gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-x-6 gap-y-4 text-sm md:grid-cols-3">
             <div>
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Passenger</p>
               <p className="break-anywhere font-bold text-[#091b6f] text-base mt-0.5">{viewingRequest.passenger}</p>
@@ -39,11 +39,11 @@ export default function ViewRequestModal({
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Assigned Driver</p>
               <p className="break-anywhere font-bold text-slate-700 text-base mt-0.5">{viewingRequest.driver}</p>
             </div>
-            <div>
+            <div className="md:col-span-2">
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Pickup Location</p>
               <p className="break-anywhere font-bold text-slate-700 mt-0.5">{viewingRequest.location}</p>
             </div>
-            <div>
+            <div className="md:col-span-2">
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Destination</p>
               <p className="break-anywhere font-bold text-slate-700 mt-0.5">{viewingRequest.destination || "N/A"}</p>
             </div>

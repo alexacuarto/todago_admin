@@ -101,6 +101,7 @@ export interface CreateDriverFormData {
   email: string;
   phone: string;
   password: string;
+  licenseNumber: string;
   plateNumber: string;
   toda: string;
   status: "Active" | "Inactive";

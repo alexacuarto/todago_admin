@@ -18,11 +18,11 @@ export default function FareSettingsView({
   onSaveFareSetting,
 }: FareSettingsViewProps) {
   return (
-    <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+    <div className="flex w-full max-w-7xl flex-col gap-4 mx-auto sm:gap-6">
+      <div className="flex items-center justify-between pb-2">
         <div>
-          <h1 className="text-xl font-extrabold text-[#091b6f] sm:text-2xl">Adjust Fare Pricing</h1>
-          <p className="break-anywhere text-sm font-semibold text-slate-500">
+          <h1 className="text-[#091b6f] text-xl font-extrabold tracking-wide sm:text-2xl">Adjust Fare Pricing</h1>
+          <p className="break-anywhere text-xs text-slate-400 font-medium mt-1">
             Manage pricing and passenger discounts.
           </p>
         </div>
@@ -45,24 +45,10 @@ export default function FareSettingsView({
           const isSaving = isSavingFareSetting === setting.tripType;
           return (
             <section key={setting.tripType} className="rounded-xl border border-slate-100 bg-white shadow-sm overflow-hidden">
-              <div className="flex flex-col gap-3 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+              <div className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
                 <div>
                   <h2 className="break-anywhere text-lg font-extrabold text-[#091b6f]">{setting.label}</h2>
-                  <p className="text-xs font-bold uppercase text-slate-400">
-                    {setting.tripType === "one_way" ? "One-way pricing" : "Round-trip pricing"}
-                  </p>
                 </div>
-                <label className="flex items-center gap-2 text-sm font-bold text-slate-600">
-                  <input
-                    type="checkbox"
-                    checked={setting.isActive}
-                    onChange={(event) =>
-                      onFareSettingChange(setting.tripType, { isActive: event.target.checked })
-                    }
-                    className="h-4 w-4 accent-[#091b6f]"
-                  />
-                  Active
-                </label>
               </div>
 
               <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:p-5">

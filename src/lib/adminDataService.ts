@@ -315,7 +315,6 @@ export async function updateDriverAccount(
   const userId = (driverRow as { user_id: string }).user_id;
 
   await updateAuthAccount(userId, {
-    email: updates.email.trim() !== (driver.email ?? "").trim() ? updates.email : undefined,
     password: updates.password,
   });
 
@@ -323,8 +322,6 @@ export async function updateDriverAccount(
     .from("profiles")
     .update({
       full_name: updates.name,
-      phone: updates.phone,
-      email: updates.email || null,
       is_active: updates.status === "Active",
     })
     .eq("id", userId), "update driver profile");
@@ -368,7 +365,6 @@ export async function updatePassengerAccount(
   const userId = (passengerRow as { user_id: string }).user_id;
 
   await updateAuthAccount(userId, {
-    email: updates.email.trim() !== (passenger.email ?? "").trim() ? updates.email : undefined,
     password: updates.password,
   });
 
@@ -376,8 +372,6 @@ export async function updatePassengerAccount(
     .from("profiles")
     .update({
       full_name: updates.name,
-      phone: updates.contact,
-      email: updates.email || null,
       is_active: updates.status === "Active",
     })
     .eq("id", userId), "update passenger profile");
@@ -407,6 +401,23 @@ export async function updatePassengerActiveStatus(
     .eq("id", userId), "update passenger active status");
 
   assertNoError("update passenger active status", profileError);
+}
+
+export async function deleteUserAccount(
+  accountType: "driver" | "passenger",
+  recordId: string | number,
+) {
+  const { data, error } = await withTimeout(supabase.functions.invoke("delete-user-account", {
+    body: {
+      accountType,
+      recordId: String(recordId),
+    },
+  }), "delete user account", 25000);
+
+  assertNoError("delete user account", error);
+  if (data && data.success === false) {
+    throw new Error(data.error || "delete user account failed");
+  }
 }
 
 async function updateAuthAccount(

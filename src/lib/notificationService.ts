@@ -30,9 +30,16 @@ function mapNotification(row: NotificationRow): AdminNotification {
 }
 
 export async function fetchAdminNotifications() {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return [];
+
   const { data, error } = await supabase
     .from("notifications")
     .select("id, title, message, type, is_read, created_at")
+    .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(30);
 
@@ -41,9 +48,16 @@ export async function fetchAdminNotifications() {
 }
 
 export async function markAdminNotificationsRead() {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return;
+
   const { error } = await supabase
     .from("notifications")
     .update({ is_read: true })
+    .eq("user_id", user.id)
     .eq("is_read", false);
 
   if (error) throw error;

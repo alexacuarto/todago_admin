@@ -6,6 +6,7 @@ export interface CreateDriverParams {
   email: string;
   password: string;
   contactNumber: string;
+  licenseNumber: string;
   plateNumber: string;
   todaAssociation: string;
 }
@@ -36,9 +37,9 @@ function withTimeout<T>(promise: PromiseLike<T>, label: string, timeoutMs = 2000
 export async function createDriverAccount(
   params: CreateDriverParams
 ): Promise<CreateDriverResult> {
-  const { fullName, email, contactNumber, plateNumber } = params;
+  const { fullName, email, contactNumber, licenseNumber, plateNumber } = params;
 
-  if (!fullName || !email || !contactNumber || !plateNumber) {
+  if (!fullName || !email || !contactNumber || !licenseNumber || !plateNumber) {
     return { success: false, error: 'Please fill in all required fields.' };
   }
 

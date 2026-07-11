@@ -1,6 +1,4 @@
 import { AdminNotification } from "../../lib/notificationService";
-import { AdminTab } from "../../types";
-
 interface HeaderProps {
   adminProfile: {
     name: string;
@@ -12,7 +10,7 @@ interface HeaderProps {
   onMarkNotificationsRead: () => void;
   onRefreshDashboard: () => void;
   isRefreshingDashboard: boolean;
-  setActiveTab: (tab: AdminTab) => void;
+  onOpenProfile: () => void;
   mobileMenuOpen: boolean;
   setMobileMenuOpen: (open: boolean) => void;
 }
@@ -23,7 +21,7 @@ export default function Header({
   onMarkNotificationsRead,
   onRefreshDashboard,
   isRefreshingDashboard,
-  setActiveTab,
+  onOpenProfile,
   mobileMenuOpen,
   setMobileMenuOpen,
 }: HeaderProps) {
@@ -124,13 +122,13 @@ export default function Header({
           </div>
         </div>
         <div
-          onClick={() => setActiveTab("profile")}
+          onClick={onOpenProfile}
           className="flex items-center gap-3 cursor-pointer group relative"
         >
           <div className="text-right hidden sm:block">
             <p className="max-w-36 truncate text-sm font-bold tracking-wide">{adminProfile.name}</p>
             <p className="text-[10px] text-sky-200">
-              {adminProfile.isPrimaryAdmin ? "Primary Administrator" : "Administrator"}
+              {adminProfile.isPrimaryAdmin ? "Super Admin" : "Administrator"}
             </p>
           </div>
 

@@ -150,11 +150,11 @@ export default function DashboardView({
       </div>
 
       {/* Main Split Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-12">
         {/* Left Columns (7 grid units) */}
         <div className="lg:col-span-7 flex flex-col gap-6">
           {/* Ride Activity Chart Card */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-5 relative overflow-visible">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-5 relative overflow-visible h-full">
             <div className="flex flex-col gap-2 mb-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-[#091b6f] font-bold text-lg">Ride Activity</h2>
@@ -263,35 +263,9 @@ export default function DashboardView({
         </div>
 
         {/* Right Columns (5 grid units) */}
-        <div className="lg:col-span-5 flex flex-col gap-6">
-          {/* Quick Actions Card */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-5">
-            <div className="flex items-center justify-between gap-3 mb-4">
-              <h2 className="text-[#091b6f] font-bold text-lg">Quick Actions</h2>
-            </div>
-
-            <button
-              onClick={() => setActiveTab("create-driver")}
-              className="w-full bg-[#4c75f2] hover:bg-blue-600 text-white font-bold py-4 px-6 rounded-lg shadow-sm transition-all duration-200 flex items-center justify-center gap-3 group cursor-pointer"
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="3"
-                className="group-hover:rotate-90 transition-transform duration-200"
-              >
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-              <span>Add Driver</span>
-            </button>
-          </div>
-
+        <div className="lg:col-span-5 flex flex-col">
           {/* Recent Management Card */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-5">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-5 h-full">
             <div className="flex items-center justify-between mb-4">
               <h2 className="break-anywhere text-[#091b6f] font-bold text-lg">Recent Management</h2>
               <button
@@ -385,11 +359,11 @@ export default function DashboardView({
       </div>
 
       {/* Bottom Row (Recent Ride Requests & Earnings Summary side-by-side) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6 mb-6">
+      <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-12">
         {/* Left Column (Recent Ride Requests) */}
-        <div className="lg:col-span-7">
+        <div className="lg:col-span-7 flex">
           {/* Recent Ride Requests Card */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4 min-h-[260px] sm:p-5">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4 min-h-[260px] h-full w-full sm:p-5">
             <div className="flex items-center justify-between gap-3 mb-4">
               <h2 className="break-anywhere text-[#091b6f] font-bold text-lg">Recent Ride Request</h2>
               <div className="flex items-center gap-3">
@@ -450,9 +424,9 @@ export default function DashboardView({
         </div>
 
         {/* Right Column (Earnings Summary) */}
-        <div className="lg:col-span-5">
+        <div className="lg:col-span-5 flex">
           {/* Earnings Summary Card */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4 min-h-[260px] flex flex-col justify-between gap-4 sm:p-5">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4 min-h-[260px] h-full w-full flex flex-col justify-between gap-4 sm:p-5">
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-[#091b6f] font-bold text-lg">Earnings Summary</h2>

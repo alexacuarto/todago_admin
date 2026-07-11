@@ -76,10 +76,6 @@ export default function ProfileView({
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-start justify-center p-3 py-8 overflow-y-auto z-50 transition-all animate-in fade-in duration-200 sm:p-4 sm:py-12">
       <div className="w-full max-w-lg flex flex-col items-center gap-4">
-        {/* Header Title */}
-        <h2 className="text-[#091b6f] text-2xl font-extrabold tracking-wide text-center sm:text-3xl">
-          Profile (Admin)
-        </h2>
 
         {/* Main Rounded Card */}
         <div className="bg-white rounded-xl shadow-lg w-full p-5 flex flex-col items-center gap-6 relative border border-blue-100 sm:p-8">
@@ -490,11 +486,10 @@ export default function ProfileView({
                       () => setShowChangePictureSubModal(false),
                     );
                   }}
-                  className={`border rounded-xl p-3 flex flex-col items-center gap-2.5 transition-all cursor-pointer ${
-                    !adminProfile.avatarUrl && adminProfile.avatarColor === theme.color
+                  className={`border rounded-xl p-3 flex flex-col items-center gap-2.5 transition-all cursor-pointer ${!adminProfile.avatarUrl && adminProfile.avatarColor === theme.color
                       ? "border-blue-500 bg-blue-50/50"
                       : "border-slate-200 hover:border-blue-300 hover:bg-slate-50/50"
-                  }`}
+                    }`}
                 >
                   <div
                     className="w-10 h-10 rounded-full border-2 border-white shadow-inner flex items-center justify-center"

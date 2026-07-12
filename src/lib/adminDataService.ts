@@ -79,6 +79,17 @@ function statusToAdmin(status: string): RideRequest["status"] {
   return "Pending";
 }
 
+function driverAvailabilityToAdmin(
+  profile: ProfileRow | undefined,
+  driver: DriverRow,
+): Driver["status"] {
+  if (profile?.is_active !== true) return "Inactive";
+  if (driver.is_verified !== true) return "Inactive";
+  return driver.status === "online" || driver.status === "busy"
+    ? "Active"
+    : "Inactive";
+}
+
 function errorMessage(error: unknown) {
   if (!error) return "Unknown Supabase error.";
   if (error instanceof Error) return error.message;
@@ -152,7 +163,7 @@ export async function fetchAdminDashboardData() {
       id: row.id,
       name: profile?.full_name ?? "Driver",
       toda: row.toda_association ?? row.tricycle_body_number ?? "Unassigned",
-      status: profile?.is_active === false || row.status === "suspended" ? "Inactive" : "Active",
+      status: driverAvailabilityToAdmin(profile, row),
       isVerified: row.is_verified === true,
       phone: profile?.phone ?? "",
       license: row.license_number?.trim() || "-",
@@ -265,37 +276,6 @@ export async function updateDriverVerification(
   assertNoError("update driver verification", error);
 }
 
-export async function updateDriverActiveStatus(
-  driver: Driver,
-  status: "Active" | "Inactive",
-) {
-  const driverId = String(driver.id);
-
-  const { data: driverRow, error: driverReadError } = await withTimeout(supabase
-    .from("drivers")
-    .select("user_id")
-    .eq("id", driverId)
-    .single(), "read driver account");
-
-  assertNoError("read driver account", driverReadError);
-
-  const userId = (driverRow as { user_id: string }).user_id;
-
-  const { error: profileError } = await withTimeout(supabase
-    .from("profiles")
-    .update({ is_active: status === "Active" })
-    .eq("id", userId), "update driver active status");
-
-  assertNoError("update driver active status", profileError);
-
-  const { error: driverError } = await withTimeout(supabase
-    .from("drivers")
-    .update({ status: status === "Inactive" ? "suspended" : "offline" })
-    .eq("id", driverId), "update driver availability status");
-
-  assertNoError("update driver availability status", driverError);
-}
-
 export async function updateDriverAccount(
   driver: Driver,
   updates: {
@@ -331,7 +311,6 @@ export async function updateDriverAccount(
     .from("profiles")
     .update({
       full_name: updates.name,
-      is_active: updates.status === "Active",
     })
     .eq("id", userId), "update driver profile");
 
@@ -344,7 +323,6 @@ export async function updateDriverAccount(
       toda_association: updates.toda || null,
       tricycle_body_number: updates.bodyNumber && updates.bodyNumber !== updates.toda ? updates.bodyNumber : null,
       plate_number: updates.plateNumber || null,
-      status: updates.status === "Inactive" ? "suspended" : "offline",
       is_verified: updates.isVerified,
     })
     .eq("id", driverId), "update driver record");
@@ -573,8 +551,6 @@ export function subscribeAdminOperationalData(onChange: () => void) {
     .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, onChange)
     .on("postgres_changes", { event: "*", schema: "public", table: "passengers" }, onChange)
     .on("postgres_changes", { event: "*", schema: "public", table: "rides" }, onChange)
-    .on("postgres_changes", { event: "*", schema: "public", table: "ride_location_logs" }, onChange)
-    .on("postgres_changes", { event: "*", schema: "public", table: "driver_locations" }, onChange)
     .on("postgres_changes", { event: "*", schema: "public", table: "drivers" }, onChange)
     .on("postgres_changes", { event: "*", schema: "public", table: "driver_earnings" }, onChange)
     .on("postgres_changes", { event: "*", schema: "public", table: "ride_ratings" }, onChange)

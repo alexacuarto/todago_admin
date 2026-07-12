@@ -6,7 +6,6 @@ import {
   fetchFareSettings,
   subscribeAdminOperationalData,
   updateDriverAccount,
-  updateDriverActiveStatus,
   deleteUserAccount,
   deleteBookingLog,
   updateFareSetting,
@@ -151,6 +150,7 @@ export default function App() {
     if (!isLoggedIn) return;
 
     let isMounted = true;
+    let realtimeRefreshTimer: number | undefined;
 
     const loadOperationalData = async () => {
       setIsLoadingOperationalData(true);
@@ -189,11 +189,24 @@ export default function App() {
       }
     };
 
+    const scheduleOperationalDataReload = () => {
+      if (realtimeRefreshTimer !== undefined) {
+        window.clearTimeout(realtimeRefreshTimer);
+      }
+      realtimeRefreshTimer = window.setTimeout(() => {
+        realtimeRefreshTimer = undefined;
+        loadOperationalData();
+      }, 5000);
+    };
+
     loadOperationalData();
-    const channel = subscribeAdminOperationalData(loadOperationalData);
+    const channel = subscribeAdminOperationalData(scheduleOperationalDataReload);
 
     return () => {
       isMounted = false;
+      if (realtimeRefreshTimer !== undefined) {
+        window.clearTimeout(realtimeRefreshTimer);
+      }
       channel.unsubscribe();
     };
   }, [isLoggedIn, operationalReloadKey]);
@@ -558,7 +571,7 @@ export default function App() {
                 license: editFormData.license,
                 bodyNumber: savedBodyNumber,
                 toda: savedToda,
-                status: editFormData.status,
+                status: editingDriver.status,
                 email: editingDriver.email,
                 plateNumber: editFormData.plateNumber,
                 isVerified: editFormData.isVerified,
@@ -578,7 +591,7 @@ export default function App() {
                 license: editFormData.license,
                 bodyNumber: savedBodyNumber,
                 toda: savedToda,
-                status: editFormData.status,
+                status: (viewingUser as Driver).status,
                 email: editingDriver.email,
                 plateNumber: editFormData.plateNumber,
                 isVerified: editFormData.isVerified,
@@ -671,24 +684,6 @@ export default function App() {
       setFareSettingsError(`Unable to save fare settings: ${error instanceof Error ? error.message : error}`);
     } finally {
       setIsSavingFareSetting("");
-    }
-  };
-
-  const handleDeactivateToggle = async (id: number | string) => {
-    const driver = drivers.find(d => d.id === id);
-    if (!driver) return;
-    const nextStatus = driver.status === "Active" ? "Inactive" : "Active";
-
-    try {
-      await updateDriverActiveStatus(driver, nextStatus);
-      setDrivers(prev =>
-        prev.map(d => d.id === id ? { ...d, status: nextStatus } : d)
-      );
-      if (viewingUser && viewingUser.id === id && viewingUserType === "driver") {
-        setViewingUser(prev => prev ? { ...prev, status: nextStatus } : null);
-      }
-    } catch (error) {
-      alert(`Unable to update driver status: ${error instanceof Error ? error.message : error}`);
     }
   };
 
@@ -894,7 +889,6 @@ export default function App() {
               setShowEditDriverModal={setShowEditDriverModal}
               setEditingDriver={setEditingDriver}
               setEditFormData={setEditFormData}
-              handleDeactivateToggle={handleDeactivateToggle}
               setActiveStatModal={setActiveStatModal}
             />
           )}

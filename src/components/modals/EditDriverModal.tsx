@@ -139,15 +139,13 @@ export default function EditDriverModal({
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Account Status</label>
-            <select
-              value={editFormData.status}
-              onChange={(e) => setEditFormData((prev) => ({ ...prev, status: e.target.value as "Active" | "Inactive" }))}
-              className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold bg-white outline-hidden focus:border-blue-500 transition-all cursor-pointer text-[#091b6f]"
-            >
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-            </select>
+            <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Driver Availability</label>
+            <div className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold bg-slate-50 text-[#091b6f]">
+              {editingDriver.status}
+            </div>
+            <p className="text-[11px] text-slate-400 font-semibold">
+              Drivers control online/offline availability from the mobile app.
+            </p>
           </div>
 
           <div className="flex flex-col gap-1">

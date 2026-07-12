@@ -19,7 +19,6 @@ interface DashboardViewProps {
   setShowEditDriverModal: (show: boolean) => void;
   setEditingDriver: (driver: Driver | null) => void;
   setEditFormData: (formData: DriverEditFormData) => void;
-  handleDeactivateToggle: (id: number | string) => void;
   setActiveStatModal: (modal: string | null) => void;
 }
 
@@ -42,7 +41,6 @@ export default function DashboardView({
   setShowEditDriverModal,
   setEditingDriver,
   setEditFormData,
-  handleDeactivateToggle,
   setActiveStatModal,
 }: DashboardViewProps) {
   const maxChartValue = Math.max(1, ...chartData.map((item) => item.val));
@@ -288,15 +286,6 @@ export default function DashboardView({
                             className="px-3 py-1 bg-blue-50 text-blue-600 rounded-md text-[10px] font-bold hover:bg-blue-100 transition-colors cursor-pointer"
                           >
                             Edit
-                          </button>
-                          <button
-                            onClick={() => handleDeactivateToggle(d.id)}
-                            className={`px-3 py-1 rounded-md text-[10px] font-bold transition-colors cursor-pointer ${d.status === "Active"
-                              ? "text-rose-500 bg-rose-50 hover:bg-rose-100"
-                              : "text-emerald-500 bg-emerald-50 hover:bg-emerald-100"
-                              }`}
-                          >
-                            {d.status === "Active" ? "Deactivate" : "Activate"}
                           </button>
                         </div>
                       </td>

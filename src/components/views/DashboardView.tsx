@@ -218,11 +218,13 @@ export default function DashboardView({
                                 name: d.name,
                                 phone: d.phone,
                                 license: d.license,
-                                bodyNumber: d.bodyNumber,
                                 toda: d.toda,
                                 status: d.status,
                                 email: d.email || "",
                                 plateNumber: d.plateNumber || "",
+                                licenseExpiryDate: d.licenseExpiryDate || "",
+                                franchiseNumber: d.franchiseNumber || "",
+                                franchiseExpiryDate: d.franchiseExpiryDate || "",
                               });
                               setShowEditDriverModal(true);
                             }}

@@ -7,7 +7,14 @@ export interface CreateDriverParams {
   contactNumber: string;
   plateNumber: string;
   todaAssociation: string;
-  licenseImage?: File | null;
+  // Optional document uploads during creation
+  licenseFrontImage?: File | null;
+  licenseBackImage?: File | null;
+  licenseNumber?: string;
+  licenseExpiryDate?: string;
+  franchiseImage?: File | null;
+  franchiseNumber?: string;
+  franchiseExpiryDate?: string;
 }
 
 export interface CreateDriverResult {
@@ -17,24 +24,55 @@ export interface CreateDriverResult {
 }
 
 /**
+ * Helper: upload a file to Supabase storage and return its public URL.
+ */
+async function uploadDriverDoc(
+  userId: string,
+  file: File,
+  label: string
+): Promise<string> {
+  const fileExt = file.name.split('.').pop() || 'png';
+  const fileName = `${userId}-${label}-${Date.now()}.${fileExt}`;
+  const bucketName = 'driver-documents';
+
+  const { error } = await supabase.storage
+    .from(bucketName)
+    .upload(fileName, file, { upsert: true });
+
+  if (error) {
+    throw new Error(`Failed to upload ${label}: ${error.message}`);
+  }
+
+  const { data: { publicUrl } } = supabase.storage
+    .from(bucketName)
+    .getPublicUrl(fileName);
+
+  return publicUrl;
+}
+
+/**
  * Idempotent driver creation:
  *  1. signUp() → create auth user (safe if already exists)
  *  2. Restore admin session
  *  3. RPC → create profile + driver + vehicle (all use ON CONFLICT)
- *  4. Upload license image if provided
+ *  4. Upload document images if provided
+ *  5. Update driver record with document URLs & metadata
  */
 export async function createDriverAccount(
   params: CreateDriverParams
 ): Promise<CreateDriverResult> {
-  const { fullName, email, password, contactNumber, plateNumber, todaAssociation, licenseImage } = params;
+  const {
+    fullName, email, password, contactNumber, plateNumber, todaAssociation,
+    licenseFrontImage, licenseBackImage, licenseNumber, licenseExpiryDate,
+    franchiseImage, franchiseNumber, franchiseExpiryDate,
+  } = params;
 
   console.log("createDriverAccount starting with params:", {
-    fullName,
-    email,
-    contactNumber,
-    plateNumber,
-    todaAssociation,
-    hasLicenseImage: !!licenseImage,
+    fullName, email, contactNumber, plateNumber, todaAssociation,
+    hasLicenseFront: !!licenseFrontImage,
+    hasLicenseBack: !!licenseBackImage,
+    hasLicenseNumber: !!licenseNumber,
+    hasFranchiseImage: !!franchiseImage,
   });
 
   const nameParts = fullName.trim().split(/\s+/);
@@ -54,7 +92,7 @@ export async function createDriverAccount(
       return { success: false, error: 'Admin is not logged in.' };
     }
 
-    // 1b. Pre-validate uniqueness using client queries to prevent ghost user signup
+    // 1b. Pre-validate uniqueness
     console.log("Pre-validating uniqueness...");
     if (contactNumber) {
       const { data: phoneCheck, error: phoneCheckError } = await supabase.from('profiles').select('id').eq('phone_number', contactNumber).maybeSingle();
@@ -145,61 +183,48 @@ export async function createDriverAccount(
       return { success: false, error: dataErrMsg };
     }
 
-    // 5. Upload document if licenseImage is provided
-    if (licenseImage) {
-      console.log("Uploading license image file:", licenseImage.name);
-      const fileExt = licenseImage.name.split('.').pop() || 'png';
-      const fileName = `${userId}-${Date.now()}.${fileExt}`;
-      const filePath = `${fileName}`;
-      const bucketName = 'driver-documents';
+    // 5. Upload document files if provided and update driver record
+    const driverUpdates: Record<string, string | null> = {};
 
-      const { data: uploadData, error: storageError } = await supabase.storage
-        .from(bucketName)
-        .upload(filePath, licenseImage, {
-          upsert: true,
-        });
+    if (licenseFrontImage) {
+      console.log("Uploading license front image...");
+      const frontUrl = await uploadDriverDoc(userId, licenseFrontImage, 'front');
+      driverUpdates.license_front_url = frontUrl;
+      driverUpdates.license_photo_url = frontUrl; // backward compat
+    }
 
-      if (storageError) {
-        console.error("Storage upload failed:", storageError);
-        console.log("Rolling back user creation due to storage upload failure...");
-        await supabase.rpc('rollback_user_creation', { p_user_id: userId });
-        
-        let errorMsg = storageError.message || JSON.stringify(storageError);
-        if (
-          errorMsg.toLowerCase().includes('bucket not found') ||
-          errorMsg.toLowerCase().includes('does not exist') ||
-          (storageError as any).status === 404 ||
-          (storageError as any).statusCode === '404'
-        ) {
-          errorMsg = "Storage bucket driver-documents does not exist. Please create it in Supabase Storage.";
-        }
-        
-        return { success: false, error: `Storage upload failed: ${errorMsg}` };
-      }
+    if (licenseBackImage) {
+      console.log("Uploading license back image...");
+      const backUrl = await uploadDriverDoc(userId, licenseBackImage, 'back');
+      driverUpdates.license_back_url = backUrl;
+    }
 
-      console.log("Storage upload successful:", uploadData);
+    if (franchiseImage) {
+      console.log("Uploading franchise image...");
+      const franchiseUrl = await uploadDriverDoc(userId, franchiseImage, 'franchise');
+      driverUpdates.franchise_url = franchiseUrl;
+    }
 
-      // Get public URL structure (will be signed on-the-fly for private access)
-      const { data: { publicUrl } } = supabase.storage
-        .from(bucketName)
-        .getPublicUrl(filePath);
+    if (licenseNumber) driverUpdates.license_number = licenseNumber;
+    if (licenseExpiryDate) driverUpdates.license_expiry_date = licenseExpiryDate;
+    if (franchiseNumber) driverUpdates.franchise_number = franchiseNumber;
+    if (franchiseExpiryDate) driverUpdates.franchise_expiry_date = franchiseExpiryDate;
 
-      console.log("Retrieved public URL structure for license:", publicUrl);
-
-      // Update the driver's license photo url
-      console.log("Updating drivers table with license photo URL...");
+    // Apply all document updates in one query
+    if (Object.keys(driverUpdates).length > 0) {
+      console.log("Updating driver record with document data...", driverUpdates);
       const { error: updateError } = await supabase
         .from('drivers')
-        .update({ license_photo_url: publicUrl })
+        .update(driverUpdates)
         .eq('profile_id', userId);
 
       if (updateError) {
-        console.error("Failed to update driver with license photo URL:", updateError);
-        console.log("Rolling back user creation due to driver profile update failure...");
-        await supabase.rpc('rollback_user_creation', { p_user_id: userId });
-        return { success: false, error: `Failed to update driver profile with license photo: ${updateError.message}` };
+        console.error("Failed to update driver documents:", updateError);
+        // Don't rollback the entire account, just warn — docs can be uploaded later
+        console.warn("Document update failed but account was created. Documents can be uploaded later.");
+      } else {
+        console.log("Driver documents updated successfully.");
       }
-      console.log("Driver license photo URL updated successfully.");
     }
 
     console.log("Driver account creation completed successfully.");

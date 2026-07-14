@@ -1,6 +1,5 @@
 import React from "react";
 import { Driver, Passenger } from "../../types";
-import { getActivityBadgeClasses } from "../../lib/driverActivity";
 
 interface UsersViewProps {
   filteredDrivers: Driver[];
@@ -162,69 +161,83 @@ export default function UsersView({
                 <tr className="border-b border-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider">
                   <th className="pb-3 pl-3">Name</th>
                   <th className="pb-3">TODA</th>
-                  <th className="pb-3">License Status</th>
+                  <th className="pb-3">Account Status</th>
+                  <th className="pb-3">Documents</th>
                   <th className="pb-3">Online Status</th>
-                  <th className="pb-3">Activity Status</th>
                   <th className="pb-3 text-center pr-3">Actions</th>
                 </tr>
               </thead>
               <tbody className="text-sm font-semibold divide-y divide-slate-50">
-                {displayedDrivers.map((d) => (
-                  <tr key={d.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="py-4 pl-3 text-left">
-                      <p className="text-[#091b6f] font-bold">{d.name}</p>
-                    </td>
-                    <td className="py-4 text-slate-600 text-left">{d.toda}</td>
-                    <td className="py-4 text-left">
-                      <div className="flex flex-col gap-1 items-start">
-                        <span className="text-slate-500 font-mono text-xs">{d.license}</span>
-                        {d.licensePhotoUrl ? (
-                          <button
-                            onClick={() => {
-                              setViewingUser(d);
-                              setViewingUserType("driver");
-                              setShowViewUserModal(true);
-                            }}
-                            className="px-2 py-0.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-md text-[10px] font-bold transition-all cursor-pointer"
-                          >
-                            View License
-                          </button>
-                        ) : (
-                          <span className="text-[10px] text-rose-500 font-bold uppercase">Not uploaded</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-4 text-left">
-                      {/* Online / Offline status */}
-                      <div className="flex items-center gap-1.5">
-                        <span className={`w-2.5 h-2.5 rounded-full ${d.isOnline ? "bg-emerald-500" : "bg-slate-400"}`}></span>
-                        <span className="text-[11px] text-slate-600 font-bold">
-                          {d.isOnline ? "Online" : "Offline"}
+                {displayedDrivers.map((d) => {
+                  // Determine status badge classes
+                  let statusBadgeClass = "bg-amber-50 text-amber-700 border border-amber-200";
+                  const statusText = d.accountStatus || "PENDING DOCUMENT";
+
+                  if (statusText === "ACTIVE DRIVER") {
+                    statusBadgeClass = "bg-emerald-50 text-emerald-700 border border-emerald-200";
+                  } else if (statusText === "DOCUMENT EXPIRED") {
+                    statusBadgeClass = "bg-rose-50 text-rose-700 border border-rose-200";
+                  } else if (statusText === "SUSPENDED" || d.status === "Inactive") {
+                    statusBadgeClass = "bg-slate-100 text-slate-700 border border-slate-200";
+                  }
+
+                  const hasLicense = !!(d.licenseFrontUrl && d.licenseBackUrl && d.license);
+                  const hasFranchise = !!(d.franchiseUrl && d.franchiseNumber);
+
+                  return (
+                    <tr key={d.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="py-4 pl-3 text-left">
+                        <p className="text-[#091b6f] font-bold">{d.name}</p>
+                        <p className="text-[10px] text-slate-400 font-mono">{d.plateNumber}</p>
+                      </td>
+                      <td className="py-4 text-slate-600 text-left">{d.toda}</td>
+                      <td className="py-4 text-left">
+                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${statusBadgeClass}`}>
+                          {statusText}
                         </span>
-                      </div>
-                    </td>
-                    <td className="py-4 text-left">
-                      {/* Dynamic Activity status */}
-                      <span
-                        className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${getActivityBadgeClasses(d.activityStatus)}`}
-                      >
-                        {d.activityStatus}
-                      </span>
-                    </td>
-                    <td className="py-4 text-center pr-3">
-                      <button
-                        onClick={() => {
-                          setViewingUser(d);
-                          setViewingUserType("driver");
-                          setShowViewUserModal(true);
-                        }}
-                        className="px-4 py-1.5 bg-[#4c75f2] hover:bg-blue-600 text-white rounded-lg text-xs font-bold shadow-xs hover:shadow-sm transition-all cursor-pointer"
-                      >
-                        View
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="py-4 text-left">
+                        <div className="flex flex-col gap-0.5 text-[10px] font-bold">
+                          <div className="flex items-center gap-1">
+                            <span className={`w-1.5 h-1.5 rounded-full ${hasLicense ? "bg-emerald-500" : "bg-rose-500"}`}></span>
+                            <span className="text-slate-500">License: </span>
+                            <span className={hasLicense ? "text-emerald-600" : "text-rose-500"}>
+                              {hasLicense ? "Uploaded" : "Not Uploaded"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className={`w-1.5 h-1.5 rounded-full ${hasFranchise ? "bg-emerald-500" : "bg-rose-500"}`}></span>
+                            <span className="text-slate-500">Franchise: </span>
+                            <span className={hasFranchise ? "text-emerald-600" : "text-rose-500"}>
+                              {hasFranchise ? "Uploaded" : "Not Uploaded"}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-4 text-left">
+                        {/* Online / Offline status */}
+                        <div className="flex items-center gap-1.5">
+                          <span className={`w-2.5 h-2.5 rounded-full ${d.isOnline ? "bg-emerald-500" : "bg-slate-400"}`}></span>
+                          <span className="text-[11px] text-slate-600 font-bold">
+                            {d.isOnline ? "Online" : "Offline"}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-4 text-center pr-3">
+                        <button
+                          onClick={() => {
+                            setViewingUser(d);
+                            setViewingUserType("driver");
+                            setShowViewUserModal(true);
+                          }}
+                          className="px-4 py-1.5 bg-[#4c75f2] hover:bg-blue-600 text-white rounded-lg text-xs font-bold shadow-xs hover:shadow-sm transition-all cursor-pointer"
+                        >
+                          View Audit
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
                 {filteredDrivers.length === 0 && (
                   <tr>
                     <td colSpan={6} className="py-12 text-center text-slate-400 font-medium">

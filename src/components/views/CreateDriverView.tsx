@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 
 interface CreateDriverViewProps {
   formData: any;
@@ -15,25 +15,25 @@ export default function CreateDriverView({
   onCancel,
   isCreatingDriver = false,
 }: CreateDriverViewProps) {
+  const [showPassword, setShowPassword] = useState(false);
+
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto">
-      {/* Main Card */}
       <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 flex flex-col gap-6 animate-in fade-in duration-200">
         <form onSubmit={onSubmit} className="flex flex-col gap-6">
-          {/* Header Row */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div className="text-left">
-              <h4 className="text-md font-bold text-[#091b6f] tracking-wide uppercase">Driver Information</h4>
-            </div>
+          {/* Header */}
+          <div className="text-left">
+            <h4 className="text-md font-bold text-[#091b6f] tracking-wide uppercase">Driver Information</h4>
+            <p className="text-xs text-slate-400 font-semibold mt-1">Create a new driver account. Documents can be uploaded during or after creation.</p>
           </div>
 
           <div className="h-px bg-slate-100"></div>
 
-          {/* Form Grid */}
+          {/* ── PERSONAL & VEHICLE INFO ── */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
             {/* Name */}
             <div className="flex flex-col gap-1.5 text-left">
-              <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Name</label>
+              <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Full Name <span className="text-rose-500">*</span></label>
               <div className="relative">
                 <span className={`absolute inset-y-0 left-0 pl-3.5 flex items-center transition-colors ${formData.name ? "text-white" : "text-slate-400"}`}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -59,7 +59,7 @@ export default function CreateDriverView({
 
             {/* Email */}
             <div className="flex flex-col gap-1.5 text-left">
-              <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Email</label>
+              <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Email <span className="text-rose-500">*</span></label>
               <div className="relative">
                 <span className={`absolute inset-y-0 left-0 pl-3.5 flex items-center transition-colors ${formData.email ? "text-white" : "text-slate-400"}`}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -85,7 +85,7 @@ export default function CreateDriverView({
 
             {/* Contact Number */}
             <div className="flex flex-col gap-1.5 text-left">
-              <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Contact Number</label>
+              <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Contact Number <span className="text-rose-500">*</span></label>
               <div className="relative">
                 <span className={`absolute inset-y-0 left-0 pl-3.5 flex items-center transition-colors ${formData.phone ? "text-white" : "text-slate-400"}`}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -108,9 +108,9 @@ export default function CreateDriverView({
               </div>
             </div>
 
-            {/* Password */}
+            {/* Password with Toggle */}
             <div className="flex flex-col gap-1.5 text-left">
-              <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Password</label>
+              <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Temporary Password <span className="text-rose-500">*</span></label>
               <div className="relative">
                 <span className={`absolute inset-y-0 left-0 pl-3.5 flex items-center transition-colors ${formData.password ? "text-white" : "text-slate-400"}`}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -119,24 +119,42 @@ export default function CreateDriverView({
                   </svg>
                 </span>
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   required
                   placeholder="Enter Password"
                   value={formData.password}
                   onChange={(e) => setFormData((prev: any) => ({ ...prev, password: e.target.value }))}
-                  className={`w-full pl-11 pr-4 py-3 border rounded-xl text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all ${
+                  className={`w-full pl-11 pr-12 py-3 border rounded-xl text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all ${
                     formData.password
                       ? "bg-[#091b6f] text-white border-blue-950 placeholder-sky-200"
                       : "bg-white text-[#091b6f] border-slate-200 placeholder-slate-300"
                   }`}
                   autoComplete="new-password"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className={`absolute inset-y-0 right-0 pr-3.5 flex items-center transition-colors cursor-pointer ${formData.password ? "text-sky-200 hover:text-white" : "text-slate-400 hover:text-slate-600"}`}
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                      <line x1="1" y1="1" x2="23" y2="23" />
+                    </svg>
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  )}
+                </button>
               </div>
             </div>
 
             {/* Plate Number */}
             <div className="flex flex-col gap-1.5 text-left">
-              <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Plate Number</label>
+              <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Plate Number <span className="text-rose-500">*</span></label>
               <div className="relative">
                 <span className={`absolute inset-y-0 left-0 pl-3.5 flex items-center transition-colors ${formData.plateNumber ? "text-white" : "text-slate-400"}`}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -163,7 +181,7 @@ export default function CreateDriverView({
 
             {/* TODA */}
             <div className="flex flex-col gap-1.5 text-left">
-              <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">TODA Association</label>
+              <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">TODA Association <span className="text-rose-500">*</span></label>
               <div className="relative">
                 <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -189,78 +207,176 @@ export default function CreateDriverView({
             </div>
           </div>
 
-          {/* Upload Documents Section */}
+          {/* ── DOCUMENT UPLOAD SECTIONS ── */}
           <div className="text-left mt-4">
-            <h4 className="text-md font-bold text-[#091b6f] tracking-wide uppercase mb-3">Upload Documents</h4>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
+              <h4 className="text-md font-bold text-[#091b6f] tracking-wide uppercase">Upload Documents</h4>
+              <span className="text-xs font-bold text-amber-600 bg-amber-50 border border-amber-100 px-2.5 py-0.5 rounded-full">
+                Optional — Can be completed later
+              </span>
+            </div>
 
-            <div className="grid grid-cols-1 gap-4">
-              {/* Driver's License Box */}
-              <div className="border border-slate-200 rounded-2xl p-5 flex flex-col md:flex-row items-center gap-4 hover:border-blue-300 transition-all bg-slate-50/50">
-                <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <rect x="3" y="4" width="18" height="16" rx="2" />
-                    <line x1="7" y1="8" x2="17" y2="8" />
-                    <line x1="7" y1="12" x2="17" y2="12" />
-                    <line x1="7" y1="16" x2="13" y2="16" />
-                  </svg>
-                </div>
-                <div className="flex-1 text-center md:text-left">
-                  <p className="text-sm font-bold text-[#091b6f]">Driver's License Copy</p>
-                  <p className="text-xs text-slate-400 font-semibold">Upload a high-resolution photo/scan of the license document</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* ── DRIVER LICENSE ── */}
+              <div className="bg-slate-50/70 border border-slate-200 rounded-2xl p-5 flex flex-col gap-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <rect x="3" y="4" width="18" height="16" rx="2" />
+                      <line x1="7" y1="8" x2="17" y2="8" />
+                      <line x1="7" y1="12" x2="13" y2="12" />
+                    </svg>
+                  </div>
+                  <span className="text-xs font-bold text-[#091b6f] uppercase tracking-wider">Driver License Documents</span>
                 </div>
 
-                {/* Upload Input */}
-                <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 flex flex-col items-center justify-center bg-white hover:bg-slate-50 transition-colors w-full md:w-64 relative cursor-pointer group">
+                {/* Front Image */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] text-slate-400 font-bold uppercase">License Front Image</label>
+                  <div className="border-2 border-dashed border-slate-200 rounded-xl p-3 flex items-center gap-3 bg-white hover:border-blue-300 transition-all relative cursor-pointer">
+                    <input
+                      type="file"
+                      accept=".jpg,.png,.pdf"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) setFormData((prev: any) => ({ ...prev, licenseFrontImage: file, licenseFrontName: file.name }));
+                      }}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                    />
+                    <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-500 shrink-0">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                      </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-[#091b6f] truncate">
+                        {formData.licenseFrontName || "Choose Front Image"}
+                      </p>
+                      <p className="text-[9px] text-slate-400 font-semibold">JPG, PNG or PDF</p>
+                    </div>
+                    {formData.licenseFrontName && <span className="text-[9px] font-bold text-emerald-600">✓</span>}
+                  </div>
+                </div>
+
+                {/* Back Image */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] text-slate-400 font-bold uppercase">License Back Image</label>
+                  <div className="border-2 border-dashed border-slate-200 rounded-xl p-3 flex items-center gap-3 bg-white hover:border-blue-300 transition-all relative cursor-pointer">
+                    <input
+                      type="file"
+                      accept=".jpg,.png,.pdf"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) setFormData((prev: any) => ({ ...prev, licenseBackImage: file, licenseBackName: file.name }));
+                      }}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                    />
+                    <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-500 shrink-0">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                      </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-[#091b6f] truncate">
+                        {formData.licenseBackName || "Choose Back Image"}
+                      </p>
+                      <p className="text-[9px] text-slate-400 font-semibold">JPG, PNG or PDF</p>
+                    </div>
+                    {formData.licenseBackName && <span className="text-[9px] font-bold text-emerald-600">✓</span>}
+                  </div>
+                </div>
+
+                {/* License Number */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] text-slate-400 font-bold uppercase">License Number</label>
                   <input
-                    type="file"
-                    accept=".jpg,.png,.pdf"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setFormData((prev: any) => ({
-                          ...prev,
-                          licenseImage: file,
-                          licenseImageName: file.name,
-                        }));
-                      }
-                    }}
-                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                    type="text"
+                    placeholder="e.g. D12-34-567890"
+                    value={formData.licenseNumber || ""}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, licenseNumber: e.target.value }))}
+                    className="border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-[#091b6f] outline-hidden focus:border-blue-500 transition-all"
                   />
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="text-blue-500 mb-1 group-hover:scale-110 transition-transform"
-                  >
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="17 8 12 3 7 8" />
-                    <line x1="12" y1="3" x2="12" y2="15" />
-                  </svg>
-                  <p className="text-xs font-bold text-[#091b6f]">
-                    {formData.licenseImageName ? formData.licenseImageName : "Drag and Drop or"}
-                  </p>
-                  {!formData.licenseImageName && (
-                    <>
-                      <span className="mt-1 px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white font-bold text-[10px] rounded-lg shadow-sm">
-                        Choose File
-                      </span>
-                      <span className="text-[9px] text-slate-400 font-semibold mt-1">JPG, PNG or PDF</span>
-                    </>
-                  )}
+                </div>
+
+                {/* License Expiry */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] text-slate-400 font-bold uppercase">License Expiry Date</label>
+                  <input
+                    type="date"
+                    value={formData.licenseExpiryDate || ""}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, licenseExpiryDate: e.target.value }))}
+                    className="border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-[#091b6f] outline-hidden focus:border-blue-500 transition-all cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              {/* ── FRANCHISE DOCUMENTS ── */}
+              <div className="bg-slate-50/70 border border-slate-200 rounded-2xl p-5 flex flex-col gap-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                    </svg>
+                  </div>
+                  <span className="text-xs font-bold text-[#091b6f] uppercase tracking-wider">Franchise Documents</span>
+                </div>
+
+                {/* Franchise Image */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] text-slate-400 font-bold uppercase">Franchise Permit Image</label>
+                  <div className="border-2 border-dashed border-slate-200 rounded-xl p-3 flex items-center gap-3 bg-white hover:border-indigo-300 transition-all relative cursor-pointer">
+                    <input
+                      type="file"
+                      accept=".jpg,.png,.pdf"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) setFormData((prev: any) => ({ ...prev, franchiseImage: file, franchiseImageName: file.name }));
+                      }}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                    />
+                    <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-500 shrink-0">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                      </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-[#091b6f] truncate">
+                        {formData.franchiseImageName || "Choose Franchise Permit"}
+                      </p>
+                      <p className="text-[9px] text-slate-400 font-semibold">JPG, PNG or PDF</p>
+                    </div>
+                    {formData.franchiseImageName && <span className="text-[9px] font-bold text-emerald-600">✓</span>}
+                  </div>
+                </div>
+
+                {/* Franchise Number */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] text-slate-400 font-bold uppercase">Franchise Number</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. F-2026-987"
+                    value={formData.franchiseNumber || ""}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, franchiseNumber: e.target.value }))}
+                    className="border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-[#091b6f] outline-hidden focus:border-blue-500 transition-all"
+                  />
+                </div>
+
+                {/* Franchise Expiry */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] text-slate-400 font-bold uppercase">Franchise Expiry Date</label>
+                  <input
+                    type="date"
+                    value={formData.franchiseExpiryDate || ""}
+                    onChange={(e) => setFormData((prev: any) => ({ ...prev, franchiseExpiryDate: e.target.value }))}
+                    className="border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-[#091b6f] outline-hidden focus:border-blue-500 transition-all cursor-pointer"
+                  />
                 </div>
               </div>
             </div>
@@ -286,7 +402,7 @@ export default function CreateDriverView({
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
               )}
-              {isCreatingDriver ? 'Creating...' : 'Create Account'}
+              {isCreatingDriver ? 'Creating...' : 'Create Driver Account'}
             </button>
           </div>
         </form>

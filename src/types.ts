@@ -5,7 +5,6 @@ export interface Driver {
   status: "Active" | "Inactive";
   phone: string;
   license: string;
-  bodyNumber: string;
   trips: number;
   email: string;
   plateNumber: string;
@@ -13,6 +12,15 @@ export interface Driver {
   licensePhotoUrl?: string | null;
   joinedDate: string;
   activityStatus: "Active" | "Moderate" | "Inactive";
+  accountStatus?: string;
+  licenseFrontUrl?: string | null;
+  licenseBackUrl?: string | null;
+  licenseExpiryDate?: string | null;
+  franchiseUrl?: string | null;
+  franchiseNumber?: string | null;
+  franchiseExpiryDate?: string | null;
+  documentStatus?: string;
+  rejectionReason?: string | null;
 }
 
 export interface Passenger {

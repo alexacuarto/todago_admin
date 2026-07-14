@@ -76,12 +76,9 @@ export default function LoginView({
     <div className="flex flex-col items-center justify-center min-h-screen bg-[#f3f8fc] p-4 text-center select-none font-sans">
       <div className="flex flex-col items-center w-full max-w-sm mt-4">
         {/* Uploaded Logo */}
-        <img src="/icons/login.png" alt="Tayabas TODA Go Logo" className="w-24 h-auto object-contain mt-10 mb-5" />
+        <img src="/branding/toda_go_icon_dark.png" alt="Tricycle Icon" className="w-24 h-auto object-contain mt-10 mb-5" />
 
-        {/* App Name */}
-        <h1 className="text-[#091b6f] font-bold text-lg tracking-wide text-center leading-none mt-1">
-          Tayabas TODA Go
-        </h1>
+        {/* App Description */}
         <p className="text-[#2b4bb5] text-sm tracking-wide mt-1">
           Booking App
         </p>

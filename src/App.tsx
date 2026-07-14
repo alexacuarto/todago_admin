@@ -16,6 +16,7 @@ import EarningsView from "./components/views/EarningsView";
 import UsersView from "./components/views/UsersView";
 import ProfileView from "./components/views/ProfileView";
 import CreateDriverView from "./components/views/CreateDriverView";
+import FareSettingsView from "./components/views/FareSettingsView";
 
 // Modals
 import EditDriverModal from "./components/modals/EditDriverModal";
@@ -39,7 +40,7 @@ export default function App() {
   const [loginError, setLoginError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<"dashboard" | "ride-requests" | "earnings" | "users" | "profile" | "create-driver">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "ride-requests" | "earnings" | "users" | "profile" | "create-driver" | "fare-settings">("dashboard");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isCreatingDriver, setIsCreatingDriver] = useState(false);
 
@@ -83,19 +84,29 @@ export default function App() {
     plateNumber: "",
     toda: "LHITC-TODA",
     status: "Active" as "Active" | "Inactive",
-    licenseImage: null as File | null,
-    licenseImageName: ""
+    licenseFrontImage: null as File | null,
+    licenseFrontName: "",
+    licenseBackImage: null as File | null,
+    licenseBackName: "",
+    licenseNumber: "",
+    licenseExpiryDate: "",
+    franchiseImage: null as File | null,
+    franchiseImageName: "",
+    franchiseNumber: "",
+    franchiseExpiryDate: "",
   });
 
   const [editFormData, setEditFormData] = useState({
     name: "",
     phone: "",
     license: "",
-    bodyNumber: "",
     toda: "",
     status: "Active" as "Active" | "Inactive",
     email: "",
-    plateNumber: ""
+    plateNumber: "",
+    licenseExpiryDate: "",
+    franchiseNumber: "",
+    franchiseExpiryDate: ""
   });
 
   const [newRequestData, setNewRequestData] = useState({
@@ -139,6 +150,13 @@ export default function App() {
       if (passengersError) throw passengersError;
       console.log("[Supabase Response] Passengers fetched:", passengersData?.length);
 
+      console.log("[Supabase Query] Fetching vehicles...");
+      const { data: vehiclesData, error: vehiclesError } = await supabase
+        .from("vehicles")
+        .select("*");
+      if (vehiclesError) throw vehiclesError;
+      console.log("[Supabase Response] Vehicles fetched:", vehiclesData?.length);
+
       console.log("[Supabase Query] Fetching drivers with profiles and vehicles...");
       const { data: driversData, error: driversError } = await supabase
         .from("drivers")
@@ -150,15 +168,15 @@ export default function App() {
           is_online,
           created_at,
           toda_association,
-          profiles!profile_id (
-            id,
-            first_name,
-            last_name,
-            phone_number
-          ),
-          vehicles (
-            plate_number
-          )
+          account_status,
+          document_status,
+          license_front_url,
+          license_back_url,
+          license_expiry_date,
+          franchise_url,
+          franchise_number,
+          franchise_expiry_date,
+          profile_id
         `);
       if (driversError) throw driversError;
       console.log("[Supabase Response] Drivers fetched:", driversData.length);
@@ -203,8 +221,8 @@ export default function App() {
 
       // Map Drivers
       const mappedDrivers: Driver[] = driversData.map((d: any) => {
-        const profile = d.profiles || {};
-        const vehicle = d.vehicles?.[0] || {};
+        const profile = (profiles || []).find((p: any) => p.id === d.profile_id) || {};
+        const vehicle = (vehiclesData || []).find((v: any) => v.driver_id === d.id) || {};
         const driverBookings = bookings.filter(b => b.driver_id === d.id && (b.status === "droppedOff" || b.status === "paymentSent"));
         const tripsCount = driverBookings.length;
 
@@ -230,14 +248,22 @@ export default function App() {
           status: d.status === "approved" ? "Active" : "Inactive",
           phone: profile.phone_number || "No Contact",
           license: d.license_number || "PENDING",
-          bodyNumber: "T-" + d.id.slice(0, 4).toUpperCase(),
           trips: tripsCount,
           joinedDate: d.created_at ? d.created_at.split("T")[0] : new Date().toISOString().split("T")[0],
-          email: "",
+          email: profile.email || "",
           plateNumber: vehicle.plate_number || "No Plate",
           isOnline: !!d.is_online,
           licensePhotoUrl: d.license_photo_url || null,
-          activityStatus
+          activityStatus,
+          accountStatus: d.account_status || "PENDING DOCUMENT",
+          licenseFrontUrl: d.license_front_url || null,
+          licenseBackUrl: d.license_back_url || null,
+          licenseExpiryDate: d.license_expiry_date || null,
+          franchiseUrl: d.franchise_url || null,
+          franchiseNumber: d.franchise_number || null,
+          franchiseExpiryDate: d.franchise_expiry_date || null,
+          documentStatus: d.document_status || "INCOMPLETE",
+          rejectionReason: d.rejection_reason || null,
         };
       });
 
@@ -256,7 +282,7 @@ export default function App() {
         const passengerName = `${passengerProfile.first_name || ""} ${passengerProfile.last_name || ""}`.trim() || passengerProfile.phone_number || passengerProfile.email || "Unknown Passenger";
 
         const driverObj = driversData.find((d: any) => d.id === b.driver_id);
-        const driverProfile: any = driverObj?.profiles || {};
+        const driverProfile: any = driverObj ? (profiles || []).find((p: any) => p.id === driverObj.profile_id) || {} : {};
         const driverName = driverObj ? `${driverProfile.first_name || ""} ${driverProfile.last_name || ""}`.trim() : "Not provided";
 
         let toda = "Not provided";
@@ -567,13 +593,7 @@ export default function App() {
     if (isCreatingDriver) return;
 
     if (!formData.name || !formData.phone || !formData.email || !formData.password || !formData.plateNumber) {
-      alert("Please fill in all fields.");
-      return;
-    }
-
-    const isProduction = import.meta.env.PROD || import.meta.env.MODE === 'production';
-    if (isProduction && !formData.licenseImage) {
-      alert("Please upload the driver’s license copy before creating the account.");
+      alert("Please fill in all required fields (Name, Phone, Email, Password, Plate Number, TODA).");
       return;
     }
 
@@ -594,7 +614,13 @@ export default function App() {
         contactNumber: formData.phone,
         plateNumber: formData.plateNumber,
         todaAssociation: formData.toda,
-        licenseImage: formData.licenseImage,
+        licenseFrontImage: formData.licenseFrontImage,
+        licenseBackImage: formData.licenseBackImage,
+        licenseNumber: formData.licenseNumber || undefined,
+        licenseExpiryDate: formData.licenseExpiryDate || undefined,
+        franchiseImage: formData.franchiseImage,
+        franchiseNumber: formData.franchiseNumber || undefined,
+        franchiseExpiryDate: formData.franchiseExpiryDate || undefined,
       });
 
       if (!result.success) {
@@ -613,8 +639,16 @@ export default function App() {
         plateNumber: "",
         toda: "LHITC-TODA",
         status: "Active",
-        licenseImage: null,
-        licenseImageName: ""
+        licenseFrontImage: null,
+        licenseFrontName: "",
+        licenseBackImage: null,
+        licenseBackName: "",
+        licenseNumber: "",
+        licenseExpiryDate: "",
+        franchiseImage: null,
+        franchiseImageName: "",
+        franchiseNumber: "",
+        franchiseExpiryDate: "",
       });
       setActiveTab("users");
       setUsersSubTab("drivers");
@@ -656,10 +690,13 @@ export default function App() {
       .from('drivers')
       .update({
         status: editFormData.status === "Active" ? "approved" : "pending",
-        license_number: editFormData.license,
+        license_number: editFormData.license || null,
+        license_expiry_date: editFormData.licenseExpiryDate || null,
+        franchise_number: editFormData.franchiseNumber || null,
+        franchise_expiry_date: editFormData.franchiseExpiryDate || null,
         toda_association: editFormData.toda
       })
-      .eq('id', editingDriver.id);
+      .eq('profile_id', editingDriver.id); // profile_id matches user UUID in drivers table
 
     if (driverError) {
       console.error("[Supabase Error] Driver update failed:", driverError);
@@ -667,12 +704,21 @@ export default function App() {
       return;
     }
 
-    await supabase
-      .from('vehicles')
-      .update({
-        plate_number: editFormData.plateNumber
-      })
-      .eq('driver_id', editingDriver.id);
+    // Resolve driver record ID to update vehicle
+    const { data: driverRec } = await supabase
+      .from('drivers')
+      .select('id')
+      .eq('profile_id', editingDriver.id)
+      .maybeSingle();
+
+    if (driverRec) {
+      await supabase
+        .from('vehicles')
+        .update({
+          plate_number: editFormData.plateNumber
+        })
+        .eq('driver_id', driverRec.id);
+    }
 
     setShowEditDriverModal(false);
     setEditingDriver(null);
@@ -847,7 +893,7 @@ export default function App() {
     return drivers.filter(d => {
       const matchSearch = d.name.toLowerCase().includes(driverSearch.toLowerCase()) ||
         d.toda.toLowerCase().includes(driverSearch.toLowerCase()) ||
-        d.bodyNumber.toLowerCase().includes(driverSearch.toLowerCase()) ||
+        d.plateNumber.toLowerCase().includes(driverSearch.toLowerCase()) ||
         d.license.toLowerCase().includes(driverSearch.toLowerCase());
       const matchToda = userTodaFilter === "All" || d.toda === userTodaFilter;
       const matchStatus = userStatusFilter === "All" || d.status === userStatusFilter;
@@ -1044,6 +1090,9 @@ export default function App() {
                   isCreatingDriver={isCreatingDriver}
                 />
               )}
+              {activeTab === "fare-settings" && (
+                <FareSettingsView />
+              )}
             </>
           )}
         </main>
@@ -1094,6 +1143,7 @@ export default function App() {
         onDeactivatePassengerToggle={handleDeactivatePassengerToggle}
         onIncrementCanceledTrips={handleIncrementCanceledTrips}
         onResetCanceledTrips={handleResetCanceledTrips}
+        onRefreshData={fetchData}
       />
 
       <ViewEarningsModal

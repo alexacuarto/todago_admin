@@ -6,7 +6,7 @@ interface HeaderProps {
     avatarUrl: string;
     avatarColor: string;
   };
-  setActiveTab: (tab: "dashboard" | "ride-requests" | "earnings" | "users" | "profile" | "create-driver") => void;
+  setActiveTab: (tab: "dashboard" | "ride-requests" | "earnings" | "users" | "profile" | "create-driver" | "fare-settings") => void;
   mobileMenuOpen: boolean;
   setMobileMenuOpen: (open: boolean) => void;
 }
@@ -34,9 +34,7 @@ export default function Header({
         </button>
 
         <div className="flex items-center gap-2">
-          <span className="font-extrabold text-xl tracking-wider bg-white text-[#0b1b6e] px-2.5 py-0.5 rounded-md shadow-sm">
-            TodaGo
-          </span>
+          <img src="/branding/toda_go_icon_white.png" alt="Tricycle Icon" className="h-9 w-auto object-contain" />
         </div>
       </div>
 

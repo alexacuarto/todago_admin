@@ -51,7 +51,7 @@ export default function StatBreakdownModal({
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 transition-all animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden border border-slate-100 flex flex-col max-h-[85vh]">
         {/* Header */}
-        <div className="bg-[#0b1b6e] text-white px-6 py-5 flex items-center justify-between shrink-0">
+        <div className="bg-[#000C7D] text-white px-6 py-5 flex items-center justify-between shrink-0">
           <div className="text-left">
             <span className="text-xs font-bold uppercase tracking-wider text-sky-200">Platform Statistics</span>
             <h3 className="font-bold text-lg">{getModalTitle(activeStatModal)}</h3>
@@ -86,7 +86,7 @@ export default function StatBreakdownModal({
                     {drivers.map((d) => (
                       <tr key={d.id} className="hover:bg-slate-50/50">
                         <td className="p-3">
-                          <p className="font-bold text-[#091b6f]">{d.name}</p>
+                          <p className="font-bold text-[#000C7D]">{d.name}</p>
                           <p className="text-[10px] text-slate-400 font-normal">{d.phone}</p>
                         </td>
                         <td className="p-3">{d.toda}</td>
@@ -134,7 +134,7 @@ export default function StatBreakdownModal({
                       .map((d) => (
                         <tr key={d.id} className="hover:bg-slate-50/50">
                           <td className="p-3">
-                            <p className="font-bold text-[#091b6f]">{d.name}</p>
+                            <p className="font-bold text-[#000C7D]">{d.name}</p>
                             <p className="text-[10px] text-slate-400 font-normal">{d.phone}</p>
                           </td>
                           <td className="p-3">{d.toda}</td>
@@ -160,7 +160,7 @@ export default function StatBreakdownModal({
               <div className="grid grid-cols-2 gap-4 shrink-0">
                 <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 text-center">
                   <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Drivers</p>
-                  <p className="text-2xl font-extrabold text-[#091b6f]">{drivers.length}</p>
+                  <p className="text-2xl font-extrabold text-[#000C7D]">{drivers.length}</p>
                 </div>
                 <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100 text-center">
                   <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Passengers</p>
@@ -181,7 +181,7 @@ export default function StatBreakdownModal({
                   <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
                     {passengers.map((p) => (
                       <tr key={p.id} className="hover:bg-slate-50/50">
-                        <td className="p-3 font-bold text-[#091b6f]">{p.name}</td>
+                        <td className="p-3 font-bold text-[#000C7D]">{p.name}</td>
                         <td className="p-3">{p.contact}</td>
                         <td className="p-3">{p.ridesTaken} Rides</td>
                         <td className="p-3">
@@ -223,7 +223,7 @@ export default function StatBreakdownModal({
                   <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
                     {rideRequests.map((r) => (
                       <tr key={r.id} className="hover:bg-slate-50/50">
-                        <td className="p-3 font-bold text-[#091b6f]">{r.passenger}</td>
+                        <td className="p-3 font-bold text-[#000C7D]">{r.passenger}</td>
                         <td className="p-3">
                           <p className="font-bold text-slate-700">{r.location}</p>
                           <p className="text-[10px] text-slate-400 font-normal">→ {r.destination}</p>
@@ -232,7 +232,7 @@ export default function StatBreakdownModal({
                           <p className="font-bold text-slate-600">{r.driver}</p>
                           <p className="text-[10px] text-slate-400 font-normal">{r.toda}</p>
                         </td>
-                        <td className="p-3 font-bold text-[#091b6f]">₱{r.fare}</td>
+                        <td className="p-3 font-bold text-[#000C7D]">₱{r.fare}</td>
                         <td className="p-3 text-right">
                           <span
                             className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-bold ${
@@ -268,7 +268,7 @@ export default function StatBreakdownModal({
 
             return (
               <div className="flex flex-col gap-4">
-                <div className="bg-[#091b6f] text-white p-5 rounded-2xl text-center">
+                <div className="bg-[#000C7D] text-white p-5 rounded-2xl text-center">
                   <p className="text-xs text-sky-200 font-bold uppercase tracking-wider">
                     Total Earnings
                   </p>
@@ -296,7 +296,7 @@ export default function StatBreakdownModal({
           {/* CONTENT FOR: completed-rides */}
           {activeStatModal === "completed-rides" && (
             <div className="flex flex-col gap-4">
-              <div className="bg-[#091b6f] text-white p-5 rounded-2xl text-center">
+              <div className="bg-[#000C7D] text-white p-5 rounded-2xl text-center">
                 <p className="text-xs text-sky-200 font-bold uppercase tracking-wider">Total Completed Rides</p>
                 <p className="text-4xl font-extrabold mt-1">1,250</p>
               </div>
@@ -316,7 +316,7 @@ export default function StatBreakdownModal({
                   <span>BYPASS ILAYANG BAGUIO-TODA</span>
                   <span className="font-bold text-slate-800">313 completed rides</span>
                 </div>
-                <div className="flex justify-between border-t border-slate-200/50 pt-2 font-bold text-[#091b6f]">
+                <div className="flex justify-between border-t border-slate-200/50 pt-2 font-bold text-[#000C7D]">
                   <span>Total platform rides</span>
                   <span>1,250 Completed Rides</span>
                 </div>
@@ -327,7 +327,7 @@ export default function StatBreakdownModal({
           {/* CONTENT FOR: commission-earned */}
           {activeStatModal === "commission-earned" && (
             <div className="flex flex-col gap-4">
-              <div className="bg-[#091b6f] text-white p-5 rounded-2xl text-center">
+              <div className="bg-[#000C7D] text-white p-5 rounded-2xl text-center">
                 <p className="text-xs text-sky-200 font-bold uppercase tracking-wider">
                   Total Platform Commission (15%)
                 </p>
@@ -349,7 +349,7 @@ export default function StatBreakdownModal({
                   <span>BYPASS ILAYANG BAGUIO-TODA Commission Share</span>
                   <span className="font-bold text-slate-800">₱ 2,500</span>
                 </div>
-                <div className="flex justify-between border-t border-slate-200/50 pt-2 font-bold text-[#091b6f]">
+                <div className="flex justify-between border-t border-slate-200/50 pt-2 font-bold text-[#000C7D]">
                   <span>Total Platform Earnings Share</span>
                   <span>₱ 10,000</span>
                 </div>
@@ -378,7 +378,7 @@ export default function StatBreakdownModal({
                       .filter((p) => p.status === "Active")
                       .map((p) => (
                         <tr key={p.id} className="hover:bg-slate-50/50">
-                          <td className="p-3 font-bold text-[#091b6f]">{p.name}</td>
+                          <td className="p-3 font-bold text-[#000C7D]">{p.name}</td>
                           <td className="p-3">{p.contact}</td>
                           <td className="p-3">{p.ridesTaken} Rides</td>
                           <td className="p-3">
@@ -413,7 +413,7 @@ export default function StatBreakdownModal({
                   <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
                     {passengers.map((p) => (
                       <tr key={p.id} className="hover:bg-slate-50/50">
-                        <td className="p-3 font-bold text-[#091b6f]">{p.name}</td>
+                        <td className="p-3 font-bold text-[#000C7D]">{p.name}</td>
                         <td className="p-3">{p.contact}</td>
                         <td className="p-3">{p.ridesTaken} Rides</td>
                         <td className="p-3">
@@ -440,7 +440,7 @@ export default function StatBreakdownModal({
         <div className="border-t border-slate-100 p-4 shrink-0 flex justify-end bg-slate-50">
           <button
             onClick={onClose}
-            className="px-5 py-2 bg-[#091b6f] hover:bg-blue-800 text-white rounded-xl font-bold text-xs transition-colors cursor-pointer shadow-sm hover:shadow"
+            className="px-5 py-2 bg-[#000C7D] hover:bg-blue-800 text-white rounded-xl font-bold text-xs transition-colors cursor-pointer shadow-sm hover:shadow"
           >
             Close Details
           </button>

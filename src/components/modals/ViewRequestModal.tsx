@@ -16,7 +16,7 @@ export default function ViewRequestModal({
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 transition-all animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-100 flex flex-col">
-        <div className="bg-[#0b1b6e] text-white px-6 py-5 flex items-center justify-between">
+        <div className="bg-[#000C7D] text-white px-6 py-5 flex items-center justify-between">
           <div className="text-left">
             <span className="text-xs font-bold uppercase tracking-wider text-sky-200">Ride Booking Audit</span>
             <h3 className="font-bold text-lg">Request #{viewingRequest.id.toString().slice(-6)}</h3>
@@ -33,7 +33,7 @@ export default function ViewRequestModal({
           <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
             <div>
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Passenger</p>
-              <p className="font-bold text-[#091b6f] text-base mt-0.5">{viewingRequest.passenger}</p>
+              <p className="font-bold text-[#000C7D] text-base mt-0.5">{viewingRequest.passenger}</p>
             </div>
             <div>
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Assigned Driver</p>
@@ -49,7 +49,7 @@ export default function ViewRequestModal({
             </div>
             <div>
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Fare Value</p>
-              <p className="font-extrabold text-[#091b6f] text-lg mt-0.5">₱{viewingRequest.fare}</p>
+              <p className="font-extrabold text-[#000C7D] text-lg mt-0.5">₱{viewingRequest.fare}</p>
             </div>
             <div>
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Booking Time</p>
@@ -79,12 +79,40 @@ export default function ViewRequestModal({
                 </span>
               </div>
             </div>
+            {viewingRequest.status === "Cancelled" && (
+              <>
+                <div>
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Cancelled By</p>
+                  <p className="font-bold text-rose-700 mt-0.5">{viewingRequest.cancelled_by || "Unknown"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Cancelled At</p>
+                  <p className="font-bold text-slate-600 mt-0.5">
+                    {viewingRequest.cancelled_at
+                      ? new Date(viewingRequest.cancelled_at).toLocaleString()
+                      : "N/A"}
+                  </p>
+                </div>
+                <div className="col-span-2 bg-rose-50/50 p-3 rounded-xl border border-rose-100/50 flex flex-col gap-2">
+                  <div>
+                    <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Cancellation Reason</p>
+                    <p className="font-bold text-slate-700 mt-0.5">{viewingRequest.cancel_reason || "None provided"}</p>
+                  </div>
+                  {viewingRequest.cancel_details && (
+                    <div>
+                      <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Cancellation Details</p>
+                      <p className="font-bold text-slate-700 mt-0.5">{viewingRequest.cancel_details}</p>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
 
           <div className="border-t border-slate-100 pt-5 mt-2 flex items-center justify-end">
             <button
               onClick={onClose}
-              className="px-6 py-2.5 bg-[#091b6f] hover:bg-blue-800 text-white rounded-xl font-bold text-sm transition-colors cursor-pointer shadow-sm hover:shadow"
+              className="px-6 py-2.5 bg-[#000C7D] hover:bg-blue-800 text-white rounded-xl font-bold text-sm transition-colors cursor-pointer shadow-sm hover:shadow"
             >
               Close Audit Detail
             </button>

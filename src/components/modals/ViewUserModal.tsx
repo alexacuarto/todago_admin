@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Passenger } from "../../types";
+import React, { useState, useEffect, Fragment } from "react";
+import { Driver, Passenger, RideRequest } from "../../types";
 import { supabase } from "../../lib/supabase";
 
 interface ViewUserModalProps {
@@ -7,11 +7,11 @@ interface ViewUserModalProps {
   onClose: () => void;
   viewingUser: any;
   viewingUserType: "driver" | "passenger" | null;
-  onDeactivateDriverToggle: (id: string) => void;
   onDeactivatePassengerToggle: (id: string) => void;
   onIncrementCanceledTrips: (id: string) => void;
   onResetCanceledTrips: (id: string) => void;
   onRefreshData?: () => void;
+  rideRequests?: RideRequest[];
 }
 
 export default function ViewUserModal({
@@ -19,11 +19,11 @@ export default function ViewUserModal({
   onClose,
   viewingUser,
   viewingUserType,
-  onDeactivateDriverToggle,
   onDeactivatePassengerToggle,
   onIncrementCanceledTrips,
   onResetCanceledTrips,
   onRefreshData,
+  rideRequests = [],
 }: ViewUserModalProps) {
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [zoomType, setZoomType] = useState<"front" | "back" | "franchise" | null>(null);
@@ -37,27 +37,23 @@ export default function ViewUserModal({
   const [editPlate, setEditPlate] = useState("");
   const [isSavingInfo, setIsSavingInfo] = useState(false);
 
-  // Approval workflow
-  const [isApproving, setIsApproving] = useState(false);
-  const [isRejecting, setIsRejecting] = useState(false);
-  const [showRejectForm, setShowRejectForm] = useState(false);
-  const [rejectionReason, setRejectionReason] = useState("");
+  // Admin Action Restrictions
+  const [activeAdminAction, setActiveAdminAction] = useState<"deactivate" | "suspend" | "delete" | "clear" | null>(null);
+  const [adminReasonInput, setAdminReasonInput] = useState("");
+  const [isExecutingAdminAction, setIsExecutingAdminAction] = useState(false);
 
-  // Document fields
+
+
   const [licenseNo, setLicenseNo] = useState("");
   const [licenseExpiry, setLicenseExpiry] = useState("");
   const [licenseFrontFile, setLicenseFrontFile] = useState<File | null>(null);
-  const [licenseFrontName, setLicenseFrontName] = useState("");
   const [licenseBackFile, setLicenseBackFile] = useState<File | null>(null);
-  const [licenseBackName, setLicenseBackName] = useState("");
 
   const [franchiseNo, setFranchiseNo] = useState("");
   const [franchiseExpiry, setFranchiseExpiry] = useState("");
   const [franchiseFile, setFranchiseFile] = useState<File | null>(null);
-  const [franchiseFileName, setFranchiseFileName] = useState("");
 
   const [isSavingDocs, setIsSavingDocs] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   // Initialize fields when user changes
   useEffect(() => {
@@ -71,17 +67,15 @@ export default function ViewUserModal({
       setEditPhone(viewingUser.phone || "");
       setEditToda(viewingUser.toda || "LHITC-TODA");
       setEditPlate(viewingUser.plateNumber || "");
-      setShowRejectForm(false);
-      setRejectionReason("");
 
       // Reset uploads
       setLicenseFrontFile(null);
-      setLicenseFrontName("");
       setLicenseBackFile(null);
-      setLicenseBackName("");
       setFranchiseFile(null);
-      setFranchiseFileName("");
       setIsEditingInfo(false);
+      setActiveAdminAction(null);
+      setAdminReasonInput("");
+      setIsExecutingAdminAction(false);
     }
   }, [viewingUser, viewingUserType, isOpen]);
 
@@ -186,21 +180,28 @@ export default function ViewUserModal({
         if (franchiseUrl) updates.franchise_url = franchiseUrl;
       }
 
+      const finalFront = licenseFrontFile ? true : !!viewingUser.licenseFrontUrl;
+      const finalBack = licenseBackFile ? true : !!viewingUser.licenseBackUrl;
+      const finalNo = licenseNo || (viewingUser.license && viewingUser.license !== "PENDING");
+      const finalExpiry = licenseExpiry || viewingUser.licenseExpiryDate;
+      const finalFranchise = franchiseFile ? true : !!viewingUser.franchiseUrl;
+      const finalFranchiseNo = franchiseNo || viewingUser.franchiseNumber;
+      const finalFranchiseExpiry = franchiseExpiry || viewingUser.franchiseExpiryDate;
+      const allDocsPresent = !!(finalFront && finalBack && finalNo && finalExpiry && finalFranchise && finalFranchiseNo && finalFranchiseExpiry);
+      updates.document_status = allDocsPresent ? 'VERIFIED' : 'PENDING';
+
       console.log("[Supabase Query] Updating driver documents/info...", updates);
       const { error } = await supabase
         .from('drivers')
         .update(updates)
-        .eq('profile_id', userId);
+        .eq('id', userId);
 
       if (error) throw error;
 
       alert("Driver documents and details updated successfully!");
       setLicenseFrontFile(null);
-      setLicenseFrontName("");
       setLicenseBackFile(null);
-      setLicenseBackName("");
       setFranchiseFile(null);
-      setFranchiseFileName("");
 
       if (onRefreshData) onRefreshData();
       onClose();
@@ -219,12 +220,28 @@ export default function ViewUserModal({
     setIsSavingInfo(true);
 
     try {
-      const userId = viewingUser.id;
       const nameParts = editName.trim().split(/\s+/);
       const firstName = nameParts[0] || '';
       const lastName = nameParts.slice(1).join(' ') || '';
 
       // 1. Update profiles
+      let profileId = viewingUser.profileId || viewingUser.profile_id;
+      if (!profileId) {
+        console.log("Profile ID missing in viewingUser state. Fetching from database...");
+        const { data: dRec, error: dError } = await supabase
+          .from('drivers')
+          .select('profile_id')
+          .eq('id', viewingUser.id)
+          .maybeSingle();
+        if (dError) throw dError;
+        if (dRec?.profile_id) {
+          profileId = dRec.profile_id;
+        }
+      }
+      if (!profileId) {
+        console.error("DEBUG: viewingUser details:", viewingUser);
+        throw new Error("Profile ID is missing for this driver.");
+      }
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
@@ -232,7 +249,7 @@ export default function ViewUserModal({
           last_name: lastName,
           phone_number: editPhone
         })
-        .eq('id', userId);
+        .eq('id', profileId);
 
       if (profileError) throw profileError;
 
@@ -242,26 +259,18 @@ export default function ViewUserModal({
         .update({
           toda_association: editToda
         })
-        .eq('profile_id', userId);
+        .eq('id', viewingUser.id);
 
       if (driverError) throw driverError;
 
-      // 3. Update vehicles
-      const { data: driverRec } = await supabase
-        .from('drivers')
-        .select('id')
-        .eq('profile_id', viewingUser.id)
-        .maybeSingle();
+      // 3. Update vehicles directly
+      const { error: vehicleError } = await supabase
+        .from('vehicles')
+        .update({ plate_number: editPlate })
+        .eq('driver_id', viewingUser.id);
 
-      if (driverRec) {
-        const { error: vehicleError } = await supabase
-          .from('vehicles')
-          .update({ plate_number: editPlate })
-          .eq('driver_id', driverRec.id);
-
-        if (vehicleError) {
-          console.warn("Vehicle update error (ignoring if vehicle wasn't created yet):", vehicleError);
-        }
+      if (vehicleError) {
+        console.warn("Vehicle update error (ignoring if vehicle wasn't created yet):", vehicleError);
       }
 
       alert("Driver information updated successfully!");
@@ -276,116 +285,115 @@ export default function ViewUserModal({
     }
   };
 
-  // Delete pending driver account
-  const handleDeleteDriverAccount = async () => {
-    if (!viewingUser) return;
-    const confirmDelete = window.confirm("Are you sure you want to delete this pending driver account?");
-    if (!confirmDelete) return;
 
-    setIsDeleting(true);
-    try {
-      const { data, error } = await supabase.rpc('delete_driver_account', {
-        p_user_id: viewingUser.id
-      });
 
-      if (error) throw error;
-      if (data?.success === false) throw new Error(data?.error || "Failed to delete.");
+  const handleExecuteAdminAction = async () => {
+    if (!viewingUser || !activeAdminAction) return;
 
-      alert("Driver account and all associated records deleted successfully.");
-      if (onRefreshData) onRefreshData();
-      onClose();
-    } catch (err: any) {
-      console.error("Error deleting driver:", err);
-      alert(`Failed to delete driver: ${err.message || err}`);
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  // Approve driver
-  const handleApproveDriver = async () => {
-    if (!viewingUser) return;
-    const confirm = window.confirm("Are you sure you want to approve this driver? They will become ACTIVE and can go online.");
-    if (!confirm) return;
-
-    setIsApproving(true);
-    try {
-      const { error } = await supabase
-        .from('drivers')
-        .update({
-          account_status: 'ACTIVE DRIVER',
-          document_status: 'VERIFIED',
-          rejection_reason: null
-        })
-        .eq('profile_id', viewingUser.id);
-
-      if (error) throw error;
-
-      // Also set driver status to approved so they show as Active
-      await supabase
-        .from('drivers')
-        .update({ status: 'approved' })
-        .eq('profile_id', viewingUser.id);
-
-      alert("Driver approved successfully! They can now go online.");
-      if (onRefreshData) onRefreshData();
-      onClose();
-    } catch (err: any) {
-      console.error("Error approving driver:", err);
-      alert(`Failed to approve driver: ${err.message || err}`);
-    } finally {
-      setIsApproving(false);
-    }
-  };
-
-  // Reject driver documents
-  const handleRejectDocuments = async () => {
-    if (!viewingUser || !rejectionReason.trim()) {
-      alert("Please enter a rejection reason.");
+    if (activeAdminAction !== "clear" && !adminReasonInput.trim()) {
+      alert("Please enter a reason for this action.");
       return;
     }
 
-    setIsRejecting(true);
+    setIsExecutingAdminAction(true);
     try {
-      const { error } = await supabase
-        .from('drivers')
-        .update({
-          account_status: 'PENDING DOCUMENT',
-          document_status: 'DOCUMENT REJECTED',
-          rejection_reason: rejectionReason.trim()
-        })
-        .eq('profile_id', viewingUser.id);
+      const { data: { session } } = await supabase.auth.getSession();
+      const adminUserId = session?.user?.id || null;
 
-      if (error) throw error;
+      if (activeAdminAction === "delete") {
+        const confirm = window.confirm(`Are you sure you want to request deletion of ${viewingUser.name}'s account?\n\nReason: "${adminReasonInput}"`);
+        if (!confirm) {
+          setIsExecutingAdminAction(false);
+          return;
+        }
 
-      alert("Documents rejected. The driver has been notified.");
-      setShowRejectForm(false);
-      setRejectionReason("");
+        // 1. Update status to deleted requested, store reason
+        const { error } = await supabase
+          .from('drivers')
+          .update({
+            admin_action_type: 'deleted_requested',
+            admin_action_reason: adminReasonInput.trim(),
+            admin_action_date: new Date().toISOString(),
+            admin_action_by: adminUserId
+          })
+          .eq('id', viewingUser.id);
+
+        if (error) throw error;
+
+        // 2. Simulate/send notification (log)
+        console.log(`Notification sent: Your driver account has been requested for deletion. Reason: ${adminReasonInput}`);
+
+        alert("Driver account deletion requested successfully.");
+      } else if (activeAdminAction === "clear") {
+        // Clear restriction
+        const { error } = await supabase
+          .from('drivers')
+          .update({
+            admin_action_type: null,
+            admin_action_reason: null,
+            admin_action_date: null,
+            admin_action_by: null
+          })
+          .eq('id', viewingUser.id);
+
+        if (error) throw error;
+
+        alert("Driver restriction removed successfully.");
+      } else {
+        // Deactivate or Suspend
+        const actionType = activeAdminAction === "deactivate" ? "deactivated" : "suspended";
+        const { error } = await supabase
+          .from('drivers')
+          .update({
+            admin_action_type: actionType,
+            admin_action_reason: adminReasonInput.trim(),
+            admin_action_date: new Date().toISOString(),
+            admin_action_by: adminUserId
+          })
+          .eq('id', viewingUser.id);
+
+        if (error) throw error;
+
+        // Simulate/send notification
+        const msg = `Your driver account has been temporarily ${actionType} due to a restriction. Reason: ${adminReasonInput}. Please contact the administrator.`;
+        console.log("Notification sent:", msg);
+
+        alert(`Driver ${actionType} successfully!`);
+      }
+
       if (onRefreshData) onRefreshData();
       onClose();
     } catch (err: any) {
-      console.error("Error rejecting documents:", err);
-      alert(`Failed to reject documents: ${err.message || err}`);
+      console.error("Error executing admin action:", err);
+      alert(`Failed to perform action: ${err.message || err}`);
     } finally {
-      setIsRejecting(false);
+      setIsExecutingAdminAction(false);
+      setActiveAdminAction(null);
+      setAdminReasonInput("");
     }
   };
 
+
+
   if (!isOpen || !viewingUser) return null;
 
-  const isPendingDoc = viewingUser.accountStatus === "PENDING DOCUMENT";
-  const isReadyForVerification = viewingUser.documentStatus === "READY FOR VERIFICATION";
-  const isDocRejected = viewingUser.documentStatus === "DOCUMENT REJECTED";
+  const docStatus = viewingUser.documentStatus || "INCOMPLETE";
+
+
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 transition-all animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl shadow-xl w-full max-w-2xl overflow-hidden border border-slate-100 flex flex-col animate-in zoom-in-95 max-h-[90vh]">
-        <div className="bg-[#0b1b6e] text-white px-6 py-5 flex items-center justify-between">
+        <div className="bg-[#000C7D] text-white px-6 py-5 flex items-center justify-between">
           <div className="text-left">
-            <span className="text-xs font-bold uppercase tracking-wider text-sky-200">
-              {viewingUserType === "driver" ? "Driver Profile Audit" : "Passenger Account Audit"}
-            </span>
-            <h3 className="font-bold text-lg">{viewingUser.name}</h3>
+            {viewingUserType !== "driver" && (
+              <>
+                <span className="text-xs font-bold uppercase tracking-wider text-sky-200">
+                  Passenger Account Audit
+                </span>
+                <h3 className="font-bold text-lg">{viewingUser.name}</h3>
+              </>
+            )}
           </div>
           <button onClick={onClose} className="text-white/85 hover:text-white transition-colors cursor-pointer">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -396,50 +404,9 @@ export default function ViewUserModal({
         </div>
 
         <div className="p-6 flex flex-col gap-5 text-left overflow-y-auto">
-          {/* Account Overview Cards */}
-          <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 shrink-0">
-            <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 shrink-0 font-extrabold text-xl">
-              {viewingUser.name.charAt(0)}
-            </div>
-            <div className="flex-1">
-              <h4 className="font-bold text-[#091b6f] text-md">{viewingUser.name}</h4>
-              <p className="text-xs text-slate-400 font-bold uppercase mt-0.5">
-                {viewingUserType === "driver" ? "Tricycle Operator / Driver" : "Passenger Client"}
-              </p>
-            </div>
-            <div className="flex flex-col gap-1 items-end">
-              <span
-                className={`inline-block px-3 py-1 rounded-full text-xs font-extrabold border ${
-                  viewingUserType === "driver"
-                    ? (viewingUser.accountStatus === "ACTIVE DRIVER"
-                        ? "bg-emerald-50 text-emerald-600 border-emerald-100"
-                        : viewingUser.accountStatus === "DOCUMENT EXPIRED"
-                        ? "bg-rose-50 text-rose-600 border-rose-100"
-                        : "bg-amber-50 text-amber-600 border-amber-100")
-                    : (viewingUser.status === "Active"
-                        ? "bg-emerald-50 text-emerald-600 border-emerald-100"
-                        : "bg-rose-50 text-rose-600 border-rose-100")
-                }`}
-              >
-                {viewingUserType === "driver" ? viewingUser.accountStatus : viewingUser.status}
-              </span>
-              {viewingUserType === "driver" && (
-                <div className="flex flex-col gap-1 items-end mt-1">
-                  <div className="flex items-center gap-1">
-                    <span className={`w-2 h-2 rounded-full ${viewingUser.isOnline ? "bg-emerald-500" : "bg-slate-400"}`}></span>
-                    <span className="text-[10px] text-slate-500 font-bold">
-                      {viewingUser.isOnline ? "Online" : "Offline"}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* DRIVER INFO & EDIT WORKFLOW */}
+          {/* DRIVER INFO SECTION */}
           {viewingUserType === "driver" && (
             <div className="flex flex-col gap-4">
-              {/* Tabs / Toggle for Info Edit */}
               <div className="flex justify-between items-center">
                 <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider">Driver Details</h4>
                 <button
@@ -462,7 +429,7 @@ export default function ViewUserModal({
                       required
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
-                      className="border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-[#091b6f] bg-white outline-hidden focus:border-blue-500"
+                      className="border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-[#000C7D] bg-white outline-hidden focus:border-blue-500"
                     />
                   </div>
                   <div className="flex flex-col gap-1">
@@ -472,7 +439,7 @@ export default function ViewUserModal({
                       required
                       value={editPhone}
                       onChange={(e) => setEditPhone(e.target.value)}
-                      className="border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-[#091b6f] bg-white outline-hidden focus:border-blue-500"
+                      className="border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-[#000C7D] bg-white outline-hidden focus:border-blue-500"
                     />
                   </div>
                   <div className="flex flex-col gap-1">
@@ -480,21 +447,21 @@ export default function ViewUserModal({
                     <select
                       value={editToda}
                       onChange={(e) => setEditToda(e.target.value)}
-                      className="border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-[#091b6f] bg-white outline-hidden focus:border-blue-500 cursor-pointer"
+                      className="border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-[#000C7D] bg-white outline-hidden focus:border-blue-500 cursor-pointer"
                     >
                       <option value="LHITC-TODA">LHITC-TODA</option>
                       <option value="BYPASS ILAYANG BAGUIO-TODA">BYPASS ILAYANG BAGUIO-TODA</option>
                       <option value="CHOT-TODA">CHOT-TODA</option>
                     </select>
                   </div>
-                  <div className="flex flex-col gap-1">
+                   <div className="flex flex-col gap-1 col-span-2">
                     <label className="text-[10px] text-slate-400 font-bold uppercase">Plate Number</label>
                     <input
                       type="text"
                       required
                       value={editPlate}
                       onChange={(e) => setEditPlate(e.target.value)}
-                      className="border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-[#091b6f] bg-white outline-hidden focus:border-blue-500"
+                      className="border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-[#000C7D] bg-white outline-hidden focus:border-blue-500"
                     />
                   </div>
                   <div className="col-span-2 flex justify-end gap-2 mt-2 pt-3 border-t border-slate-100">
@@ -516,65 +483,144 @@ export default function ViewUserModal({
                 </form>
               ) : (
                 <div className="flex flex-col gap-3">
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-xs border border-slate-100 p-4 rounded-2xl">
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-xs border border-slate-100 p-4 rounded-2xl bg-slate-50/50">
                     <div>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase">TODA Association</p>
-                      <p className="font-bold text-slate-700 mt-0.5">{viewingUser.toda}</p>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase">Driver Name</p>
+                      <p className="font-bold text-slate-700 mt-0.5">{viewingUser.name}</p>
                     </div>
                     <div>
                       <p className="text-[10px] text-slate-400 font-bold uppercase">Phone Number</p>
                       <p className="font-bold text-slate-700 mt-0.5">{viewingUser.phone}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase">Plate Number</p>
-                      <p className="font-bold text-slate-700 mt-0.5 font-mono">{viewingUser.plateNumber || "N/A"}</p>
-                    </div>
-                    <div>
                       <p className="text-[10px] text-slate-400 font-bold uppercase">Email</p>
                       <p className="font-bold text-slate-700 mt-0.5">{viewingUser.email || "N/A"}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase">Document Status</p>
-                      <span className={`inline-block mt-0.5 px-2 py-0.5 rounded-full text-[9px] font-extrabold border ${
-                        viewingUser.documentStatus === "VERIFIED" ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
-                        viewingUser.documentStatus === "READY FOR VERIFICATION" ? "bg-blue-50 text-blue-600 border-blue-100" :
-                        viewingUser.documentStatus === "DOCUMENT REJECTED" ? "bg-rose-50 text-rose-600 border-rose-100" :
-                        "bg-amber-50 text-amber-600 border-amber-100"
-                      }`}>{viewingUser.documentStatus || "INCOMPLETE"}</span>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase">TODA Association</p>
+                      <p className="font-bold text-slate-700 mt-0.5">{viewingUser.toda}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase">Joined</p>
-                      <p className="font-bold text-slate-500 mt-0.5">{viewingUser.joinedDate}</p>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase">Plate Number</p>
+                      <p className="font-bold text-slate-700 mt-0.5 font-mono">{viewingUser.plateNumber || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase">Document Status</p>
+                      <span className={`inline-block mt-0.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                        docStatus === "VERIFIED" ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                        "bg-amber-50 text-amber-600 border-amber-100"
+                      }`}>{docStatus}</span>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase">Activity Status</p>
+                      <span className={`inline-block mt-0.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                        (viewingUser as Driver).activityStatus === "ACTIVE" ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                        "bg-slate-50 text-slate-500 border-slate-200"
+                      }`}>{(viewingUser as Driver).activityStatus}</span>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase">Last Online</p>
+                      <p className="font-bold text-slate-700 mt-0.5">
+                        {(viewingUser as Driver).lastOnlineAt ? new Date((viewingUser as Driver).lastOnlineAt!).toLocaleString() : "Never"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase">Total Online Time</p>
+                      <p className="font-bold text-slate-700 mt-0.5">
+                        {(viewingUser as Driver).totalOnlineMinutes !== undefined ? `${(viewingUser as Driver).totalOnlineMinutes} mins` : "0 mins"}
+                      </p>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-[10px] text-slate-400 font-bold uppercase">Last Completed Ride</p>
+                      <p className="font-bold text-slate-700 mt-0.5">
+                        {(viewingUser as Driver).lastCompletedRideAt ? new Date((viewingUser as Driver).lastCompletedRideAt!).toLocaleString() : "Never"}
+                      </p>
                     </div>
                   </div>
 
-                  {/* Rejection reason display */}
-                  {isDocRejected && viewingUser.rejectionReason && (
-                    <div className="bg-rose-50 border border-rose-200 rounded-xl p-3 flex items-start gap-2">
-                      <span className="text-rose-500 shrink-0 mt-0.5">⚠️</span>
-                      <div>
-                        <p className="text-[10px] font-bold text-rose-700 uppercase">Rejection Reason</p>
-                        <p className="text-xs text-rose-600 font-semibold mt-0.5">{viewingUser.rejectionReason}</p>
-                      </div>
-                    </div>
-                  )}
+
                 </div>
               )}
             </div>
           )}
 
-          {/* DOCUMENT MANAGEMENT SECTION */}
+          {/* DOCUMENTS SECTION */}
+          {viewingUserType === "driver" && (
+            <div className="flex flex-col gap-4 border border-slate-100 p-4 rounded-2xl bg-slate-50/20">
+              <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider">Driver Documents</h4>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Driver License Details */}
+                <div className="bg-white p-4 rounded-xl border border-slate-200/60 flex flex-col gap-2.5">
+                  <span className="text-xs font-bold text-[#000C7D] uppercase">Driver License</span>
+                  <div className="text-xs">
+                    <p className="text-[9px] text-slate-400 font-bold uppercase">License Number</p>
+                    <p className="font-semibold text-slate-700 mt-0.5">{viewingUser.license || "N/A"}</p>
+                  </div>
+                  <div className="text-xs">
+                    <p className="text-[9px] text-slate-400 font-bold uppercase">Expiry Date</p>
+                    <p className="font-semibold text-slate-700 mt-0.5">{viewingUser.licenseExpiryDate || "N/A"}</p>
+                  </div>
+                  <div className="flex gap-2 mt-1">
+                    {viewingUser.licenseFrontUrl && (
+                      <button
+                        type="button"
+                        onClick={() => handleZoomClick("front")}
+                        className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 text-[10px] font-bold rounded-lg transition-colors cursor-pointer"
+                      >
+                        Front Image
+                      </button>
+                    )}
+                    {viewingUser.licenseBackUrl && (
+                      <button
+                        type="button"
+                        onClick={() => handleZoomClick("back")}
+                        className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 text-[10px] font-bold rounded-lg transition-colors cursor-pointer"
+                      >
+                        Back Image
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Franchise Permit Details */}
+                <div className="bg-white p-4 rounded-xl border border-slate-200/60 flex flex-col gap-2.5">
+                  <span className="text-xs font-bold text-[#000C7D] uppercase">Franchise / Permit</span>
+                  <div className="text-xs">
+                    <p className="text-[9px] text-slate-400 font-bold uppercase">Franchise Number</p>
+                    <p className="font-semibold text-slate-700 mt-0.5">{viewingUser.franchiseNumber || "N/A"}</p>
+                  </div>
+                  <div className="text-xs">
+                    <p className="text-[9px] text-slate-400 font-bold uppercase">Expiry Date</p>
+                    <p className="font-semibold text-slate-700 mt-0.5">{viewingUser.franchiseExpiryDate || "N/A"}</p>
+                  </div>
+                  {viewingUser.franchiseUrl && (
+                    <div className="mt-1">
+                      <button
+                        type="button"
+                        onClick={() => handleZoomClick("franchise")}
+                        className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 text-[10px] font-bold rounded-lg transition-colors cursor-pointer"
+                      >
+                        Permit Image
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* EDIT/UPLOAD DOCUMENTS FORM FOR DRIVERS */}
           {viewingUserType === "driver" && (
             <form onSubmit={handleSaveDocuments} className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col gap-4">
-              <h4 className="text-xs font-bold uppercase text-[#091b6f] tracking-wider border-b border-slate-200 pb-2">
-                Document Status & Upload Manager
+              <h4 className="text-xs font-bold uppercase text-[#000C7D] tracking-wider border-b border-slate-200 pb-2">
+                Upload & Edit Document Fields
               </h4>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* ── DRIVER'S LICENSE SECTION ── */}
-                <div className="flex flex-col gap-3 bg-white p-3 rounded-xl border border-slate-200">
-                  <span className="text-[11px] font-bold text-[#091b6f] uppercase">Driver's License details</span>
-                  
+                {/* License Inputs */}
+                <div className="flex flex-col gap-2.5 bg-white p-3 rounded-xl border border-slate-200">
+                  <span className="text-[10px] font-bold text-[#000C7D] uppercase">License Input</span>
                   <div className="flex flex-col gap-1">
                     <label className="text-[9px] text-slate-400 font-bold uppercase">License Number</label>
                     <input
@@ -582,89 +628,47 @@ export default function ViewUserModal({
                       placeholder="e.g. D12-34-567890"
                       value={licenseNo}
                       onChange={(e) => setLicenseNo(e.target.value)}
-                      className="border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-semibold text-[#091b6f]"
+                      className="border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-semibold text-[#000C7D]"
                     />
                   </div>
-
                   <div className="flex flex-col gap-1">
                     <label className="text-[9px] text-slate-400 font-bold uppercase">License Expiry Date</label>
                     <input
                       type="date"
                       value={licenseExpiry}
                       onChange={(e) => setLicenseExpiry(e.target.value)}
-                      className="border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-semibold text-[#091b6f] cursor-pointer"
+                      className="border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-semibold text-[#000C7D] cursor-pointer"
                     />
                   </div>
-
-                  {/* Front Photo Upload/Preview */}
-                  <div className="flex flex-col gap-1 mt-1">
+                  <div className="flex flex-col gap-1">
                     <label className="text-[9px] text-slate-400 font-bold uppercase">Front Photo</label>
-                    {viewingUser.licenseFrontUrl || viewingUser.licensePhotoUrl ? (
-                      <div className="flex items-center gap-2 border border-slate-100 p-1.5 rounded-lg bg-slate-50">
-                        <span className="text-[10px] text-emerald-600 font-bold">✓ Uploaded</span>
-                        <button
-                          type="button"
-                          onClick={() => handleZoomClick("front")}
-                          className="text-[9px] font-bold text-blue-600 hover:underline ml-auto"
-                        >
-                          Preview
-                        </button>
-                      </div>
-                    ) : (
-                      <span className="text-[9px] text-rose-500 font-bold uppercase">Not Uploaded</span>
-                    )}
                     <input
                       type="file"
                       accept=".jpg,.png,.pdf"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
-                        if (file) {
-                          setLicenseFrontFile(file);
-                          setLicenseFrontName(file.name);
-                        }
+                        if (file) { setLicenseFrontFile(file); }
                       }}
-                      className="text-[10px] text-slate-500 mt-0.5"
+                      className="text-[10px] text-slate-500"
                     />
-                    {licenseFrontName && <p className="text-[8px] text-[#091b6f] font-semibold">{licenseFrontName}</p>}
                   </div>
-
-                  {/* Back Photo Upload/Preview */}
-                  <div className="flex flex-col gap-1 mt-1">
+                  <div className="flex flex-col gap-1">
                     <label className="text-[9px] text-slate-400 font-bold uppercase">Back Photo</label>
-                    {viewingUser.licenseBackUrl ? (
-                      <div className="flex items-center gap-2 border border-slate-100 p-1.5 rounded-lg bg-slate-50">
-                        <span className="text-[10px] text-emerald-600 font-bold">✓ Uploaded</span>
-                        <button
-                          type="button"
-                          onClick={() => handleZoomClick("back")}
-                          className="text-[9px] font-bold text-blue-600 hover:underline ml-auto"
-                        >
-                          Preview
-                        </button>
-                      </div>
-                    ) : (
-                      <span className="text-[9px] text-rose-500 font-bold uppercase">Not Uploaded</span>
-                    )}
                     <input
                       type="file"
                       accept=".jpg,.png,.pdf"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
-                        if (file) {
-                          setLicenseBackFile(file);
-                          setLicenseBackName(file.name);
-                        }
+                        if (file) { setLicenseBackFile(file); }
                       }}
-                      className="text-[10px] text-slate-500 mt-0.5"
+                      className="text-[10px] text-slate-500"
                     />
-                    {licenseBackName && <p className="text-[8px] text-[#091b6f] font-semibold">{licenseBackName}</p>}
                   </div>
                 </div>
 
-                {/* ── FRANCHISE / PERMIT SECTION ── */}
-                <div className="flex flex-col gap-3 bg-white p-3 rounded-xl border border-slate-200">
-                  <span className="text-[11px] font-bold text-[#091b6f] uppercase">Franchise Permit details</span>
-                  
+                {/* Franchise Inputs */}
+                <div className="flex flex-col gap-2.5 bg-white p-3 rounded-xl border border-slate-200">
+                  <span className="text-[10px] font-bold text-[#000C7D] uppercase">Franchise Input</span>
                   <div className="flex flex-col gap-1">
                     <label className="text-[9px] text-slate-400 font-bold uppercase">Franchise Number</label>
                     <input
@@ -672,61 +676,40 @@ export default function ViewUserModal({
                       placeholder="e.g. F-2026-987"
                       value={franchiseNo}
                       onChange={(e) => setFranchiseNo(e.target.value)}
-                      className="border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-semibold text-[#091b6f]"
+                      className="border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-semibold text-[#000C7D]"
                     />
                   </div>
-
                   <div className="flex flex-col gap-1">
                     <label className="text-[9px] text-slate-400 font-bold uppercase">Franchise Expiry Date</label>
                     <input
                       type="date"
                       value={franchiseExpiry}
                       onChange={(e) => setFranchiseExpiry(e.target.value)}
-                      className="border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-semibold text-[#091b6f] cursor-pointer"
+                      className="border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-semibold text-[#000C7D] cursor-pointer"
                     />
                   </div>
-
-                  {/* Franchise Image Upload/Preview */}
-                  <div className="flex flex-col gap-1 mt-1">
-                    <label className="text-[9px] text-slate-400 font-bold uppercase">Franchise Image</label>
-                    {viewingUser.franchiseUrl ? (
-                      <div className="flex items-center gap-2 border border-slate-100 p-1.5 rounded-lg bg-slate-50">
-                        <span className="text-[10px] text-emerald-600 font-bold">✓ Uploaded</span>
-                        <button
-                          type="button"
-                          onClick={() => handleZoomClick("franchise")}
-                          className="text-[9px] font-bold text-blue-600 hover:underline ml-auto"
-                        >
-                          Preview
-                        </button>
-                      </div>
-                    ) : (
-                      <span className="text-[9px] text-rose-500 font-bold uppercase">Not Uploaded</span>
-                    )}
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] text-slate-400 font-bold uppercase">Permit Image</label>
                     <input
                       type="file"
                       accept=".jpg,.png,.pdf"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
-                        if (file) {
-                          setFranchiseFile(file);
-                          setFranchiseFileName(file.name);
-                        }
+                        if (file) { setFranchiseFile(file); }
                       }}
-                      className="text-[10px] text-slate-500 mt-0.5"
+                      className="text-[10px] text-slate-500"
                     />
-                    {franchiseFileName && <p className="text-[8px] text-[#091b6f] font-semibold">{franchiseFileName}</p>}
                   </div>
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-slate-200 mt-1">
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
                 <button
                   type="submit"
                   disabled={isSavingDocs}
-                  className="px-5 py-2 bg-gradient-to-r from-blue-600 to-[#0b1b6e] text-white hover:from-blue-700 hover:to-blue-900 rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="px-5 py-2 bg-gradient-to-r from-blue-600 to-[#000C7D] text-white hover:from-blue-700 hover:to-blue-900 rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer disabled:opacity-60"
                 >
-                  {isSavingDocs ? "Updating Documents..." : "Update Documents & Info"}
+                  {isSavingDocs ? "Saving Documents..." : "Upload & Save Documents"}
                 </button>
               </div>
             </form>
@@ -734,104 +717,244 @@ export default function ViewUserModal({
 
           {/* PASSENGER DETAILS */}
           {viewingUserType === "passenger" && (
-            <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm border-b border-slate-100 pb-5">
-              <div>
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Contact Number</p>
-                <p className="font-bold text-slate-700 mt-0.5">{(viewingUser as Passenger).contact}</p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Joined Date</p>
-                <p className="font-bold text-slate-500 mt-0.5">{(viewingUser as Passenger).joinedDate}</p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Total Rides Taken</p>
-                <p className="font-extrabold text-[#091b6f] mt-0.5">{(viewingUser as Passenger).ridesTaken} Rides</p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Canceled Trips</p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span
-                    className={`font-extrabold text-sm px-2 py-0.5 rounded-md ${
-                      (viewingUser as Passenger).canceledTrips >= 3 ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700"
-                    }`}
-                  >
-                    {(viewingUser as Passenger).canceledTrips} / 3 Cancelled
-                  </span>
+            <>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm border-b border-slate-100 pb-5">
+                <div>
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Contact Number</p>
+                  <p className="font-bold text-slate-700 mt-0.5">{(viewingUser as Passenger).contact}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Joined Date</p>
+                  <p className="font-bold text-slate-500 mt-0.5">{(viewingUser as Passenger).joinedDate}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Total Rides Taken</p>
+                  <p className="font-extrabold text-[#000C7D] mt-0.5">{(viewingUser as Passenger).ridesTaken} Rides</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Canceled Trips</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span
+                      className={`font-extrabold text-sm px-2 py-0.5 rounded-md ${
+                        (viewingUser as Passenger).canceledTrips >= 3 ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700"
+                      }`}
+                    >
+                      {(viewingUser as Passenger).canceledTrips} Cancelled
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Warning Status</p>
+                  <div className="mt-0.5">
+                    <span
+                      className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                        (viewingUser as Passenger).warningStatus
+                          ? "bg-amber-50 text-amber-600 border-amber-100"
+                          : "bg-slate-50 text-slate-500 border-slate-150"
+                      }`}
+                    >
+                      {(viewingUser as Passenger).warningStatus ? "Active Warning" : "No Warning"}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Last Cancel Date</p>
+                  <p className="font-bold text-slate-700 mt-0.5">
+                    {(viewingUser as Passenger).lastCancelDate
+                      ? new Date((viewingUser as Passenger).lastCancelDate!).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                      : "Never"}
+                  </p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Booking Restriction Until</p>
+                  <p className="font-bold mt-0.5">
+                    {(viewingUser as Passenger).bookingRestrictionUntil ? (
+                      <span className="text-rose-600 font-extrabold bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-100">
+                        Restricted until {new Date((viewingUser as Passenger).bookingRestrictionUntil!).toLocaleString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    ) : (
+                      <span className="text-slate-500 font-bold">No Restriction</span>
+                    )}
+                  </p>
                 </div>
               </div>
-            </div>
+
+              {/* Passenger Ride History List */}
+              <div className="border-b border-slate-100 pb-5">
+                <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider mb-3">Ride History</h4>
+                {rideRequests.filter(r => r.passengerId === viewingUser.id).length === 0 ? (
+                  <p className="text-xs text-slate-400 italic">No bookings found for this passenger.</p>
+                ) : (
+                  <div className="overflow-x-auto max-h-60 border border-slate-100 rounded-xl">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="border-b border-slate-150 bg-slate-50 text-slate-500 font-bold uppercase">
+                          <th className="p-2.5">Driver</th>
+                          <th className="p-2.5">Route</th>
+                          <th className="p-2.5">Fare</th>
+                          <th className="p-2.5">Time</th>
+                          <th className="p-2.5">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
+                        {rideRequests
+                          .filter(r => r.passengerId === viewingUser.id)
+                          .map((r) => (
+                            <Fragment key={r.id}>
+                              <tr className="hover:bg-slate-50/50">
+                                <td className="p-2.5 font-bold text-[#000C7D]">{r.driver}</td>
+                                <td className="p-2.5">
+                                  <p className="font-bold text-slate-700">{r.location}</p>
+                                  <p className="text-[10px] text-slate-400 font-normal">→ {r.destination}</p>
+                                </td>
+                                <td className="p-2.5 font-bold text-[#000C7D]">₱{r.fare}</td>
+                                <td className="p-2.5 text-slate-500">{r.time}</td>
+                                <td className="p-2.5">
+                                  <span
+                                    className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-bold ${
+                                      r.status === "Completed"
+                                        ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                                        : r.status === "In Transit"
+                                        ? "bg-blue-50 text-blue-600 border border-blue-100"
+                                        : r.status === "Pending"
+                                        ? "bg-amber-50 text-amber-600 border border-amber-100"
+                                        : "bg-rose-50 text-rose-600 border border-rose-100"
+                                    }`}
+                                  >
+                                    {r.status}
+                                  </span>
+                                </td>
+                              </tr>
+                              {r.status === "Cancelled" && (
+                                <tr>
+                                  <td colSpan={5} className="bg-rose-50/20 px-3 py-2 text-[10px] border-b border-slate-100">
+                                    <div className="grid grid-cols-3 gap-2 text-slate-500">
+                                      <div>
+                                        <span className="font-bold uppercase text-slate-400 text-[8px] block">Cancelled By</span>
+                                        <span className="font-semibold text-rose-600">{r.cancelled_by || "Unknown"}</span>
+                                      </div>
+                                      <div>
+                                        <span className="font-bold uppercase text-slate-400 text-[8px] block">Cancelled At</span>
+                                        <span className="font-semibold">
+                                          {r.cancelled_at ? new Date(r.cancelled_at).toLocaleString() : "N/A"}
+                                        </span>
+                                      </div>
+                                      <div>
+                                        <span className="font-bold uppercase text-slate-400 text-[8px] block">Cancellation Reason</span>
+                                        <span className="font-semibold">{r.cancellation_reason || "None provided"}</span>
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </Fragment>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </>
           )}
 
-          {/* Action Controls */}
+          {/* ACTION CONTROLS SECTION */}
           <div className="flex flex-col gap-3">
-            <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider">Administrative Controls</h4>
+            <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider">Administrative Actions</h4>
 
-            {/* ADMIN APPROVAL WORKFLOW */}
-            {viewingUserType === "driver" && isReadyForVerification && (
-              <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex flex-col gap-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <path d="M9 12l2 2 4-4" />
-                      <circle cx="12" cy="12" r="10" />
-                    </svg>
+            {/* CONDITIONAL ACTION BUTTONS ACCORDING TO STATUS */}
+            {viewingUserType === "driver" && (
+              <div className="flex flex-col gap-3.5 border border-slate-100 p-4 rounded-2xl bg-slate-50/20">
+                
+                {/* If there is an active restriction, show it prominently */}
+                {(viewingUser as Driver).adminActionType && (
+                  <div className="bg-rose-50 border border-rose-200 rounded-xl p-3 flex flex-col gap-2 animate-in fade-in">
+                    <div className="flex items-center gap-1.5 text-rose-800 font-bold text-xs uppercase">
+                      <span>⚠️ Restricted: {(viewingUser as Driver).adminActionType}</span>
+                    </div>
+                    <p className="text-xs text-rose-600 font-semibold">
+                      Reason: "{(viewingUser as Driver).adminActionReason || "No reason specified"}"
+                    </p>
+                    <div className="flex justify-start mt-1">
+                      <button
+                        onClick={() => {
+                          setActiveAdminAction("clear");
+                          setAdminReasonInput("Clear Restriction");
+                        }}
+                        className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold shadow-xs transition-all cursor-pointer"
+                      >
+                        Remove Restriction
+                      </button>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs font-bold text-blue-800">Documents Ready for Verification</p>
-                    <p className="text-[10px] text-blue-600 font-semibold">Review documents above, then approve or reject.</p>
-                  </div>
-                </div>
-                <div className="flex gap-2">
+                )}
+
+                <div className="flex flex-wrap gap-2">
                   <button
-                    onClick={handleApproveDriver}
-                    disabled={isApproving}
-                    className="flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md transition-all cursor-pointer disabled:opacity-60 flex items-center justify-center gap-1.5"
+                    onClick={() => {
+                      setActiveAdminAction("deactivate");
+                      setAdminReasonInput("");
+                    }}
+                    disabled={isExecutingAdminAction}
+                    className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
                   >
-                    {isApproving ? (
-                      <svg className="animate-spin h-3.5 w-3.5 text-white" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                      </svg>
-                    ) : (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <path d="M20 6L9 17l-5-5" />
-                      </svg>
-                    )}
-                    {isApproving ? "Approving..." : "Approve Driver"}
+                    Deactivate Driver
                   </button>
                   <button
-                    onClick={() => setShowRejectForm(!showRejectForm)}
-                    className="px-4 py-2.5 bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                    onClick={() => {
+                      setActiveAdminAction("suspend");
+                      setAdminReasonInput("");
+                    }}
+                    disabled={isExecutingAdminAction}
+                    className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100 rounded-xl text-xs font-bold transition-all cursor-pointer"
                   >
-                    Reject Documents
+                    Suspend Driver
+                  </button>
+                  <button
+                    onClick={() => {
+                      setActiveAdminAction("delete");
+                      setAdminReasonInput("");
+                    }}
+                    disabled={isExecutingAdminAction}
+                    className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
+                  >
+                    Delete Driver Account
                   </button>
                 </div>
 
-                {showRejectForm && (
-                  <div className="bg-white border border-rose-200 rounded-xl p-3 flex flex-col gap-2">
-                    <label className="text-[10px] text-rose-600 font-bold uppercase">Rejection Reason (Required)</label>
-                    <textarea
-                      rows={2}
-                      placeholder="e.g. Invalid license image, expired franchise, incorrect information..."
-                      value={rejectionReason}
-                      onChange={(e) => setRejectionReason(e.target.value)}
-                      className="border border-rose-200 rounded-lg px-3 py-2 text-xs font-semibold text-[#091b6f] outline-hidden focus:border-rose-400 resize-none"
-                    />
+                {/* Inline Reason Form */}
+                {activeAdminAction && (
+                  <div className="bg-white border border-slate-200 rounded-xl p-3.5 flex flex-col gap-3 animate-in slide-in-from-top-2 duration-200">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] text-[#000C7D] font-bold uppercase">
+                        Reason for {activeAdminAction === "clear" ? "Removal" : activeAdminAction === "delete" ? "Account Deletion" : `${activeAdminAction} action`} (Required)
+                      </label>
+                      {activeAdminAction !== "clear" ? (
+                        <textarea
+                          rows={2}
+                          placeholder='e.g., "Expired franchise/prangkisa", "Passenger complaint", "Violation report"...'
+                          value={adminReasonInput}
+                          onChange={(e) => setAdminReasonInput(e.target.value)}
+                          className="border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-[#000C7D] outline-hidden focus:border-blue-400 resize-none"
+                        />
+                      ) : (
+                        <p className="text-xs text-slate-500 font-semibold italic">Confirm clearing the restriction for this driver.</p>
+                      )}
+                    </div>
                     <div className="flex justify-end gap-2">
                       <button
                         type="button"
-                        onClick={() => { setShowRejectForm(false); setRejectionReason(""); }}
-                        className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-50 cursor-pointer"
+                        onClick={() => { setActiveAdminAction(null); setAdminReasonInput(""); }}
+                        className="px-3.5 py-1.5 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-50 cursor-pointer"
                       >
                         Cancel
                       </button>
                       <button
                         type="button"
-                        onClick={handleRejectDocuments}
-                        disabled={isRejecting || !rejectionReason.trim()}
-                        className="px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                        onClick={handleExecuteAdminAction}
+                        disabled={isExecutingAdminAction || (activeAdminAction !== "clear" && !adminReasonInput.trim())}
+                        className="px-4 py-1.5 bg-[#000C7D] hover:bg-blue-900 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer disabled:opacity-60"
                       >
-                        {isRejecting ? "Rejecting..." : "Confirm Rejection"}
+                        {isExecutingAdminAction ? "Processing..." : "Confirm Action"}
                       </button>
                     </div>
                   </div>
@@ -839,62 +962,35 @@ export default function ViewUserModal({
               </div>
             )}
 
-            <div className="flex flex-wrap gap-2">
-              {/* Status Toggle (Deactivate / Activate) */}
-              {viewingUserType === "driver" ? (
-                <>
-                  {viewingUser.accountStatus === "ACTIVE DRIVER" && (
-                    <button
-                      onClick={() => onDeactivateDriverToggle(viewingUser.id)}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs ${
-                        viewingUser.status === "Active" ? "bg-rose-50 text-rose-600 hover:bg-rose-100" : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
-                      }`}
-                    >
-                      {viewingUser.status === "Active" ? "Suspend Driver" : "Reactivate Driver"}
-                    </button>
-                  )}
+            {viewingUserType === "passenger" && (
+              <div className="flex gap-2 items-center flex-wrap">
+                <button
+                  onClick={() => onDeactivatePassengerToggle(viewingUser.id)}
+                  disabled={(viewingUser as Passenger).canceledTrips >= 3 && viewingUser.status === "Inactive"}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs disabled:opacity-30 disabled:cursor-not-allowed ${
+                    viewingUser.status === "Active" ? "bg-rose-50 text-rose-600 hover:bg-rose-100" : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                  }`}
+                >
+                  {viewingUser.status === "Active" ? "Deactivate Passenger" : "Activate Passenger"}
+                </button>
 
-                  {/* Permanent Delete Option ONLY for PENDING DOCUMENT status */}
-                  {isPendingDoc && (
-                    <button
-                      onClick={handleDeleteDriverAccount}
-                      disabled={isDeleting}
-                      className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-md transition-all cursor-pointer disabled:opacity-60"
-                    >
-                      {isDeleting ? "Deleting..." : "Delete Driver Account"}
-                    </button>
-                  )}
-                </>
-              ) : (
-                <div className="flex gap-2 items-center flex-wrap">
+                <button
+                  onClick={() => onIncrementCanceledTrips(viewingUser.id)}
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs"
+                >
+                  Simulate Canceled Trip
+                </button>
+
+                {(viewingUser as Passenger).canceledTrips > 0 && (
                   <button
-                    onClick={() => onDeactivatePassengerToggle(viewingUser.id)}
-                    disabled={(viewingUser as Passenger).canceledTrips >= 3 && viewingUser.status === "Inactive"}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs disabled:opacity-30 disabled:cursor-not-allowed ${
-                      viewingUser.status === "Active" ? "bg-rose-50 text-rose-600 hover:bg-rose-100" : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
-                    }`}
+                    onClick={() => onResetCanceledTrips(viewingUser.id)}
+                    className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer"
                   >
-                    {viewingUser.status === "Active" ? "Deactivate Passenger" : "Activate Passenger"}
+                    Reset & Reactivate
                   </button>
-
-                  <button
-                    onClick={() => onIncrementCanceledTrips(viewingUser.id)}
-                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs"
-                  >
-                    Simulate Canceled Trip
-                  </button>
-
-                  {(viewingUser as Passenger).canceledTrips > 0 && (
-                    <button
-                      onClick={() => onResetCanceledTrips(viewingUser.id)}
-                      className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer"
-                    >
-                      Reset & Reactivate
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
 
             {viewingUserType === "passenger" && (viewingUser as Passenger).canceledTrips >= 3 && (
               <div className="bg-rose-50 text-rose-700 p-3.5 rounded-xl border border-rose-100 text-xs font-semibold flex items-center gap-2 mt-1">
@@ -907,7 +1003,7 @@ export default function ViewUserModal({
           <div className="border-t border-slate-100 pt-4 flex items-center justify-end">
             <button
               onClick={onClose}
-              className="px-6 py-2.5 bg-[#091b6f] hover:bg-blue-800 text-white rounded-xl font-bold text-sm transition-colors cursor-pointer shadow-xs hover:shadow"
+              className="px-6 py-2.5 bg-[#000C7D] hover:bg-blue-800 text-white rounded-xl font-bold text-sm transition-colors cursor-pointer shadow-xs hover:shadow"
             >
               Close Profile Audit
             </button>
@@ -949,7 +1045,7 @@ export default function ViewUserModal({
                 className="max-h-[70vh] max-w-full object-contain rounded-lg"
               />
             )}
-            <div className="mt-3 text-center text-[#091b6f] font-extrabold text-sm uppercase">
+            <div className="mt-3 text-center text-[#000C7D] font-extrabold text-sm uppercase">
               {zoomType === "front" ? "License Front Copy" : zoomType === "back" ? "License Back Copy" : "Franchise Permit Copy"}
             </div>
           </div>

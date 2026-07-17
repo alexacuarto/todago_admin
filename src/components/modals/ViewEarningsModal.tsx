@@ -16,7 +16,7 @@ export default function ViewEarningsModal({
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 transition-all animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-100 flex flex-col">
-        <div className="bg-[#0b1b6e] text-white px-6 py-5 flex items-center justify-between">
+        <div className="bg-[#000C7D] text-white px-6 py-5 flex items-center justify-between">
           <div className="text-left">
             <span className="text-xs font-bold uppercase tracking-wider text-sky-200">Financial Audit Log</span>
             <h3 className="font-bold text-lg">{viewingEarningsRecord.toda} Breakdown</h3>
@@ -33,7 +33,7 @@ export default function ViewEarningsModal({
           <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm border-b border-slate-100 pb-5">
             <div>
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Report Date</p>
-              <p className="font-bold text-[#091b6f] text-base mt-0.5">{viewingEarningsRecord.date}</p>
+              <p className="font-bold text-[#000C7D] text-base mt-0.5">{viewingEarningsRecord.date}</p>
             </div>
             <div>
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">TODA Association</p>
@@ -55,7 +55,7 @@ export default function ViewEarningsModal({
             </div>
             <div>
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Platform Commission Fee (15%)</p>
-              <p className="font-extrabold text-[#091b6f] text-lg mt-0.5">
+              <p className="font-extrabold text-[#000C7D] text-lg mt-0.5">
                 ₱{viewingEarningsRecord.commissionEarned.toLocaleString()}
               </p>
             </div>
@@ -82,7 +82,7 @@ export default function ViewEarningsModal({
           <div className="border-t border-slate-100 pt-5 mt-2 flex items-center justify-end">
             <button
               onClick={onClose}
-              className="px-6 py-2.5 bg-[#091b6f] hover:bg-blue-800 text-white rounded-xl font-bold text-sm transition-colors cursor-pointer shadow-sm hover:shadow"
+              className="px-6 py-2.5 bg-[#000C7D] hover:bg-blue-800 text-white rounded-xl font-bold text-sm transition-colors cursor-pointer shadow-sm hover:shadow"
             >
               Close Report
             </button>

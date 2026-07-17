@@ -1,4 +1,4 @@
--- SQL Migration: Add driver document columns, status fields, and admin approval workflow
+-- SQL Migration: Add driver document columns, status fields, and simplified admin approval workflow
 -- This migration is idempotent — safe to run multiple times.
 
 -- 1. Add email column to public.profiles if it does not exist
@@ -68,7 +68,7 @@ BEGIN
     SELECT 1 FROM information_schema.columns
     WHERE table_schema = 'public' AND table_name = 'drivers' AND column_name = 'account_status'
   ) THEN
-    ALTER TABLE public.drivers ADD COLUMN account_status TEXT DEFAULT 'PENDING DOCUMENT';
+    ALTER TABLE public.drivers ADD COLUMN account_status TEXT DEFAULT 'PENDING';
   END IF;
 
   -- document_status
@@ -98,10 +98,9 @@ END $$;
 
 
 -- 3. Create/Update function to calculate and update document_status
--- IMPORTANT: This trigger does NOT auto-activate drivers.
--- When all documents are present → document_status = 'READY FOR VERIFICATION'
--- Admin must manually approve to set account_status = 'ACTIVE DRIVER'
--- Expired documents → account_status = 'DOCUMENT EXPIRED'
+-- Simplified Statuses:
+-- account_status: PENDING, ACTIVE, SUSPENDED, EXPIRED
+-- document_status: INCOMPLETE, FOR REVIEW, VERIFIED, REJECTED
 CREATE OR REPLACE FUNCTION public.fn_update_driver_status()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -125,31 +124,32 @@ BEGIN
   ) THEN
     -- Check if any document is expired
     IF (NEW.license_expiry_date < CURRENT_DATE OR NEW.franchise_expiry_date < CURRENT_DATE) THEN
-      NEW.account_status = 'DOCUMENT EXPIRED';
-      NEW.document_status = 'EXPIRED';
+      NEW.account_status = 'EXPIRED';
       NEW.status = 'inactive';
     ELSE
       -- All docs present and not expired.
-      -- If already ACTIVE DRIVER (admin approved), keep it. Otherwise set to READY FOR VERIFICATION.
-      IF NEW.account_status = 'ACTIVE DRIVER' AND NEW.document_status = 'VERIFIED' THEN
-        -- Already approved — don't change status, keep ACTIVE DRIVER / VERIFIED
+      -- If already ACTIVE (admin approved), keep it. Otherwise set to FOR REVIEW.
+      IF NEW.account_status = 'ACTIVE' AND NEW.document_status = 'VERIFIED' THEN
+        -- Already approved — keep it
         NULL;
       ELSE
         -- Documents complete, awaiting admin review
-        NEW.document_status = 'READY FOR VERIFICATION';
-        -- Keep account_status as PENDING DOCUMENT until admin approves
-        IF NEW.account_status IS NULL OR NEW.account_status NOT IN ('ACTIVE DRIVER', 'SUSPENDED') THEN
-          NEW.account_status = 'PENDING DOCUMENT';
+        NEW.document_status = 'FOR REVIEW';
+        IF NEW.account_status IS NULL OR NEW.account_status NOT IN ('ACTIVE', 'SUSPENDED') THEN
+          NEW.account_status = 'PENDING';
         END IF;
       END IF;
     END IF;
   ELSE
     -- Missing documents
-    -- Only downgrade if currently not in a special state
-    IF NEW.account_status NOT IN ('ACTIVE DRIVER', 'SUSPENDED') OR NEW.account_status IS NULL THEN
-      NEW.account_status = 'PENDING DOCUMENT';
+    IF NEW.account_status NOT IN ('ACTIVE', 'SUSPENDED') OR NEW.account_status IS NULL THEN
+      NEW.account_status = 'PENDING';
     END IF;
-    NEW.document_status = 'INCOMPLETE';
+    
+    -- If document_status was previously REJECTED, keep it, otherwise set to INCOMPLETE
+    IF NEW.document_status != 'REJECTED' THEN
+      NEW.document_status = 'INCOMPLETE';
+    END IF;
   END IF;
 
   RETURN NEW;
@@ -173,7 +173,7 @@ CREATE TRIGGER trg_update_driver_status
   EXECUTE FUNCTION public.fn_update_driver_status();
 
 
--- 5. Update the create_driver_account RPC (removed p_body_number parameter)
+-- 5. Update the create_driver_account RPC (simplifying status fields)
 CREATE OR REPLACE FUNCTION public.create_driver_account(
   p_user_id uuid,
   p_email text,
@@ -225,7 +225,7 @@ BEGIN
     role = 'driver',
     email = EXCLUDED.email;
 
-  -- DRIVER (Create with NULL documents → defaults to PENDING DOCUMENT / INCOMPLETE)
+  -- DRIVER (Create with NULL documents → defaults to PENDING / INCOMPLETE)
   INSERT INTO public.drivers (
     profile_id, 
     license_number, 
@@ -251,7 +251,7 @@ BEGIN
     NULL,
     'inactive',
     p_toda_association,
-    'PENDING DOCUMENT',
+    'PENDING',
     'INCOMPLETE'
   )
   ON CONFLICT (profile_id) DO UPDATE SET

@@ -6,21 +6,18 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 async function testQueries() {
-  console.log("Testing profiles...");
-  const { error: e1 } = await supabase.from('profiles').select('*').limit(1);
-  console.log("Profiles error:", e1?.message || "Success");
-
-  console.log("Testing drivers...");
-  const { error: e2 } = await supabase.from('drivers').select('*').limit(1);
-  console.log("Drivers error:", e2?.message || "Success");
-
-  console.log("Testing bookings...");
-  const { error: e3 } = await supabase.from('bookings').select('*').limit(1);
-  console.log("Bookings error:", e3?.message || "Success");
-
-  console.log("Testing passengers...");
-  const { error: e4 } = await supabase.from('passengers').select('*').limit(1);
-  console.log("Passengers error:", e4?.message || "Success");
+  console.log("Fetching OpenAPI schema...");
+  try {
+    const res = await fetch(`${supabaseUrl}/rest/v1/`, {
+      headers: {
+        'apikey': supabaseAnonKey
+      }
+    });
+    const schema = await res.json();
+    console.log("Schema definitions keys:", Object.keys(schema.definitions || {}));
+  } catch (e) {
+    console.error("Error fetching schema:", e);
+  }
 }
 
 testQueries();

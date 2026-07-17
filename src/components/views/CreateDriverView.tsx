@@ -23,7 +23,7 @@ export default function CreateDriverView({
         <form onSubmit={onSubmit} className="flex flex-col gap-6">
           {/* Header */}
           <div className="text-left">
-            <h4 className="text-md font-bold text-[#091b6f] tracking-wide uppercase">Driver Information</h4>
+            <h4 className="text-md font-bold text-[#000C7D] tracking-wide uppercase">Driver Information</h4>
             <p className="text-xs text-slate-400 font-semibold mt-1">Create a new driver account. Documents can be uploaded during or after creation.</p>
           </div>
 
@@ -49,8 +49,8 @@ export default function CreateDriverView({
                   onChange={(e) => setFormData((prev: any) => ({ ...prev, name: e.target.value }))}
                   className={`w-full pl-11 pr-4 py-3 border rounded-xl text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all ${
                     formData.name
-                      ? "bg-[#091b6f] text-white border-blue-950 placeholder-sky-200"
-                      : "bg-white text-[#091b6f] border-slate-200 placeholder-slate-300"
+                      ? "bg-[#000C7D] text-white border-blue-950 placeholder-sky-200"
+                      : "bg-white text-[#000C7D] border-slate-200 placeholder-slate-300"
                   }`}
                   autoComplete="off"
                 />
@@ -75,8 +75,8 @@ export default function CreateDriverView({
                   onChange={(e) => setFormData((prev: any) => ({ ...prev, email: e.target.value }))}
                   className={`w-full pl-11 pr-4 py-3 border rounded-xl text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all ${
                     formData.email
-                      ? "bg-[#091b6f] text-white border-blue-950 placeholder-sky-200"
-                      : "bg-white text-[#091b6f] border-slate-200 placeholder-slate-300"
+                      ? "bg-[#000C7D] text-white border-blue-950 placeholder-sky-200"
+                      : "bg-white text-[#000C7D] border-slate-200 placeholder-slate-300"
                   }`}
                   autoComplete="off"
                 />
@@ -100,8 +100,8 @@ export default function CreateDriverView({
                   onChange={(e) => setFormData((prev: any) => ({ ...prev, phone: e.target.value }))}
                   className={`w-full pl-11 pr-4 py-3 border rounded-xl text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all ${
                     formData.phone
-                      ? "bg-[#091b6f] text-white border-blue-950 placeholder-sky-200"
-                      : "bg-white text-[#091b6f] border-slate-200 placeholder-slate-300"
+                      ? "bg-[#000C7D] text-white border-blue-950 placeholder-sky-200"
+                      : "bg-white text-[#000C7D] border-slate-200 placeholder-slate-300"
                   }`}
                   autoComplete="off"
                 />
@@ -126,8 +126,8 @@ export default function CreateDriverView({
                   onChange={(e) => setFormData((prev: any) => ({ ...prev, password: e.target.value }))}
                   className={`w-full pl-11 pr-12 py-3 border rounded-xl text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all ${
                     formData.password
-                      ? "bg-[#091b6f] text-white border-blue-950 placeholder-sky-200"
-                      : "bg-white text-[#091b6f] border-slate-200 placeholder-slate-300"
+                      ? "bg-[#000C7D] text-white border-blue-950 placeholder-sky-200"
+                      : "bg-white text-[#000C7D] border-slate-200 placeholder-slate-300"
                   }`}
                   autoComplete="new-password"
                 />
@@ -171,8 +171,8 @@ export default function CreateDriverView({
                   onChange={(e) => setFormData((prev: any) => ({ ...prev, plateNumber: e.target.value }))}
                   className={`w-full pl-11 pr-4 py-3 border rounded-xl text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all ${
                     formData.plateNumber
-                      ? "bg-[#091b6f] text-white border-blue-950 placeholder-sky-200"
-                      : "bg-white text-[#091b6f] border-slate-200 placeholder-slate-300"
+                      ? "bg-[#000C7D] text-white border-blue-950 placeholder-sky-200"
+                      : "bg-white text-[#000C7D] border-slate-200 placeholder-slate-300"
                   }`}
                   autoComplete="off"
                 />
@@ -192,7 +192,7 @@ export default function CreateDriverView({
                 <select
                   value={formData.toda}
                   onChange={(e) => setFormData((prev: any) => ({ ...prev, toda: e.target.value }))}
-                  className="w-full pl-11 pr-10 py-3 border border-slate-200 rounded-xl text-sm font-semibold bg-white outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f] cursor-pointer appearance-none"
+                  className="w-full pl-11 pr-10 py-3 border border-slate-200 rounded-xl text-sm font-semibold bg-white outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#000C7D] cursor-pointer appearance-none"
                 >
                   <option value="LHITC-TODA">LHITC-TODA</option>
                   <option value="BYPASS ILAYANG BAGUIO-TODA">BYPASS ILAYANG BAGUIO-TODA</option>
@@ -210,10 +210,7 @@ export default function CreateDriverView({
           {/* ── DOCUMENT UPLOAD SECTIONS ── */}
           <div className="text-left mt-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
-              <h4 className="text-md font-bold text-[#091b6f] tracking-wide uppercase">Upload Documents</h4>
-              <span className="text-xs font-bold text-amber-600 bg-amber-50 border border-amber-100 px-2.5 py-0.5 rounded-full">
-                Optional — Can be completed later
-              </span>
+              <h4 className="text-md font-bold text-[#000C7D] tracking-wide uppercase">Upload Documents</h4>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -227,7 +224,7 @@ export default function CreateDriverView({
                       <line x1="7" y1="12" x2="13" y2="12" />
                     </svg>
                   </div>
-                  <span className="text-xs font-bold text-[#091b6f] uppercase tracking-wider">Driver License Documents</span>
+                  <span className="text-xs font-bold text-[#000C7D] uppercase tracking-wider">Driver License Documents</span>
                 </div>
 
                 {/* Front Image */}
@@ -251,7 +248,7 @@ export default function CreateDriverView({
                       </svg>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-[#091b6f] truncate">
+                      <p className="text-xs font-bold text-[#000C7D] truncate">
                         {formData.licenseFrontName || "Choose Front Image"}
                       </p>
                       <p className="text-[9px] text-slate-400 font-semibold">JPG, PNG or PDF</p>
@@ -281,7 +278,7 @@ export default function CreateDriverView({
                       </svg>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-[#091b6f] truncate">
+                      <p className="text-xs font-bold text-[#000C7D] truncate">
                         {formData.licenseBackName || "Choose Back Image"}
                       </p>
                       <p className="text-[9px] text-slate-400 font-semibold">JPG, PNG or PDF</p>
@@ -298,7 +295,7 @@ export default function CreateDriverView({
                     placeholder="e.g. D12-34-567890"
                     value={formData.licenseNumber || ""}
                     onChange={(e) => setFormData((prev: any) => ({ ...prev, licenseNumber: e.target.value }))}
-                    className="border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-[#091b6f] outline-hidden focus:border-blue-500 transition-all"
+                    className="border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-[#000C7D] outline-hidden focus:border-blue-500 transition-all"
                   />
                 </div>
 
@@ -309,7 +306,7 @@ export default function CreateDriverView({
                     type="date"
                     value={formData.licenseExpiryDate || ""}
                     onChange={(e) => setFormData((prev: any) => ({ ...prev, licenseExpiryDate: e.target.value }))}
-                    className="border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-[#091b6f] outline-hidden focus:border-blue-500 transition-all cursor-pointer"
+                    className="border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-[#000C7D] outline-hidden focus:border-blue-500 transition-all cursor-pointer"
                   />
                 </div>
               </div>
@@ -323,7 +320,7 @@ export default function CreateDriverView({
                       <polyline points="14 2 14 8 20 8" />
                     </svg>
                   </div>
-                  <span className="text-xs font-bold text-[#091b6f] uppercase tracking-wider">Franchise Documents</span>
+                  <span className="text-xs font-bold text-[#000C7D] uppercase tracking-wider">Franchise Documents</span>
                 </div>
 
                 {/* Franchise Image */}
@@ -347,7 +344,7 @@ export default function CreateDriverView({
                       </svg>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-[#091b6f] truncate">
+                      <p className="text-xs font-bold text-[#000C7D] truncate">
                         {formData.franchiseImageName || "Choose Franchise Permit"}
                       </p>
                       <p className="text-[9px] text-slate-400 font-semibold">JPG, PNG or PDF</p>
@@ -364,7 +361,7 @@ export default function CreateDriverView({
                     placeholder="e.g. F-2026-987"
                     value={formData.franchiseNumber || ""}
                     onChange={(e) => setFormData((prev: any) => ({ ...prev, franchiseNumber: e.target.value }))}
-                    className="border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-[#091b6f] outline-hidden focus:border-blue-500 transition-all"
+                    className="border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-[#000C7D] outline-hidden focus:border-blue-500 transition-all"
                   />
                 </div>
 
@@ -375,7 +372,7 @@ export default function CreateDriverView({
                     type="date"
                     value={formData.franchiseExpiryDate || ""}
                     onChange={(e) => setFormData((prev: any) => ({ ...prev, franchiseExpiryDate: e.target.value }))}
-                    className="border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-[#091b6f] outline-hidden focus:border-blue-500 transition-all cursor-pointer"
+                    className="border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-[#000C7D] outline-hidden focus:border-blue-500 transition-all cursor-pointer"
                   />
                 </div>
               </div>

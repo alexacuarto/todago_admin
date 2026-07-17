@@ -202,7 +202,7 @@ export default function FareSettingsView() {
 
       {/* Title & Subtitle */}
       <div>
-        <h1 className="text-3xl font-extrabold text-[#091b6f] tracking-tight">Adjust Fare Pricing</h1>
+        <h1 className="text-3xl font-extrabold text-[#000C7D] tracking-tight">Adjust Fare Pricing</h1>
         <p className="text-sm font-semibold text-slate-500 mt-1">Manage pricing and passenger discounts.</p>
       </div>
 
@@ -211,46 +211,46 @@ export default function FareSettingsView() {
         {/* CARD 1: One Way Trip */}
         <div className="bg-white rounded-3xl shadow-sm border border-slate-100 flex flex-col overflow-hidden">
           <div className="p-8 flex-1">
-            <h2 className="text-xl font-extrabold text-[#091b6f] mb-6">One Way Trip</h2>
+            <h2 className="text-xl font-extrabold text-[#000C7D] mb-6">One Way Trip</h2>
             <div className="grid grid-cols-2 gap-x-6 gap-y-5">
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-extrabold text-blue-600 tracking-wider uppercase">Display Label</label>
+                <label className="text-[10px] font-extrabold text-[#000C7D] tracking-wider uppercase">Display Label</label>
                 <input type="text" value={oneWay.displayLabel}
                   onChange={(e) => setOneWay({ ...oneWay, displayLabel: e.target.value })}
                   className="w-full bg-white border border-[#c7dfff] hover:border-blue-400 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 rounded-xl px-4 py-3 text-sm font-bold text-[#172554] transition-all" />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-extrabold text-blue-600 tracking-wider uppercase">Base Fare</label>
+                <label className="text-[10px] font-extrabold text-[#000C7D] tracking-wider uppercase">Base Fare</label>
                 <input type="number" value={oneWay.baseFare}
                   onChange={(e) => setOneWay({ ...oneWay, baseFare: Number(e.target.value) })}
                   className="w-full bg-white border border-[#c7dfff] hover:border-blue-400 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 rounded-xl px-4 py-3 text-sm font-bold text-[#172554] transition-all" />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-extrabold text-blue-600 tracking-wider uppercase">Included KM</label>
+                <label className="text-[10px] font-extrabold text-[#000C7D] tracking-wider uppercase">Included KM</label>
                 <input type="number" value={oneWay.includedKm}
                   onChange={(e) => setOneWay({ ...oneWay, includedKm: Number(e.target.value) })}
                   className="w-full bg-white border border-[#c7dfff] hover:border-blue-400 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 rounded-xl px-4 py-3 text-sm font-bold text-[#172554] transition-all" />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-extrabold text-blue-600 tracking-wider uppercase">Succeeding KM Fare</label>
+                <label className="text-[10px] font-extrabold text-[#000C7D] tracking-wider uppercase">Succeeding KM Fare</label>
                 <input type="number" value={oneWay.succeedingKmFare}
                   onChange={(e) => setOneWay({ ...oneWay, succeedingKmFare: Number(e.target.value) })}
                   className="w-full bg-white border border-[#c7dfff] hover:border-blue-400 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 rounded-xl px-4 py-3 text-sm font-bold text-[#172554] transition-all" />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-extrabold text-blue-600 tracking-wider uppercase">Student Discount (%)</label>
+                <label className="text-[10px] font-extrabold text-[#000C7D] tracking-wider uppercase">Student Discount (%)</label>
                 <input type="number" value={oneWay.studentDiscount}
                   onChange={(e) => setOneWay({ ...oneWay, studentDiscount: Number(e.target.value) })}
                   className="w-full bg-white border border-[#c7dfff] hover:border-blue-400 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 rounded-xl px-4 py-3 text-sm font-bold text-[#172554] transition-all" />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-extrabold text-blue-600 tracking-wider uppercase">PWD Discount (%)</label>
+                <label className="text-[10px] font-extrabold text-[#000C7D] tracking-wider uppercase">PWD Discount (%)</label>
                 <input type="number" value={oneWay.pwdDiscount}
                   onChange={(e) => setOneWay({ ...oneWay, pwdDiscount: Number(e.target.value) })}
                   className="w-full bg-white border border-[#c7dfff] hover:border-blue-400 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 rounded-xl px-4 py-3 text-sm font-bold text-[#172554] transition-all" />
               </div>
               <div className="flex flex-col gap-1.5 col-span-2">
-                <label className="text-[10px] font-extrabold text-blue-600 tracking-wider uppercase">Senior Citizen Discount (%)</label>
+                <label className="text-[10px] font-extrabold text-[#000C7D] tracking-wider uppercase">Senior Citizen Discount (%)</label>
                 <input type="number" value={oneWay.seniorCitizenDiscount}
                   onChange={(e) => setOneWay({ ...oneWay, seniorCitizenDiscount: Number(e.target.value) })}
                   className="w-full bg-white border border-[#c7dfff] hover:border-blue-400 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 rounded-xl px-4 py-3 text-sm font-bold text-[#172554] transition-all" />
@@ -271,46 +271,46 @@ export default function FareSettingsView() {
         {/* CARD 2: Round Trip */}
         <div className="bg-white rounded-3xl shadow-sm border border-slate-100 flex flex-col overflow-hidden">
           <div className="p-8 flex-1">
-            <h2 className="text-xl font-extrabold text-[#091b6f] mb-6">Round Trip</h2>
+            <h2 className="text-xl font-extrabold text-[#000C7D] mb-6">Round Trip</h2>
             <div className="grid grid-cols-2 gap-x-6 gap-y-5">
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-extrabold text-blue-600 tracking-wider uppercase">Display Label</label>
+                <label className="text-[10px] font-extrabold text-[#000C7D] tracking-wider uppercase">Display Label</label>
                 <input type="text" value={roundTrip.displayLabel}
                   onChange={(e) => setRoundTrip({ ...roundTrip, displayLabel: e.target.value })}
                   className="w-full bg-white border border-[#c7dfff] hover:border-blue-400 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 rounded-xl px-4 py-3 text-sm font-bold text-[#172554] transition-all" />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-extrabold text-blue-600 tracking-wider uppercase">Base Fare</label>
+                <label className="text-[10px] font-extrabold text-[#000C7D] tracking-wider uppercase">Base Fare</label>
                 <input type="number" value={roundTrip.baseFare}
                   onChange={(e) => setRoundTrip({ ...roundTrip, baseFare: Number(e.target.value) })}
                   className="w-full bg-white border border-[#c7dfff] hover:border-blue-400 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 rounded-xl px-4 py-3 text-sm font-bold text-[#172554] transition-all" />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-extrabold text-blue-600 tracking-wider uppercase">Included KM</label>
+                <label className="text-[10px] font-extrabold text-[#000C7D] tracking-wider uppercase">Included KM</label>
                 <input type="number" value={roundTrip.includedKm}
                   onChange={(e) => setRoundTrip({ ...roundTrip, includedKm: Number(e.target.value) })}
                   className="w-full bg-white border border-[#c7dfff] hover:border-blue-400 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 rounded-xl px-4 py-3 text-sm font-bold text-[#172554] transition-all" />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-extrabold text-blue-600 tracking-wider uppercase">Succeeding KM Fare</label>
+                <label className="text-[10px] font-extrabold text-[#000C7D] tracking-wider uppercase">Succeeding KM Fare</label>
                 <input type="number" value={roundTrip.succeedingKmFare}
                   onChange={(e) => setRoundTrip({ ...roundTrip, succeedingKmFare: Number(e.target.value) })}
                   className="w-full bg-white border border-[#c7dfff] hover:border-blue-400 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 rounded-xl px-4 py-3 text-sm font-bold text-[#172554] transition-all" />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-extrabold text-blue-600 tracking-wider uppercase">Student Discount (%)</label>
+                <label className="text-[10px] font-extrabold text-[#000C7D] tracking-wider uppercase">Student Discount (%)</label>
                 <input type="number" value={roundTrip.studentDiscount}
                   onChange={(e) => setRoundTrip({ ...roundTrip, studentDiscount: Number(e.target.value) })}
                   className="w-full bg-white border border-[#c7dfff] hover:border-blue-400 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 rounded-xl px-4 py-3 text-sm font-bold text-[#172554] transition-all" />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-extrabold text-blue-600 tracking-wider uppercase">PWD Discount (%)</label>
+                <label className="text-[10px] font-extrabold text-[#000C7D] tracking-wider uppercase">PWD Discount (%)</label>
                 <input type="number" value={roundTrip.pwdDiscount}
                   onChange={(e) => setRoundTrip({ ...roundTrip, pwdDiscount: Number(e.target.value) })}
                   className="w-full bg-white border border-[#c7dfff] hover:border-blue-400 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 rounded-xl px-4 py-3 text-sm font-bold text-[#172554] transition-all" />
               </div>
               <div className="flex flex-col gap-1.5 col-span-2">
-                <label className="text-[10px] font-extrabold text-blue-600 tracking-wider uppercase">Senior Citizen Discount (%)</label>
+                <label className="text-[10px] font-extrabold text-[#000C7D] tracking-wider uppercase">Senior Citizen Discount (%)</label>
                 <input type="number" value={roundTrip.seniorCitizenDiscount}
                   onChange={(e) => setRoundTrip({ ...roundTrip, seniorCitizenDiscount: Number(e.target.value) })}
                   className="w-full bg-white border border-[#c7dfff] hover:border-blue-400 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 rounded-xl px-4 py-3 text-sm font-bold text-[#172554] transition-all" />

@@ -44,7 +44,7 @@ export default function DashboardView({
         >
           <div className="flex flex-col gap-1">
             <span className="text-slate-400 font-bold text-xs uppercase tracking-wider">Online Drivers</span>
-            <span className="text-3xl font-extrabold text-[#091b6f]">{onlineDriversCount}</span>
+            <span className="text-3xl font-extrabold text-[#000C7D]">{onlineDriversCount}</span>
           </div>
           <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
             <span className="absolute flex h-3 w-3">
@@ -61,7 +61,7 @@ export default function DashboardView({
         >
           <div className="flex flex-col gap-1">
             <span className="text-slate-400 font-bold text-xs uppercase tracking-wider">Active Drivers</span>
-            <span className="text-3xl font-extrabold text-[#091b6f]">{activeDriversCount}</span>
+            <span className="text-3xl font-extrabold text-[#000C7D]">{activeDriversCount}</span>
           </div>
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 text-slate-400">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -82,7 +82,7 @@ export default function DashboardView({
         >
           <div className="flex flex-col gap-1">
             <span className="text-slate-400 font-bold text-xs uppercase tracking-wider">Total Earnings</span>
-            <span className="text-3xl font-extrabold text-[#091b6f]">₱ {totalEarnings.toLocaleString()}</span>
+            <span className="text-3xl font-extrabold text-[#000C7D]">₱ {totalEarnings.toLocaleString()}</span>
           </div>
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -101,11 +101,11 @@ export default function DashboardView({
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 h-full flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-[#091b6f] font-bold text-lg">Recent Ride Request</h2>
+                <h2 className="text-[#000C7D] font-bold text-lg">Recent Ride Request</h2>
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setShowAddRequestModal(true)}
-                    className="text-xs text-[#091b6f] font-bold hover:underline cursor-pointer"
+                    className="text-xs text-[#000C7D] font-bold hover:underline cursor-pointer"
                   >
                     + New Request
                   </button>
@@ -164,7 +164,7 @@ export default function DashboardView({
           {/* Recent Management Card */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-[#091b6f] font-bold text-lg">Recent Management</h2>
+              <h2 className="text-[#000C7D] font-bold text-lg">Recent Management</h2>
               <button
                 onClick={() => setActiveTab("users")}
                 className="text-xs text-blue-500 font-bold hover:underline flex items-center gap-1 cursor-pointer"
@@ -253,7 +253,7 @@ export default function DashboardView({
           {/* Earnings Summary Card */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-[#091b6f] font-bold text-lg">Earnings Summary</h2>
+              <h2 className="text-[#000C7D] font-bold text-lg">Earnings Summary</h2>
             </div>
 
             <div className="flex flex-col gap-4">
@@ -262,7 +262,7 @@ export default function DashboardView({
                 <div>
                   <p className="text-slate-600 text-sm font-semibold">Today's Earnings</p>
                 </div>
-                <p className="text-[#091b6f] font-extrabold text-lg">₱ {earningsToday.toLocaleString()}</p>
+                <p className="text-[#000C7D] font-extrabold text-lg">₱ {earningsToday.toLocaleString()}</p>
               </div>
 
               {/* Weekly Earnings */}
@@ -270,7 +270,7 @@ export default function DashboardView({
                 <div>
                   <p className="text-slate-600 text-sm font-semibold">Weekly Earnings</p>
                 </div>
-                <p className="text-[#091b6f] font-extrabold text-lg">₱ {earningsWeekly.toLocaleString()}</p>
+                <p className="text-[#000C7D] font-extrabold text-lg">₱ {earningsWeekly.toLocaleString()}</p>
               </div>
 
               {/* Monthly Earnings */}

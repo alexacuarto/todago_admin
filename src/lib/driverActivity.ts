@@ -1,48 +1,47 @@
-import type { Driver } from "../types";
 
 /**
- * Determines driver activity status based on the date of their most recent
- * completed trip. This is the SINGLE SOURCE OF TRUTH for driver activity
- * classification across the entire admin dashboard.
+ * Determines driver activity status based on their recent online activity or completed rides.
+ * 
+ * Rules:
+ *   🟢 ACTIVE   — Online now, or was online / completed a ride within the last 7 days
+ *   ⚪ INACTIVE — No online or completed ride activity within the last 7 days
  *
- * Rules (strict):
- *   🟢 Active   — Last completed trip within 0–7 days
- *   🟡 Moderate — Last completed trip within 8–14 days
- *   ⚪ Inactive — No completed trips in 15+ days, or no bookings at all
- *
- * @param lastCompletedTripDate  ISO date string of the driver's most recent
- *                               completed booking, or null if they have none.
- * @returns "Active" | "Moderate" | "Inactive"
+ * @param lastOnlineAt         ISO timestamp of the driver's last online activity.
+ * @param lastCompletedTripAt  ISO timestamp of the driver's last completed ride.
+ * @param isOnline             True if the driver is currently online.
+ * @returns "ACTIVE" | "INACTIVE"
  */
 export function getDriverActivityStatus(
-  lastCompletedTripDate: string | null
-): Driver["activityStatus"] {
-  if (!lastCompletedTripDate) return "Inactive";
+  lastOnlineAt: string | null,
+  lastCompletedTripAt: string | null,
+  isOnline: boolean
+): "ACTIVE" | "INACTIVE" {
+  if (isOnline) return "ACTIVE";
 
   const now = new Date();
-  const tripDate = new Date(lastCompletedTripDate);
-  const diffMs = now.getTime() - tripDate.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-  if (diffDays <= 7) return "Active";
-  if (diffDays <= 14) return "Moderate";
-  return "Inactive";
+  if (lastOnlineAt && new Date(lastOnlineAt) >= sevenDaysAgo) {
+    return "ACTIVE";
+  }
+
+  if (lastCompletedTripAt && new Date(lastCompletedTripAt) >= sevenDaysAgo) {
+    return "ACTIVE";
+  }
+
+  return "INACTIVE";
 }
 
 /**
  * Returns Tailwind class strings for an activity status badge.
- * Use this everywhere a driver activity badge is rendered to ensure
- * visual consistency across DashboardView, UsersView, and ViewUserModal.
  */
 export function getActivityBadgeClasses(
-  activityStatus: Driver["activityStatus"]
+  activityStatus: "ACTIVE" | "INACTIVE"
 ): string {
   switch (activityStatus) {
-    case "Active":
-      return "bg-blue-50 text-blue-600 border border-blue-100";
-    case "Moderate":
-      return "bg-amber-50 text-amber-600 border border-amber-100";
-    case "Inactive":
+    case "ACTIVE":
+      return "bg-emerald-50 text-emerald-600 border border-emerald-100";
+    case "INACTIVE":
     default:
       return "bg-slate-50 text-slate-500 border border-slate-200";
   }

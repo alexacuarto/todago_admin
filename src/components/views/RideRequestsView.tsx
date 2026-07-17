@@ -47,8 +47,8 @@ export default function RideRequestsView({
               }}
               className={`px-4 py-2 rounded-md text-xs font-bold transition-all cursor-pointer ${
                 statusFilter === tab.key
-                  ? "bg-[#091b6f] text-white shadow-sm"
-                  : "text-slate-600 hover:text-[#091b6f]"
+                  ? "bg-[#000C7D] text-white shadow-sm"
+                  : "text-slate-600 hover:text-[#000C7D]"
               }`}
             >
               {tab.label}
@@ -63,7 +63,7 @@ export default function RideRequestsView({
             onChange={(e) => {
               setRequestTodaFilter(e.target.value);
             }}
-            className="pl-3 pr-8 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-[#091b6f] cursor-pointer appearance-none outline-hidden focus:border-blue-500"
+            className="pl-3 pr-8 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-[#000C7D] cursor-pointer appearance-none outline-hidden focus:border-blue-500"
           >
             <option value="All">All TODAs</option>
             <option value="LHITC-TODA">LHITC-TODA</option>
@@ -80,7 +80,7 @@ export default function RideRequestsView({
         {/* Status / Date Filter */}
         <div className="relative">
           <select
-            className="pl-3 pr-8 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-[#091b6f] cursor-pointer appearance-none outline-hidden focus:border-blue-500"
+            className="pl-3 pr-8 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-[#000C7D] cursor-pointer appearance-none outline-hidden focus:border-blue-500"
             defaultValue="all-status"
           >
             <option value="all-status">All Time</option>
@@ -109,7 +109,7 @@ export default function RideRequestsView({
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <span className="text-xl">🔔</span>
-            <h2 className="text-[#091b6f] font-bold text-lg">
+            <h2 className="text-[#000C7D] font-bold text-lg">
               {statusFilter} Ride Requests ({filteredRequests.length})
             </h2>
           </div>
@@ -129,7 +129,7 @@ export default function RideRequestsView({
               onChange={(e) => {
                 setRequestSearch(e.target.value);
               }}
-              className="w-full pl-9 pr-4 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold outline-hidden focus:border-[#091b6f] transition-all text-[#091b6f]"
+              className="w-full pl-9 pr-4 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold outline-hidden focus:border-[#000C7D] transition-all text-[#000C7D]"
             />
           </div>
         </div>
@@ -139,23 +139,21 @@ export default function RideRequestsView({
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider">
-                <th className="pb-3 pl-3">Passenger</th>
-                <th className="pb-3">Location</th>
-                <th className="pb-3">Destination</th>
-                <th className="pb-3">Driver</th>
-                <th className="pb-3">TODA</th>
+                <th className="pb-3 pl-3">Passenger Name</th>
+                <th className="pb-3">Driver Name</th>
                 <th className="pb-3">Status</th>
+                <th className="pb-3">Cancellation Reason</th>
+                <th className="pb-3">Cancellation Details</th>
+                <th className="pb-3">Cancelled By</th>
+                <th className="pb-3">Cancelled Date</th>
                 <th className="pb-3 text-center pr-3">Actions</th>
               </tr>
             </thead>
             <tbody className="text-sm font-semibold divide-y divide-slate-50">
               {displayedRequests.map((r) => (
                 <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="py-5 pl-3 text-[#091b6f] font-bold">{r.passenger}</td>
-                  <td className="py-5 px-2 text-slate-600">{r.location}</td>
-                  <td className="py-5 px-2 text-slate-500">{r.destination}</td>
+                  <td className="py-5 pl-3 text-[#000C7D] font-bold">{r.passenger}</td>
                   <td className="py-5 px-2 text-slate-700">{r.driver}</td>
-                  <td className="py-5 px-2 text-slate-600">{r.toda}</td>
                   <td className="py-5">
                     <span
                       className={`inline-block px-4 py-1 rounded-full text-[10px] font-bold ${
@@ -173,6 +171,12 @@ export default function RideRequestsView({
                       {r.status}
                     </span>
                   </td>
+                  <td className="py-5 px-2 text-slate-600">{r.cancel_reason || "-"}</td>
+                  <td className="py-5 px-2 text-slate-500 max-w-[200px] truncate" title={r.cancel_details || undefined}>{r.cancel_details || "-"}</td>
+                  <td className="py-5 px-2 text-rose-600 font-semibold">{r.cancelled_by || "-"}</td>
+                  <td className="py-5 px-2 text-slate-500">
+                    {r.cancelled_at ? new Date(r.cancelled_at).toLocaleString() : "-"}
+                  </td>
                   <td className="py-5 text-center pr-3">
                     <button
                       onClick={() => {
@@ -188,7 +192,7 @@ export default function RideRequestsView({
               ))}
               {filteredRequests.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="py-16 text-center text-slate-400 font-medium">
+                  <td colSpan={8} className="py-16 text-center text-slate-400 font-medium">
                     No requests found matching your query.
                   </td>
                 </tr>

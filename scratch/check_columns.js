@@ -6,16 +6,11 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 async function run() {
-  try {
-    const { data: drivers, error: dErr } = await supabase
-      .from('drivers')
-      .select('*')
-      .limit(1);
-    console.log("Sample driver row:", drivers, dErr);
-  } catch (e) {
-    console.error(e);
-  }
+  const { data, error } = await supabase.from('passengers').select('*').limit(1);
+  console.log("passengers sample:", data, error);
+  
+  const { data: profiles, error: error2 } = await supabase.from('profiles').select('*').limit(1);
+  console.log("profiles sample:", profiles, error2);
 }
 
 run();
-

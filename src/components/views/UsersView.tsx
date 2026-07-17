@@ -1,5 +1,6 @@
 import React from "react";
 import { Driver, Passenger } from "../../types";
+import { getActivityBadgeClasses } from "../../lib/driverActivity";
 
 interface UsersViewProps {
   filteredDrivers: Driver[];
@@ -53,8 +54,8 @@ export default function UsersView({
               key={tab.key}
               onClick={() => setUsersSubTab(tab.key as any)}
               className={`px-4 py-2 rounded-md text-xs font-bold transition-all cursor-pointer ${usersSubTab === tab.key
-                ? "bg-[#091b6f] text-white shadow-xs"
-                : "text-slate-600 hover:text-[#091b6f]"
+                ? "bg-[#000C7D] text-white shadow-xs"
+                : "text-slate-600 hover:text-[#000C7D]"
                 }`}
             >
               {tab.label}
@@ -69,7 +70,7 @@ export default function UsersView({
             onChange={(e) => {
               setUserTodaFilter(e.target.value);
             }}
-            className="pl-3 pr-8 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-[#091b6f] cursor-pointer appearance-none outline-hidden focus:border-blue-500"
+            className="pl-3 pr-8 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-[#000C7D] cursor-pointer appearance-none outline-hidden focus:border-blue-500"
           >
             <option value="All">All TODAs</option>
             <option value="LHITC-TODA">LHITC-TODA</option>
@@ -90,7 +91,7 @@ export default function UsersView({
             onChange={(e) => {
               setUserStatusFilter(e.target.value);
             }}
-            className="pl-3 pr-8 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-[#091b6f] cursor-pointer appearance-none outline-hidden focus:border-blue-500"
+            className="pl-3 pr-8 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-[#000C7D] cursor-pointer appearance-none outline-hidden focus:border-blue-500"
           >
             <option value="All">All Status</option>
             <option value="Active">Active Only</option>
@@ -118,7 +119,7 @@ export default function UsersView({
             onChange={(e) => {
               setDriverSearch(e.target.value);
             }}
-            className="w-full pl-9 pr-4 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold outline-hidden focus:border-[#091b6f] transition-all text-[#091b6f]"
+            className="w-full pl-9 pr-4 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold outline-hidden focus:border-[#000C7D] transition-all text-[#000C7D]"
           />
         </div>
 
@@ -138,7 +139,7 @@ export default function UsersView({
           onClick={() => {
             alert("Simulated registry list downloaded!");
           }}
-          className="ml-auto flex items-center gap-2 px-5 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-[#091b6f] font-bold text-xs rounded-lg shadow-xs hover:shadow-sm transition-all cursor-pointer"
+          className="ml-auto flex items-center gap-2 px-5 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-[#000C7D] font-bold text-xs rounded-lg shadow-xs hover:shadow-sm transition-all cursor-pointer"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -152,7 +153,7 @@ export default function UsersView({
       {/* Drivers List Card (Visible if sub-tab is "all" or "drivers") */}
       {(usersSubTab === "all" || usersSubTab === "drivers") && (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col gap-4">
-          <h3 className="text-[#091b6f] font-bold text-lg">Drivers List</h3>
+          <h3 className="text-[#000C7D] font-bold text-lg">Drivers List</h3>
 
           {/* Table */}
           <div className="overflow-x-auto" id="drivers-list-table">
@@ -161,58 +162,41 @@ export default function UsersView({
                 <tr className="border-b border-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider">
                   <th className="pb-3 pl-3">Name</th>
                   <th className="pb-3">TODA</th>
-                  <th className="pb-3">Account Status</th>
-                  <th className="pb-3">Documents</th>
+                  <th className="pb-3">Document Status</th>
+                  <th className="pb-3">Activity Status</th>
                   <th className="pb-3">Online Status</th>
                   <th className="pb-3 text-center pr-3">Actions</th>
                 </tr>
               </thead>
               <tbody className="text-sm font-semibold divide-y divide-slate-50">
                 {displayedDrivers.map((d) => {
-                  // Determine status badge classes
-                  let statusBadgeClass = "bg-amber-50 text-amber-700 border border-amber-200";
-                  const statusText = d.accountStatus || "PENDING DOCUMENT";
+                  const docStatus = d.documentStatus || "PENDING";
+                  const isDocVerified = docStatus === "VERIFIED";
 
-                  if (statusText === "ACTIVE DRIVER") {
-                    statusBadgeClass = "bg-emerald-50 text-emerald-700 border border-emerald-200";
-                  } else if (statusText === "DOCUMENT EXPIRED") {
-                    statusBadgeClass = "bg-rose-50 text-rose-700 border border-rose-200";
-                  } else if (statusText === "SUSPENDED" || d.status === "Inactive") {
-                    statusBadgeClass = "bg-slate-100 text-slate-700 border border-slate-200";
-                  }
+                  // Document badge classes
+                  const docBadgeClass = isDocVerified
+                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                    : "bg-amber-50 text-amber-700 border border-amber-200";
 
-                  const hasLicense = !!(d.licenseFrontUrl && d.licenseBackUrl && d.license);
-                  const hasFranchise = !!(d.franchiseUrl && d.franchiseNumber);
+                  // Activity badge classes
+                  const activityBadgeClass = getActivityBadgeClasses(d.activityStatus);
 
                   return (
                     <tr key={d.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="py-4 pl-3 text-left">
-                        <p className="text-[#091b6f] font-bold">{d.name}</p>
+                        <p className="text-[#000C7D] font-bold">{d.name}</p>
                         <p className="text-[10px] text-slate-400 font-mono">{d.plateNumber}</p>
                       </td>
                       <td className="py-4 text-slate-600 text-left">{d.toda}</td>
                       <td className="py-4 text-left">
-                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${statusBadgeClass}`}>
-                          {statusText}
+                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${docBadgeClass}`}>
+                          {docStatus}
                         </span>
                       </td>
                       <td className="py-4 text-left">
-                        <div className="flex flex-col gap-0.5 text-[10px] font-bold">
-                          <div className="flex items-center gap-1">
-                            <span className={`w-1.5 h-1.5 rounded-full ${hasLicense ? "bg-emerald-500" : "bg-rose-500"}`}></span>
-                            <span className="text-slate-500">License: </span>
-                            <span className={hasLicense ? "text-emerald-600" : "text-rose-500"}>
-                              {hasLicense ? "Uploaded" : "Not Uploaded"}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <span className={`w-1.5 h-1.5 rounded-full ${hasFranchise ? "bg-emerald-500" : "bg-rose-500"}`}></span>
-                            <span className="text-slate-500">Franchise: </span>
-                            <span className={hasFranchise ? "text-emerald-600" : "text-rose-500"}>
-                              {hasFranchise ? "Uploaded" : "Not Uploaded"}
-                            </span>
-                          </div>
-                        </div>
+                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${activityBadgeClass}`}>
+                          {d.activityStatus}
+                        </span>
                       </td>
                       <td className="py-4 text-left">
                         {/* Online / Offline status */}
@@ -285,7 +269,7 @@ export default function UsersView({
       {/* Passengers List Card (Visible if sub-tab is "all" or "passengers") */}
       {(usersSubTab === "all" || usersSubTab === "passengers") && (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col gap-4">
-          <h3 className="text-[#091b6f] font-bold text-lg">Passengers List</h3>
+          <h3 className="text-[#000C7D] font-bold text-lg">Passengers List</h3>
 
           {/* Table */}
           <div className="overflow-x-auto" id="passengers-list-table">
@@ -294,27 +278,31 @@ export default function UsersView({
                 <tr className="border-b border-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider">
                   <th className="pb-3 pl-3">Name</th>
                   <th className="pb-3">Contact</th>
-                  <th className="pb-3">Status</th>
+                  <th className="pb-3">Cancellations</th>
+                  <th className="pb-3">Account Status</th>
                   <th className="pb-3 text-center pr-3">Actions</th>
                 </tr>
               </thead>
               <tbody className="text-sm font-semibold divide-y divide-slate-50">
-                {displayedPassengers.map((p) => (
+                {displayedPassengers.map((p) => {
+                  let statusClass = "bg-emerald-50 text-emerald-600 border border-emerald-100";
+                  if (p.status === "Warning") {
+                    statusClass = "bg-amber-50 text-amber-600 border border-amber-100";
+                  } else if (p.status.startsWith("Restricted")) {
+                    statusClass = "bg-rose-50 text-rose-600 border border-rose-100";
+                  } else if (p.status === "Inactive") {
+                    statusClass = "bg-slate-50 text-slate-600 border border-slate-100";
+                  }
+                  
+                  return (
                     <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="py-4 pl-3 text-left">
-                        <p className="text-[#091b6f] font-bold">{p.name}</p>
-                        <p className="text-[10px] text-slate-400 font-bold">
-                          Canceled: {p.canceledTrips} trips
-                        </p>
+                        <p className="text-[#000C7D] font-bold">{p.name}</p>
                       </td>
                       <td className="py-4 text-slate-600 text-left">{p.contact}</td>
+                      <td className="py-4 text-slate-600 text-left">{p.canceledTrips}</td>
                       <td className="py-4 text-left">
-                        <span
-                          className={`inline-block px-3 py-0.5 rounded-full text-[10px] font-bold ${p.status === "Active"
-                            ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                            : "bg-rose-50 text-rose-600 border border-rose-100"
-                            }`}
-                        >
+                        <span className={`inline-block px-3 py-0.5 rounded-full text-[10px] font-bold ${statusClass}`}>
                           {p.status}
                         </span>
                       </td>
@@ -331,10 +319,11 @@ export default function UsersView({
                         </button>
                       </td>
                     </tr>
-                  ))}
+                  );
+                })}
                 {filteredPassengers.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="py-12 text-center text-slate-400 font-medium">
+                    <td colSpan={5} className="py-12 text-center text-slate-400 font-medium">
                       No passengers registered matching your search query.
                     </td>
                   </tr>

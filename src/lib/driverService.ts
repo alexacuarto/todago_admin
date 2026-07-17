@@ -94,24 +94,26 @@ export async function createDriverAccount(
 
     // 1b. Pre-validate uniqueness
     console.log("Pre-validating uniqueness...");
-    if (contactNumber) {
-      const { data: phoneCheck, error: phoneCheckError } = await supabase.from('profiles').select('id').eq('phone_number', contactNumber).maybeSingle();
-      if (phoneCheckError) {
-        console.warn("Uniqueness check for phone number returned an error:", phoneCheckError);
-      }
-      if (phoneCheck) {
-        console.error("Validation failed: Phone number already exists.");
-        return { success: false, error: 'Phone number already exists' };
+    if (email) {
+      const { data: emailCheck } = await supabase.from('profiles').select('id').eq('email', email).maybeSingle();
+      if (emailCheck) {
+        console.error("Validation failed: Email already exists.");
+        return { success: false, error: 'Driver account already exists.' };
       }
     }
 
-    const { data: plateCheck, error: plateCheckError } = await supabase.from('vehicles').select('id').eq('plate_number', plateNumber).maybeSingle();
-    if (plateCheckError) {
-      console.warn("Uniqueness check for plate number returned an error:", plateCheckError);
+    if (contactNumber) {
+      const { data: phoneCheck } = await supabase.from('profiles').select('id').eq('phone_number', contactNumber).maybeSingle();
+      if (phoneCheck) {
+        console.error("Validation failed: Phone number already exists.");
+        return { success: false, error: 'Driver account already exists.' };
+      }
     }
+
+    const { data: plateCheck } = await supabase.from('vehicles').select('id').eq('plate_number', plateNumber).maybeSingle();
     if (plateCheck) {
       console.error("Validation failed: Plate number already exists.");
-      return { success: false, error: 'Plate number already exists' };
+      return { success: false, error: 'Driver account already exists.' };
     }
 
     // 2. Create auth user via signUp
@@ -131,14 +133,14 @@ export async function createDriverAccount(
 
     if (signUpError) {
       console.error("supabase.auth.signUp failed:", signUpError);
-      return { success: false, error: `Auth signup failed: ${signUpError.message || JSON.stringify(signUpError)}` };
+      return { success: false, error: signUpError.message };
     }
 
     const userId = signUpData?.user?.id;
     console.log("Auth user creation result. User ID:", userId);
     if (!userId) {
       console.error("signUpData lacks user.id:", signUpData);
-      return { success: false, error: 'Could not create auth user: Missing user id.' };
+      return { success: false, error: 'User ID was not generated.' };
     }
 
     // 3. Restore admin session
@@ -149,7 +151,7 @@ export async function createDriverAccount(
     });
     if (restoreSessionError) {
       console.error("Failed to restore admin session:", restoreSessionError);
-      return { success: false, error: `Failed to restore admin session: ${restoreSessionError.message}` };
+      return { success: false, error: `Restore admin session failed: ${restoreSessionError.message}` };
     }
 
     // 4. Call RPC
@@ -167,70 +169,65 @@ export async function createDriverAccount(
     console.log("create_driver_account RPC Response Data:", data);
     if (rpcError) {
       console.error("create_driver_account RPC failed with error:", rpcError);
-      const rpcErrMsg = `RPC failed: ${rpcError.message || 'Unknown RPC error'}${rpcError.details ? ` (${rpcError.details})` : ''}${rpcError.hint ? ` (${rpcError.hint})` : ''}`;
-      
-      console.log("Rolling back user creation due to RPC error...");
       await supabase.rpc('rollback_user_creation', { p_user_id: userId });
-      return { success: false, error: rpcErrMsg };
+      return { success: false, error: rpcError.message };
     }
 
     if (!data?.success) {
       console.error("create_driver_account RPC returned success=false:", data);
-      const dataErrMsg = data?.error || 'Failed to create driver account (RPC success=false).';
-      
-      console.log("Rolling back user creation due to success=false...");
       await supabase.rpc('rollback_user_creation', { p_user_id: userId });
-      return { success: false, error: dataErrMsg };
+      return { success: false, error: data?.error || 'Database RPC reported failure.' };
     }
 
     // 5. Upload document files if provided and update driver record
     const driverUpdates: Record<string, string | null> = {};
 
-    if (licenseFrontImage) {
-      console.log("Uploading license front image...");
-      const frontUrl = await uploadDriverDoc(userId, licenseFrontImage, 'front');
-      driverUpdates.license_front_url = frontUrl;
-      driverUpdates.license_photo_url = frontUrl; // backward compat
-    }
-
-    if (licenseBackImage) {
-      console.log("Uploading license back image...");
-      const backUrl = await uploadDriverDoc(userId, licenseBackImage, 'back');
-      driverUpdates.license_back_url = backUrl;
-    }
-
-    if (franchiseImage) {
-      console.log("Uploading franchise image...");
-      const franchiseUrl = await uploadDriverDoc(userId, franchiseImage, 'franchise');
-      driverUpdates.franchise_url = franchiseUrl;
-    }
-
-    if (licenseNumber) driverUpdates.license_number = licenseNumber;
-    if (licenseExpiryDate) driverUpdates.license_expiry_date = licenseExpiryDate;
-    if (franchiseNumber) driverUpdates.franchise_number = franchiseNumber;
-    if (franchiseExpiryDate) driverUpdates.franchise_expiry_date = franchiseExpiryDate;
-
-    // Apply all document updates in one query
-    if (Object.keys(driverUpdates).length > 0) {
-      console.log("Updating driver record with document data...", driverUpdates);
-      const { error: updateError } = await supabase
-        .from('drivers')
-        .update(driverUpdates)
-        .eq('profile_id', userId);
-
-      if (updateError) {
-        console.error("Failed to update driver documents:", updateError);
-        // Don't rollback the entire account, just warn — docs can be uploaded later
-        console.warn("Document update failed but account was created. Documents can be uploaded later.");
-      } else {
-        console.log("Driver documents updated successfully.");
+    try {
+      if (licenseFrontImage) {
+        console.log("Uploading license front image...");
+        const frontUrl = await uploadDriverDoc(userId, licenseFrontImage, 'front');
+        driverUpdates.license_front_url = frontUrl;
+        driverUpdates.license_photo_url = frontUrl; // backward compat
       }
+
+      if (licenseBackImage) {
+        console.log("Uploading license back image...");
+        const backUrl = await uploadDriverDoc(userId, licenseBackImage, 'back');
+        driverUpdates.license_back_url = backUrl;
+      }
+
+      if (franchiseImage) {
+        console.log("Uploading franchise image...");
+        const franchiseUrl = await uploadDriverDoc(userId, franchiseImage, 'franchise');
+        driverUpdates.franchise_url = franchiseUrl;
+      }
+
+      if (licenseNumber) driverUpdates.license_number = licenseNumber;
+      if (licenseExpiryDate) driverUpdates.license_expiry_date = licenseExpiryDate;
+      if (franchiseNumber) driverUpdates.franchise_number = franchiseNumber;
+      if (franchiseExpiryDate) driverUpdates.franchise_expiry_date = franchiseExpiryDate;
+
+      // Apply all document updates in one query
+      if (Object.keys(driverUpdates).length > 0) {
+        console.log("Updating driver record with document data...", driverUpdates);
+        const { error: updateError } = await supabase
+          .from('drivers')
+          .update(driverUpdates)
+          .eq('profile_id', userId);
+
+        if (updateError) throw updateError;
+      }
+    } catch (docError: any) {
+      console.error("Error during document uploads/saving; rolling back user...", docError);
+      await supabase.rpc('rollback_user_creation', { p_user_id: userId });
+      return { success: false, error: docError.message || String(docError) };
     }
 
     console.log("Driver account creation completed successfully.");
     return { success: true, driverName: fullName };
   } catch (err: any) {
     console.error("Unexpected JavaScript exception in createDriverAccount:", err);
-    return { success: false, error: `Unexpected error: ${err.message || String(err)}` };
+    return { success: false, error: err.message || String(err) };
   }
+
 }

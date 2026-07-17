@@ -131,6 +131,9 @@ CREATE POLICY bookings_update_passenger ON public.bookings
     )
     -- Only allow update while ride is still cancellable
     AND status::text IN ('pending', 'searching', 'accepted')
+  )
+  WITH CHECK (
+    status::text = 'cancelled'
   );
 
 

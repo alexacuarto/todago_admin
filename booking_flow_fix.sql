@@ -57,6 +57,9 @@ CREATE POLICY bookings_update_passenger ON public.bookings
   FOR UPDATE USING (
     passenger_id IN (SELECT id FROM public.passengers WHERE profile_id = auth.uid())
     AND status::text NOT IN ('droppedOff', 'paymentSent', 'completed', 'cancelled')
+  )
+  WITH CHECK (
+    status::text = 'cancelled'
   );
 
 -- 4. DRIVER RLS POLICIES

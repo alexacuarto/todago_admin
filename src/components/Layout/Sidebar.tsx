@@ -19,22 +19,21 @@ export default function Sidebar({
     if (isActive) {
       return "flex items-center gap-3 px-5 py-3 font-extrabold text-[#172554] bg-white border-y-2 border-r-2 border-l-[6px] border-[#172554] shadow-sm transition-all text-left w-full cursor-pointer";
     }
-    return "flex items-center gap-3 px-5 py-3 font-bold text-[#091b6f] border-l-4 border-transparent hover:bg-white/40 transition-all text-left w-full cursor-pointer";
+    return "flex items-center gap-3 px-5 py-3 font-bold text-[#000C7D] border-l-4 border-transparent hover:bg-white/40 transition-all text-left w-full cursor-pointer";
   };
 
   return (
     <>
       <aside
         className={`
-          bg-[#d8efff] w-64 flex flex-col shrink-0 transition-transform duration-300 z-10
+          bg-[#d2f4ff] w-64 flex flex-col shrink-0 transition-transform duration-300 z-10
           absolute inset-y-0 left-0 md:relative md:translate-x-0
           ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
           shadow-lg md:shadow-none
         `}
       >
-        {/* Sidebar Header Logo */}
-        <div className="p-4 border-b border-[#091b6f]/10 flex justify-center bg-white/30 backdrop-blur-xs">
-          <img src="/branding/toda_go_icon_dark.png" alt="Tricycle Icon" className="h-10 w-auto object-contain" />
+        <div className="p-4 flex justify-center bg-transparent">
+          <img src="/branding/toda_go_logo_dark.png" alt="Tricycle Icon" className="w-[140px] h-auto object-contain" />
         </div>
 
         <nav className="flex-1 py-4 flex flex-col gap-1">
@@ -83,7 +82,7 @@ export default function Sidebar({
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
               <circle cx="12" cy="10" r="3" />
             </svg>
-            <span>Booking Logs</span>
+            <span>Ride Requests</span>
           </button>
 
           {/* Fare Settings Tab */}
@@ -99,21 +98,6 @@ export default function Sidebar({
               <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
             </svg>
             <span>Fare Settings</span>
-          </button>
-
-          {/* Admin Management Tab */}
-          <button
-            onClick={() => {
-              setActiveTab("profile");
-              setMobileMenuOpen(false);
-            }}
-            className={getTabClass("profile")}
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-            <span>Admin Management</span>
           </button>
 
           {/* Users Management Tab */}
@@ -144,7 +128,7 @@ export default function Sidebar({
                   setUsersSubTab("drivers");
                   setMobileMenuOpen(false);
                 }}
-                className="w-full text-left px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 hover:text-[#091b6f] rounded-lg transition-colors cursor-pointer"
+                className="w-full text-left px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 hover:text-[#000C7D] rounded-lg transition-colors cursor-pointer"
               >
                 Tricycle Drivers
               </button>
@@ -155,7 +139,7 @@ export default function Sidebar({
                   setUsersSubTab("passengers");
                   setMobileMenuOpen(false);
                 }}
-                className="w-full text-left px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 hover:text-[#091b6f] rounded-lg transition-colors cursor-pointer mt-1"
+                className="w-full text-left px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 hover:text-[#000C7D] rounded-lg transition-colors cursor-pointer mt-1"
               >
                 Passengers List
               </button>

@@ -11,7 +11,7 @@ export interface Driver {
   isOnline: boolean;
   licensePhotoUrl?: string | null;
   joinedDate: string;
-  activityStatus: "Active" | "Moderate" | "Inactive";
+  activityStatus: "ACTIVE" | "INACTIVE";
   accountStatus?: string;
   licenseFrontUrl?: string | null;
   licenseBackUrl?: string | null;
@@ -21,6 +21,14 @@ export interface Driver {
   franchiseExpiryDate?: string | null;
   documentStatus?: string;
   rejectionReason?: string | null;
+  profileId: string;
+  lastOnlineAt?: string | null;
+  totalOnlineMinutes?: number;
+  lastCompletedRideAt?: string | null;
+  adminActionType?: string | null;
+  adminActionReason?: string | null;
+  adminActionDate?: string | null;
+  adminActionBy?: string | null;
 }
 
 export interface Passenger {
@@ -28,9 +36,12 @@ export interface Passenger {
   name: string;
   contact: string;
   canceledTrips: number;
-  status: "Active" | "Inactive";
+  status: string;
   joinedDate: string;
   ridesTaken: number;
+  warningStatus?: boolean;
+  bookingRestrictionUntil?: string | null;
+  lastCancelDate?: string | null;
 }
 
 export interface RideRequest {
@@ -45,6 +56,11 @@ export interface RideRequest {
   fare: number;
   time: string;
   toda: string;
+  cancelled_by?: string | null;
+  cancelled_at?: string | null;
+  cancellation_reason?: string | null;
+  cancel_reason?: string | null;
+  cancel_details?: string | null;
 }
 
 export interface EarningsRecord {

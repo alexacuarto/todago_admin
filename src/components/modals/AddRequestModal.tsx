@@ -23,7 +23,7 @@ export default function AddRequestModal({
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 transition-all animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100">
-        <div className="bg-[#0b1b6e] text-white px-6 py-4 flex items-center justify-between">
+        <div className="bg-[#000C7D] text-white px-6 py-4 flex items-center justify-between">
           <h3 className="font-bold text-lg">Dispatch New Ride Request</h3>
           <button onClick={onClose} className="text-white/80 hover:text-white transition-colors cursor-pointer">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -42,7 +42,7 @@ export default function AddRequestModal({
               placeholder="e.g. Maria Cruz"
               value={newRequestData.passenger}
               onChange={(e) => setNewRequestData((prev: any) => ({ ...prev, passenger: e.target.value }))}
-              className="border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f]"
+              className="border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#000C7D]"
             />
           </div>
 
@@ -55,7 +55,7 @@ export default function AddRequestModal({
                 placeholder="e.g. Tayabas Market"
                 value={newRequestData.location}
                 onChange={(e) => setNewRequestData((prev: any) => ({ ...prev, location: e.target.value }))}
-                className="border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f]"
+                className="border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#000C7D]"
               />
             </div>
             <div className="flex flex-col gap-1">
@@ -66,7 +66,7 @@ export default function AddRequestModal({
                 placeholder="e.g. Brgy. Baguio"
                 value={newRequestData.destination}
                 onChange={(e) => setNewRequestData((prev: any) => ({ ...prev, destination: e.target.value }))}
-                className="border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f]"
+                className="border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#000C7D]"
               />
             </div>
           </div>
@@ -80,7 +80,7 @@ export default function AddRequestModal({
                 placeholder="80"
                 value={newRequestData.fare}
                 onChange={(e) => setNewRequestData((prev: any) => ({ ...prev, fare: e.target.value }))}
-                className="border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f]"
+                className="border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#000C7D]"
               />
             </div>
             <div className="flex flex-col gap-1">
@@ -88,7 +88,7 @@ export default function AddRequestModal({
               <select
                 value={newRequestData.driverId}
                 onChange={(e) => setNewRequestData((prev: any) => ({ ...prev, driverId: e.target.value }))}
-                className="border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-semibold bg-white outline-hidden focus:border-blue-500 transition-all text-[#091b6f] cursor-pointer"
+                className="border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-semibold bg-white outline-hidden focus:border-blue-500 transition-all text-[#000C7D] cursor-pointer"
               >
                 <option value="">Select Active Driver</option>
                 {drivers
@@ -107,7 +107,7 @@ export default function AddRequestModal({
             <select
               value={newRequestData.status}
               onChange={(e) => setNewRequestData((prev: any) => ({ ...prev, status: e.target.value as any }))}
-              className="border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-semibold bg-white outline-hidden focus:border-blue-500 transition-all text-[#091b6f] cursor-pointer"
+              className="border border-slate-200 rounded-lg px-3 py-2.5 text-sm font-semibold bg-white outline-hidden focus:border-blue-500 transition-all text-[#000C7D] cursor-pointer"
             >
               <option value="Pending">Pending</option>
               <option value="In Transit">In Transit</option>

@@ -43,7 +43,7 @@ export default function EarningsView({
             onChange={(e) => {
               setEarningsTodaFilter(e.target.value);
             }}
-            className="pl-4 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-[#091b6f] cursor-pointer appearance-none outline-hidden focus:border-blue-500"
+            className="pl-4 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-[#000C7D] cursor-pointer appearance-none outline-hidden focus:border-blue-500"
           >
             <option value="All">All TODAs</option>
             <option value="LHITC-TODA">LHITC-TODA</option>
@@ -64,7 +64,7 @@ export default function EarningsView({
             onChange={(e) => {
               setEarningsDriverFilter(e.target.value);
             }}
-            className="pl-4 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-[#091b6f] cursor-pointer appearance-none outline-hidden focus:border-blue-500"
+            className="pl-4 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-[#000C7D] cursor-pointer appearance-none outline-hidden focus:border-blue-500"
           >
             <option value="All">All Drivers</option>
             {drivers.map((d) => (
@@ -85,7 +85,7 @@ export default function EarningsView({
           <select
             value={earningsDateRange}
             onChange={(e) => setEarningsDateRange(e.target.value)}
-            className="pl-4 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-[#091b6f] cursor-pointer appearance-none outline-hidden focus:border-blue-500"
+            className="pl-4 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-[#000C7D] cursor-pointer appearance-none outline-hidden focus:border-blue-500"
           >
             <option value="April 1, 2024- April 30, 2026">April 1, 2024- April 30, 2026</option>
             <option value="today">Today Only</option>
@@ -111,7 +111,7 @@ export default function EarningsView({
       {/* Earnings Breakdown Table Card */}
       <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 flex flex-col gap-6 flex-1">
         <div className="flex items-center justify-between">
-          <h3 className="text-[#091b6f] font-bold text-xl">Earnings Breakdown</h3>
+          <h3 className="text-[#000C7D] font-bold text-xl">Earnings Breakdown</h3>
 
           {/* Download Report Button */}
           <button
@@ -143,7 +143,7 @@ export default function EarningsView({
             <tbody className="text-sm font-semibold divide-y divide-slate-50">
               {displayedEarnings.map((r) => (
                 <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="py-6 pl-3 text-left text-[#091b6f] font-semibold">{r.date}</td>
+                  <td className="py-6 pl-3 text-left text-[#000C7D] font-semibold">{r.date}</td>
                   <td
                     className="py-6 px-3 text-left text-slate-600 max-w-[180px] truncate"
                     title={r.toda}
@@ -154,7 +154,7 @@ export default function EarningsView({
                   <td className="py-6 px-3 text-left text-slate-800 font-bold">
                     ₱{r.totalEarnings.toLocaleString()}
                   </td>
-                  <td className="py-6 px-3 text-left text-[#091b6f] font-extrabold">
+                  <td className="py-6 px-3 text-left text-[#000C7D] font-extrabold">
                     ₱{r.commissionEarned.toLocaleString()}
                   </td>
                   <td className="py-6 text-center pr-3">

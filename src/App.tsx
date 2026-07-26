@@ -183,7 +183,8 @@ export default function App() {
           admin_action_type,
           admin_action_reason,
           admin_action_date,
-          admin_action_by
+          admin_action_by,
+          document_issue_reason
         `);
       if (driversError) throw driversError;
       console.log("[Supabase Response] Drivers fetched:", driversData.length);
@@ -300,7 +301,13 @@ export default function App() {
           id: d.id,
           name: `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || "Unnamed Driver",
           toda,
-          status: d.status === "approved" ? "Active" : "Inactive",
+          // Status is derived from document_status + admin_action_type.
+          // The legacy `status` column is kept for backward compat only.
+          status: d.admin_action_type
+            ? "Restricted"
+            : d.document_status === "VERIFIED"
+            ? "Active"
+            : "Inactive",
           phone: profile.phone_number || "No Contact",
           license: d.license_number || "PENDING",
           trips: tripsCount,
@@ -327,6 +334,7 @@ export default function App() {
           adminActionReason: d.admin_action_reason || null,
           adminActionDate: d.admin_action_date || null,
           adminActionBy: d.admin_action_by || null,
+          documentIssueReason: d.document_issue_reason || null,
         };
       });
 
@@ -769,25 +777,19 @@ export default function App() {
       return;
     }
 
-    const finalFront = !!editingDriver.licenseFrontUrl;
-    const finalBack = !!editingDriver.licenseBackUrl;
-    const finalNo = !!(editFormData.license && editFormData.license !== "PENDING");
-    const finalExpiry = !!editFormData.licenseExpiryDate;
-    const finalFranchise = !!editingDriver.franchiseUrl;
-    const finalFranchiseNo = !!editFormData.franchiseNumber;
-    const finalFranchiseExpiry = !!editFormData.franchiseExpiryDate;
-    const allDocsPresent = finalFront && finalBack && finalNo && finalExpiry && finalFranchise && finalFranchiseNo && finalFranchiseExpiry;
 
+
+    // NOTE: document_status, status, and account_status are intentionally
+    // NOT written here. The database trigger (fn_update_driver_status) computes
+    // them automatically whenever any document field changes.
     const { error: driverError } = await supabase
       .from('drivers')
       .update({
-        status: editFormData.status === "Active" ? "approved" : "pending",
         license_number: editFormData.license || null,
         license_expiry_date: editFormData.licenseExpiryDate || null,
         franchise_number: editFormData.franchiseNumber || null,
         franchise_expiry_date: editFormData.franchiseExpiryDate || null,
         toda_association: editFormData.toda,
-        document_status: allDocsPresent ? 'VERIFIED' : 'PENDING'
       })
       .eq('id', editingDriver.id);
 
@@ -815,36 +817,77 @@ export default function App() {
     const driverObj = drivers.find(d => d.id === id);
     if (!driverObj) return;
 
-    // Reactivate: from inactive/suspended to approved/ACTIVE.
-    // Suspend: from active/ACTIVE to inactive/SUSPENDED.
-    const isCurrentlyActive = driverObj.accountStatus === "ACTIVE";
-    const nextStatus = isCurrentlyActive ? "inactive" : "approved";
-    const nextAccStatus = isCurrentlyActive ? "SUSPENDED" : "ACTIVE";
+    const isCurrentlyRestricted = driverObj.adminActionType != null;
 
-    console.log("[Supabase Query] Toggling driver suspension status...");
-    const { error } = await supabase
-      .from('drivers')
-      .update({
-        status: nextStatus,
-        account_status: nextAccStatus
-      })
-      .eq('id', id);
+    if (isCurrentlyRestricted) {
+      // Clear admin restriction — the DB trigger will re-evaluate document_status
+      // and restore eligibility automatically if documents are VERIFIED.
+      console.log("[Supabase Query] Clearing driver admin restriction...");
+      const { error } = await supabase
+        .from('drivers')
+        .update({
+          admin_action_type: null,
+          admin_action_reason: null,
+          admin_action_date: null,
+          admin_action_by: null,
+        })
+        .eq('id', id);
 
-    if (error) {
-      console.error("[Supabase Error] Driver toggle failed:", error);
-      alert(`Failed to toggle driver status: ${error.message}`);
-      return;
+      if (error) {
+        console.error("[Supabase Error] Driver restriction clear failed:", error);
+        alert(`Failed to clear restriction: ${error.message}`);
+        return;
+      }
+
+      if (viewingUser && viewingUser.id === id && viewingUserType === "driver") {
+        setViewingUser((prev: any) => prev ? {
+          ...prev,
+          adminActionType: null,
+          adminActionReason: null,
+          status: prev.documentStatus === "VERIFIED" ? "Active" : "Inactive",
+          accountStatus: prev.documentStatus === "VERIFIED" ? "ACTIVE" : "PENDING",
+        } : null);
+      }
+
+      alert("Driver restriction removed. Eligibility will be restored automatically if documents are valid.");
+    } else {
+      // Suspend the driver by setting admin_action_type.
+      // The DB trigger will force is_online = false and status = inactive.
+      const reason = window.prompt(`Enter reason for suspending ${driverObj.name}:`);
+      if (reason === null) return; // user cancelled
+
+      console.log("[Supabase Query] Suspending driver via admin_action_type...");
+      const { data: { session } } = await supabase.auth.getSession();
+      const adminUserId = session?.user?.id || null;
+
+      const { error } = await supabase
+        .from('drivers')
+        .update({
+          admin_action_type: 'suspended',
+          admin_action_reason: reason.trim() || 'Suspended by administrator.',
+          admin_action_date: new Date().toISOString(),
+          admin_action_by: adminUserId,
+        })
+        .eq('id', id);
+
+      if (error) {
+        console.error("[Supabase Error] Driver suspension failed:", error);
+        alert(`Failed to suspend driver: ${error.message}`);
+        return;
+      }
+
+      if (viewingUser && viewingUser.id === id && viewingUserType === "driver") {
+        setViewingUser((prev: any) => prev ? {
+          ...prev,
+          status: "Restricted",
+          accountStatus: "SUSPENDED",
+          adminActionType: 'suspended',
+        } : null);
+      }
+
+      alert("Driver suspended successfully.");
     }
 
-    if (viewingUser && viewingUser.id === id && viewingUserType === "driver") {
-      setViewingUser(prev => prev ? { 
-        ...prev, 
-        status: isCurrentlyActive ? "Inactive" : "Active",
-        accountStatus: nextAccStatus 
-      } : null);
-    }
-
-    alert(`Driver status updated successfully!`);
     fetchData();
   };
 

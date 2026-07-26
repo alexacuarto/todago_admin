@@ -52,7 +52,10 @@ export default function UsersView({
           ].map((tab) => (
             <button
               key={tab.key}
-              onClick={() => setUsersSubTab(tab.key as any)}
+              onClick={() => {
+                setUsersSubTab(tab.key as any);
+                setDriverSearch("");
+              }}
               className={`px-4 py-2 rounded-md text-xs font-bold transition-all cursor-pointer ${usersSubTab === tab.key
                 ? "bg-[#000C7D] text-white shadow-xs"
                 : "text-slate-600 hover:text-[#000C7D]"
@@ -192,6 +195,15 @@ export default function UsersView({
                         <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${docBadgeClass}`}>
                           {docStatus}
                         </span>
+                        {!isDocVerified && d.documentIssueReason && (
+                          <p className="text-[9px] text-rose-500 font-bold mt-1 tracking-tight">
+                            {d.documentIssueReason}
+                          </p>
+                        )}
+                        <div className="text-[9px] text-slate-400 font-semibold mt-1 flex flex-col gap-0.5">
+                          <span>License Exp: {d.licenseExpiryDate || "N/A"}</span>
+                          <span>Franchise Exp: {d.franchiseExpiryDate || "N/A"}</span>
+                        </div>
                       </td>
                       <td className="py-4 text-left">
                         <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${activityBadgeClass}`}>

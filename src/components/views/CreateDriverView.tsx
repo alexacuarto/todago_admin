@@ -152,21 +152,24 @@ export default function CreateDriverView({
               </div>
             </div>
 
+
+
             {/* Plate Number */}
             <div className="flex flex-col gap-1.5 text-left">
               <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Plate Number <span className="text-rose-500">*</span></label>
               <div className="relative">
                 <span className={`absolute inset-y-0 left-0 pl-3.5 flex items-center transition-colors ${formData.plateNumber ? "text-white" : "text-slate-400"}`}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <circle cx="5.5" cy="18.5" r="2.5" />
-                    <circle cx="18.5" cy="18.5" r="2.5" />
-                    <path d="M5.5 16h13M8.5 10l2-4h5v4M4 11.5a2.5 2.5 0 0 1 2.5-2.5h2" />
+                    <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />
+                    <circle cx="7" cy="17" r="2" />
+                    <path d="M9 17h6" />
+                    <circle cx="17" cy="17" r="2" />
                   </svg>
                 </span>
                 <input
                   type="text"
                   required
-                  placeholder="Enter Plate Number"
+                  placeholder="Enter Plate Number (e.g. ABC-1234)"
                   value={formData.plateNumber}
                   onChange={(e) => setFormData((prev: any) => ({ ...prev, plateNumber: e.target.value }))}
                   className={`w-full pl-11 pr-4 py-3 border rounded-xl text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all ${

@@ -2,7 +2,7 @@ export interface Driver {
   id: string; // UUID from database
   name: string;
   toda: string;
-  status: "Active" | "Inactive";
+  status: "Active" | "Inactive" | "Restricted";
   phone: string;
   license: string;
   trips: number;
@@ -29,6 +29,7 @@ export interface Driver {
   adminActionReason?: string | null;
   adminActionDate?: string | null;
   adminActionBy?: string | null;
+  documentIssueReason?: string | null;
 }
 
 export interface Passenger {

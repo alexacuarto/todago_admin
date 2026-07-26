@@ -234,12 +234,12 @@ export default function DashboardView({
                           </button>
                           <button
                             onClick={() => handleDeactivateToggle(d.id)}
-                            className={`px-3 py-1 rounded-md text-[10px] font-bold transition-colors cursor-pointer ${d.status === "Active"
-                              ? "text-rose-500 bg-rose-50 hover:bg-rose-100"
-                              : "text-emerald-500 bg-emerald-50 hover:bg-emerald-100"
+                            className={`px-3 py-1 rounded-md text-[10px] font-bold transition-colors cursor-pointer ${d.status === "Restricted"
+                              ? "text-emerald-500 bg-emerald-50 hover:bg-emerald-100"
+                              : "text-rose-500 bg-rose-50 hover:bg-rose-100"
                               }`}
                           >
-                            {d.status === "Active" ? "Deactivate" : "Activate"}
+                            {d.status === "Restricted" ? "Reactivate" : "Suspend"}
                           </button>
                         </div>
                       </td>

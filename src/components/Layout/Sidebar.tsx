@@ -17,7 +17,7 @@ export default function Sidebar({
   const getTabClass = (tab: typeof activeTab) => {
     const isActive = activeTab === tab;
     if (isActive) {
-      return "flex items-center gap-3 px-5 py-3 font-extrabold text-[#172554] bg-white border-y-2 border-r-2 border-l-[6px] border-[#172554] shadow-sm transition-all text-left w-full cursor-pointer";
+      return "flex items-center gap-3 px-5 py-3 font-extrabold text-white bg-[#000C7D] border-y-2 border-r-2 border-l-[6px] border-[#000C7D] shadow-sm transition-all text-left w-full cursor-pointer";
     }
     return "flex items-center gap-3 px-5 py-3 font-bold text-[#000C7D] border-l-4 border-transparent hover:bg-white/40 transition-all text-left w-full cursor-pointer";
   };

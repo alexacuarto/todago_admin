@@ -92,73 +92,84 @@ export async function createDriverAccount(
       return { success: false, error: 'Admin is not logged in.' };
     }
 
+    let userId: string | undefined;
+
     // 1b. Pre-validate uniqueness
     console.log("Pre-validating uniqueness...");
     if (email) {
-      const { data: emailCheck } = await supabase.from('profiles').select('id').eq('email', email).maybeSingle();
-      if (emailCheck) {
-        console.error("Validation failed: Email already exists.");
-        return { success: false, error: 'Driver account already exists.' };
+      const { data: emailProfile } = await supabase.from('profiles').select('id, role').eq('email', email).maybeSingle();
+      if (emailProfile) {
+        const { data: driverCheck } = await supabase.from('drivers').select('id, document_status').eq('profile_id', emailProfile.id).maybeSingle();
+        if (driverCheck) {
+          if (driverCheck.document_status === 'VERIFIED') {
+            console.error("Validation failed: Email already exists as a verified driver.");
+            return { success: false, error: 'Driver account already exists.' };
+          }
+          console.log("Found incomplete driver record for email. Reusing existing user.");
+          userId = emailProfile.id;
+        } else if (emailProfile.role === 'passenger') {
+          console.error("Validation failed: Email registered to passenger.");
+          return { success: false, error: 'This email is already registered as a passenger account. Please use different credentials.' };
+        } else {
+          console.log("Found incomplete driver profile for email. Reusing existing profile.");
+          userId = emailProfile.id;
+        }
       }
     }
 
-    if (contactNumber) {
-      const { data: phoneCheck } = await supabase.from('profiles').select('id').eq('phone_number', contactNumber).maybeSingle();
-      if (phoneCheck) {
-        console.error("Validation failed: Phone number already exists.");
-        return { success: false, error: 'Driver account already exists.' };
+    if (contactNumber && !userId) {
+      const { data: phoneProfile } = await supabase.from('profiles').select('id, role').eq('phone_number', contactNumber).maybeSingle();
+      if (phoneProfile) {
+        const { data: driverCheck } = await supabase.from('drivers').select('id, document_status').eq('profile_id', phoneProfile.id).maybeSingle();
+        if (driverCheck) {
+          if (driverCheck.document_status === 'VERIFIED') {
+            console.error("Validation failed: Phone number already exists as a verified driver.");
+            return { success: false, error: 'Driver account already exists.' };
+          }
+          console.log("Found incomplete driver record for phone number. Reusing existing user.");
+          userId = phoneProfile.id;
+        } else if (phoneProfile.role === 'passenger') {
+          console.error("Validation failed: Phone number registered to passenger.");
+          return { success: false, error: 'This phone number is already registered as a passenger account. Please use different credentials.' };
+        } else {
+          console.log("Found incomplete driver profile for phone number. Reusing existing profile.");
+          userId = phoneProfile.id;
+        }
       }
     }
 
-    const { data: plateCheck } = await supabase.from('vehicles').select('id').eq('plate_number', plateNumber).maybeSingle();
-    if (plateCheck) {
-      console.error("Validation failed: Plate number already exists.");
-      return { success: false, error: 'Driver account already exists.' };
+    const { data: plateCheck } = await supabase
+      .from('vehicles')
+      .select(`
+        id,
+        driver_id,
+        drivers (
+          id,
+          profile_id,
+          profiles (
+            id
+          )
+        )
+      `)
+      .eq('plate_number', plateNumber)
+      .maybeSingle();
+
+    if (plateCheck && plateCheck.driver_id && plateCheck.drivers) {
+      const driverRec = plateCheck.drivers as any;
+      const profileRec = driverRec?.profiles;
+      const vehicleDriverProfileId = driverRec?.profile_id;
+
+      if (profileRec && vehicleDriverProfileId && vehicleDriverProfileId !== userId) {
+        console.error("Validation failed: Plate number already registered to another driver.");
+        return { success: false, error: 'Plate number already registered to another driver.' };
+      }
     }
 
-    // 2. Create auth user via signUp
-    console.log("Calling supabase.auth.signUp...");
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          first_name: firstName,
-          last_name: lastName,
-          phone_number: contactNumber,
-          role: 'driver',
-        },
-      },
-    });
-
-    if (signUpError) {
-      console.error("supabase.auth.signUp failed:", signUpError);
-      return { success: false, error: signUpError.message };
-    }
-
-    const userId = signUpData?.user?.id;
-    console.log("Auth user creation result. User ID:", userId);
-    if (!userId) {
-      console.error("signUpData lacks user.id:", signUpData);
-      return { success: false, error: 'User ID was not generated.' };
-    }
-
-    // 3. Restore admin session
-    console.log("Restoring admin session...");
-    const { error: restoreSessionError } = await supabase.auth.setSession({
-      access_token: adminSession.access_token,
-      refresh_token: adminSession.refresh_token,
-    });
-    if (restoreSessionError) {
-      console.error("Failed to restore admin session:", restoreSessionError);
-      return { success: false, error: `Restore admin session failed: ${restoreSessionError.message}` };
-    }
-
-    // 4. Call RPC
-    console.log("Calling create_driver_account RPC...");
+    // 2. Call direct RPC to create auth user, profile, driver, and vehicle in one transaction
+    console.log("Calling create_driver_account RPC (with auth bypass)...");
     const { data, error: rpcError } = await supabase.rpc('create_driver_account', {
-      p_user_id: userId,
       p_email: email,
+      p_password: password,
       p_first_name: firstName,
       p_last_name: lastName,
       p_phone: contactNumber,
@@ -169,14 +180,18 @@ export async function createDriverAccount(
     console.log("create_driver_account RPC Response Data:", data);
     if (rpcError) {
       console.error("create_driver_account RPC failed with error:", rpcError);
-      await supabase.rpc('rollback_user_creation', { p_user_id: userId });
-      return { success: false, error: rpcError.message };
+      return { success: false, error: rpcError.message || JSON.stringify(rpcError) };
     }
 
     if (!data?.success) {
       console.error("create_driver_account RPC returned success=false:", data);
-      await supabase.rpc('rollback_user_creation', { p_user_id: userId });
       return { success: false, error: data?.error || 'Database RPC reported failure.' };
+    }
+
+    userId = data?.user_id || userId;
+    if (!userId) {
+      console.error("RPC response lacks user_id:", data);
+      return { success: false, error: 'User ID was not generated or retrieved.' };
     }
 
     // 5. Upload document files if provided and update driver record
@@ -218,16 +233,16 @@ export async function createDriverAccount(
         if (updateError) throw updateError;
       }
     } catch (docError: any) {
-      console.error("Error during document uploads/saving; rolling back user...", docError);
-      await supabase.rpc('rollback_user_creation', { p_user_id: userId });
-      return { success: false, error: docError.message || String(docError) };
+      console.error("Error during document uploads/saving...", docError);
+      const docErrMsg = docError.message || JSON.stringify(docError) || String(docError);
+      return { success: false, error: docErrMsg };
     }
 
     console.log("Driver account creation completed successfully.");
     return { success: true, driverName: fullName };
   } catch (err: any) {
     console.error("Unexpected JavaScript exception in createDriverAccount:", err);
-    return { success: false, error: err.message || String(err) };
+    return { success: false, error: err.message || JSON.stringify(err) || String(err) };
   }
 
 }

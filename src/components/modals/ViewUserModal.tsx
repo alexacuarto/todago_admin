@@ -34,11 +34,10 @@ export default function ViewUserModal({
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [editToda, setEditToda] = useState("");
-  const [editPlate, setEditPlate] = useState("");
   const [isSavingInfo, setIsSavingInfo] = useState(false);
 
   // Admin Action Restrictions
-  const [activeAdminAction, setActiveAdminAction] = useState<"deactivate" | "suspend" | "delete" | "clear" | null>(null);
+  const [activeAdminAction, setActiveAdminAction] = useState<"suspend" | "delete" | "clear" | null>(null);
   const [adminReasonInput, setAdminReasonInput] = useState("");
   const [isExecutingAdminAction, setIsExecutingAdminAction] = useState(false);
 
@@ -52,6 +51,7 @@ export default function ViewUserModal({
   const [franchiseNo, setFranchiseNo] = useState("");
   const [franchiseExpiry, setFranchiseExpiry] = useState("");
   const [franchiseFile, setFranchiseFile] = useState<File | null>(null);
+  const [franchisePlateNo, setFranchisePlateNo] = useState("");
 
   const [isSavingDocs, setIsSavingDocs] = useState(false);
 
@@ -62,11 +62,11 @@ export default function ViewUserModal({
       setLicenseExpiry(viewingUser.licenseExpiryDate || "");
       setFranchiseNo(viewingUser.franchiseNumber || "");
       setFranchiseExpiry(viewingUser.franchiseExpiryDate || "");
+      setFranchisePlateNo(viewingUser.plateNumber || "");
       
       setEditName(viewingUser.name || "");
       setEditPhone(viewingUser.phone || "");
       setEditToda(viewingUser.toda || "LHITC-TODA");
-      setEditPlate(viewingUser.plateNumber || "");
 
       // Reset uploads
       setLicenseFrontFile(null);
@@ -160,6 +160,15 @@ export default function ViewUserModal({
       if (franchiseNo) updates.franchise_number = franchiseNo;
       if (franchiseExpiry) updates.franchise_expiry_date = franchiseExpiry;
 
+      // Update Plate Number in vehicles table
+      if (franchisePlateNo) {
+        const { error: vehicleError } = await supabase
+          .from('vehicles')
+          .update({ plate_number: franchisePlateNo })
+          .eq('driver_id', userId);
+        if (vehicleError) throw vehicleError;
+      }
+
       // Upload files if selected
       if (licenseFrontFile) {
         const frontUrl = await uploadDocFile(userId, licenseFrontFile, 'front');
@@ -180,15 +189,10 @@ export default function ViewUserModal({
         if (franchiseUrl) updates.franchise_url = franchiseUrl;
       }
 
-      const finalFront = licenseFrontFile ? true : !!viewingUser.licenseFrontUrl;
-      const finalBack = licenseBackFile ? true : !!viewingUser.licenseBackUrl;
-      const finalNo = licenseNo || (viewingUser.license && viewingUser.license !== "PENDING");
-      const finalExpiry = licenseExpiry || viewingUser.licenseExpiryDate;
-      const finalFranchise = franchiseFile ? true : !!viewingUser.franchiseUrl;
-      const finalFranchiseNo = franchiseNo || viewingUser.franchiseNumber;
-      const finalFranchiseExpiry = franchiseExpiry || viewingUser.franchiseExpiryDate;
-      const allDocsPresent = !!(finalFront && finalBack && finalNo && finalExpiry && finalFranchise && finalFranchiseNo && finalFranchiseExpiry);
-      updates.document_status = allDocsPresent ? 'VERIFIED' : 'PENDING';
+      // NOTE: document_status is intentionally NOT written here.
+      // The database trigger (fn_update_driver_status) automatically recalculates
+      // document_status, status, account_status, and is_online whenever any
+      // license or franchise field is updated.
 
       console.log("[Supabase Query] Updating driver documents/info...", updates);
       const { error } = await supabase
@@ -263,15 +267,7 @@ export default function ViewUserModal({
 
       if (driverError) throw driverError;
 
-      // 3. Update vehicles directly
-      const { error: vehicleError } = await supabase
-        .from('vehicles')
-        .update({ plate_number: editPlate })
-        .eq('driver_id', viewingUser.id);
 
-      if (vehicleError) {
-        console.warn("Vehicle update error (ignoring if vehicle wasn't created yet):", vehicleError);
-      }
 
       alert("Driver information updated successfully!");
       setIsEditingInfo(false);
@@ -340,8 +336,8 @@ export default function ViewUserModal({
 
         alert("Driver restriction removed successfully.");
       } else {
-        // Deactivate or Suspend
-        const actionType = activeAdminAction === "deactivate" ? "deactivated" : "suspended";
+        // Suspend
+        const actionType = "suspended";
         const { error } = await supabase
           .from('drivers')
           .update({
@@ -404,6 +400,21 @@ export default function ViewUserModal({
         </div>
 
         <div className="p-6 flex flex-col gap-5 text-left overflow-y-auto">
+          {/* Driver document restriction warning banner */}
+          {viewingUserType === "driver" && docStatus === "PENDING" && (
+            <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex flex-col gap-2 animate-in slide-in-from-top duration-200">
+              <div className="flex items-center gap-2 text-rose-800 font-extrabold text-xs uppercase tracking-wider">
+                <span>⚠️ Driver Access Restricted</span>
+              </div>
+              <p className="text-xs text-rose-700 font-semibold leading-relaxed">
+                <span className="font-bold">Reason:</span> {viewingUser.documentIssueReason || "Required documents missing"}
+              </p>
+              <p className="text-[11px] text-slate-500 font-medium leading-relaxed border-t border-rose-100 pt-2 mt-1">
+                <span className="font-bold text-[#000C7D]">Action Required:</span> Please coordinate with your TODA President to submit updated and valid documents. Your TODA President must provide the updated documents before your account can be activated again.
+              </p>
+            </div>
+          )}
+
           {/* DRIVER INFO SECTION */}
           {viewingUserType === "driver" && (
             <div className="flex flex-col gap-4">
@@ -454,16 +465,7 @@ export default function ViewUserModal({
                       <option value="CHOT-TODA">CHOT-TODA</option>
                     </select>
                   </div>
-                   <div className="flex flex-col gap-1 col-span-2">
-                    <label className="text-[10px] text-slate-400 font-bold uppercase">Plate Number</label>
-                    <input
-                      type="text"
-                      required
-                      value={editPlate}
-                      onChange={(e) => setEditPlate(e.target.value)}
-                      className="border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-[#000C7D] bg-white outline-hidden focus:border-blue-500"
-                    />
-                  </div>
+
                   <div className="col-span-2 flex justify-end gap-2 mt-2 pt-3 border-t border-slate-100">
                     <button
                       type="button"
@@ -679,13 +681,23 @@ export default function ViewUserModal({
                       className="border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-semibold text-[#000C7D]"
                     />
                   </div>
-                  <div className="flex flex-col gap-1">
+                   <div className="flex flex-col gap-1">
                     <label className="text-[9px] text-slate-400 font-bold uppercase">Franchise Expiry Date</label>
                     <input
                       type="date"
                       value={franchiseExpiry}
                       onChange={(e) => setFranchiseExpiry(e.target.value)}
                       className="border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-semibold text-[#000C7D] cursor-pointer"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[9px] text-slate-400 font-bold uppercase">Plate Number</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. AA 1234 / 123 ABC"
+                      value={franchisePlateNo}
+                      onChange={(e) => setFranchisePlateNo(e.target.value)}
+                      className="border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-semibold text-[#000C7D]"
                     />
                   </div>
                   <div className="flex flex-col gap-1">
@@ -891,21 +903,15 @@ export default function ViewUserModal({
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => {
-                      setActiveAdminAction("deactivate");
-                      setAdminReasonInput("");
-                    }}
-                    disabled={isExecutingAdminAction}
-                    className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
-                  >
-                    Deactivate Driver
-                  </button>
-                  <button
-                    onClick={() => {
                       setActiveAdminAction("suspend");
                       setAdminReasonInput("");
                     }}
                     disabled={isExecutingAdminAction}
-                    className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                      activeAdminAction === "suspend"
+                        ? "bg-[#000C7D] text-white border-[#000C7D]"
+                        : "bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-100/80"
+                    }`}
                   >
                     Suspend Driver
                   </button>
@@ -915,9 +921,13 @@ export default function ViewUserModal({
                       setAdminReasonInput("");
                     }}
                     disabled={isExecutingAdminAction}
-                    className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
+                    className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                      activeAdminAction === "delete"
+                        ? "bg-[#000C7D] text-white border-[#000C7D]"
+                        : "bg-rose-600 text-white border-rose-600 hover:bg-rose-700"
+                    }`}
                   >
-                    Delete Driver Account
+                    Remove Driver Account
                   </button>
                 </div>
 

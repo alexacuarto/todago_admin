@@ -9,7 +9,7 @@
 All three apps (Passenger, Driver, Admin) connect to the **same Supabase project**:
 
 ```
-URL:  https://ylvvjlrrcawnywrwsxzt.supabase.co
+URL:  
 Key:  (your VITE_SUPABASE_ANON_KEY — same anon key for all apps)
 ```
 
@@ -29,7 +29,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Supabase.initialize(
-    url: 'https://ylvvjlrrcawnywrwsxzt.supabase.co',
+    url: '',
     anonKey: 'YOUR_ANON_KEY',
   );
 

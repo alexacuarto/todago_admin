@@ -2,8 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const supabaseUrl = 'https://ylvvjlrrcawnywrwsxzt.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsdnZqbHJyY2F3bnl3cndzeHp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5NjA3NzcsImV4cCI6MjA5NzUzNjc3N30.cmREd7u7ZR3i_Ro9RWZwVRQfKyygv51rElRfW0XSCpI';
+const supabaseUrl = '';
+const supabaseAnonKey = '';
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
@@ -181,9 +181,9 @@ async function runTest() {
   const licenseBackPath = `${driverUserId}-back-${Date.now()}.png`;
   const franchisePath = `${driverUserId}-franchise-${Date.now()}.png`;
 
-  let frontUrl = `https://ylvvjlrrcawnywrwsxzt.supabase.co/storage/v1/object/public/driver-documents/${licenseFrontPath}`;
-  let backUrl = `https://ylvvjlrrcawnywrwsxzt.supabase.co/storage/v1/object/public/driver-documents/${licenseBackPath}`;
-  let franchiseUrl = `https://ylvvjlrrcawnywrwsxzt.supabase.co/storage/v1/object/public/driver-documents/${franchisePath}`;
+  let frontUrl = `/storage/v1/object/public/driver-documents/${licenseFrontPath}`;
+  let backUrl = `/storage/v1/object/public/driver-documents/${licenseBackPath}`;
+  let franchiseUrl = `/storage/v1/object/public/driver-documents/${franchisePath}`;
 
   try {
     console.log("Uploading license front...");

@@ -76,21 +76,18 @@ export default function LoginView({
     <div className="flex flex-col items-center justify-center min-h-screen bg-[#f3f8fc] p-4 text-center select-none font-sans">
       <div className="flex flex-col items-center w-full max-w-sm mt-4">
         {/* Uploaded Logo */}
-        <img src="/icons/login.png" alt="Tayabas TODA Go Logo" className="w-24 h-auto object-contain mt-10 mb-5" />
+        <img src="/branding/toda_go_logo_dark.png" alt="Tricycle Icon" className="w-56 h-auto object-contain mt-10 mb-5" />
 
-        {/* App Name */}
-        <h1 className="text-[#091b6f] font-bold text-lg tracking-wide text-center leading-none mt-1">
-          Tayabas TODA Go
-        </h1>
+        {/* App Description */}
         <p className="text-[#2b4bb5] text-sm tracking-wide mt-1">
           Booking App
         </p>
 
         {/* Welcome Headers */}
-        <h2 className="text-[#091b6f] font-extrabold text-[28px] tracking-tight mt-10 mb-1">
+        <h2 className="text-[#000C7D] font-extrabold text-[28px] tracking-tight mt-10 mb-1">
           Welcome Admin
         </h2>
-        <p className="text-[#091b6f]/80 text-sm font-medium mb-8">
+        <p className="text-[#000C7D]/80 text-sm font-medium mb-8">
           Log in to your admin account
         </p>
 
@@ -98,10 +95,10 @@ export default function LoginView({
         <form onSubmit={handleSubmit} className="w-full flex flex-col gap-5" autoComplete="off">
           {/* Email Field */}
           <div className="flex flex-col gap-1.5 w-full">
-            <label className="text-[#091b6f] text-sm font-medium self-start pl-1">
+            <label className="text-[#000C7D] text-sm font-medium self-start pl-1">
               Email
             </label>
-            <div className="bg-[#091b6f] text-white rounded-2xl flex items-center px-4 py-3.5 w-full transition-all">
+            <div className="bg-[#000C7D] text-white rounded-2xl flex items-center px-4 py-3.5 w-full transition-all">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/80 mr-3 shrink-0">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                 <circle cx="12" cy="7" r="4" />
@@ -123,10 +120,10 @@ export default function LoginView({
 
           {/* Password Field */}
           <div className="flex flex-col gap-1.5 w-full">
-            <label className="text-[#091b6f] text-sm font-medium self-start pl-1">
+            <label className="text-[#000C7D] text-sm font-medium self-start pl-1">
               Password
             </label>
-            <div className="bg-[#091b6f] text-white rounded-2xl flex items-center px-4 py-3.5 w-full transition-all relative">
+            <div className="bg-[#000C7D] text-white rounded-2xl flex items-center px-4 py-3.5 w-full transition-all relative">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/80 mr-3 shrink-0">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                 <path d="M7 11V7a5 5 0 0 1 10 0v4" />

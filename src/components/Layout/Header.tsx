@@ -1,4 +1,3 @@
-import React from "react";
 
 interface HeaderProps {
   adminProfile: {
@@ -6,7 +5,7 @@ interface HeaderProps {
     avatarUrl: string;
     avatarColor: string;
   };
-  setActiveTab: (tab: "dashboard" | "ride-requests" | "earnings" | "users" | "profile" | "create-driver") => void;
+  setActiveTab: (tab: "dashboard" | "ride-requests" | "earnings" | "users" | "profile" | "create-driver" | "fare-settings") => void;
   mobileMenuOpen: boolean;
   setMobileMenuOpen: (open: boolean) => void;
 }
@@ -18,7 +17,7 @@ export default function Header({
   setMobileMenuOpen,
 }: HeaderProps) {
   return (
-    <header className="bg-[#0b1b6e] text-white flex items-center justify-between px-6 py-3 shadow-md z-20 shrink-0">
+    <header className="bg-[#000C7D] text-white flex items-center justify-between px-6 py-3 shadow-md z-20 shrink-0">
       <div className="flex items-center gap-3">
         {/* Mobile menu hamburger */}
         <button
@@ -32,41 +31,29 @@ export default function Header({
             <line x1="3" y1="18" x2="21" y2="18" />
           </svg>
         </button>
-
-        <div className="flex items-center gap-2">
-          <span className="font-extrabold text-xl tracking-wider bg-white text-[#0b1b6e] px-2.5 py-0.5 rounded-md shadow-sm">
-            TodaGo
-          </span>
-          <span className="text-sky-200 text-xs font-semibold uppercase tracking-widest hidden sm:inline-block border-l border-white/20 pl-2">
-            Management Portal
-          </span>
-        </div>
       </div>
 
-      <div
+      <button
         onClick={() => setActiveTab("profile")}
-        className="flex items-center gap-3 cursor-pointer group relative"
+        className="text-sm font-bold text-white hover:text-white transition-colors cursor-pointer px-4 py-2 rounded-xl hover:bg-white/10 flex items-center gap-3"
       >
-        <div className="text-right hidden sm:block">
-          <p className="text-sm font-bold tracking-wide">{adminProfile.name}</p>
-          <p className="text-[10px] text-sky-200">System Operator</p>
-        </div>
+        <span>Admin Management</span>
 
-        {/* Beautiful Custom Avatar */}
-        <div className="relative">
+        {/* Profile Picture */}
+        <div className="relative shrink-0">
           {adminProfile.avatarUrl ? (
             <img
               src={adminProfile.avatarUrl}
               alt="Admin Avatar"
-              className="w-[38px] h-[38px] rounded-full object-cover shadow-inner border-2 border-sky-300"
+              className="w-[30px] h-[30px] rounded-full object-cover shadow-inner border-2 border-sky-300"
             />
           ) : (
-            <svg width="38" height="38" viewBox="0 0 40 40" className="rounded-full shadow-inner border-2 border-sky-300">
+            <svg width="30" height="30" viewBox="0 0 40 40" className="rounded-full shadow-inner border-2 border-sky-300">
               <circle cx="20" cy="20" r="18" fill={adminProfile.avatarColor || "#38bdf8"} />
-              <mask id="mask-avatar" maskUnits="userSpaceOnUse" x="2" y="2" width="36" height="36">
+              <mask id="mask-avatar-header" maskUnits="userSpaceOnUse" x="2" y="2" width="36" height="36">
                 <circle cx="20" cy="20" r="18" fill="#FFFFFF" />
               </mask>
-              <g mask="url(#mask-avatar)">
+              <g mask="url(#mask-avatar-header)">
                 <path d="M9 16C9 10 14 8 20 8C26 8 31 10 31 16C31 22 28 24 28 27C28 30 20 31 20 31C20 31 12 30 12 27C12 24 9 22 9 16Z" fill="#1e1b4b" />
                 <circle cx="20" cy="19" r="7" fill="#fed7aa" />
                 <path d="M14 15C16 13 18 13 20 14C22 13 24 13 26 15C26 15 24 11 20 11C16 11 14 15 14 15Z" fill="#1e1b4b" />
@@ -75,13 +62,13 @@ export default function Header({
               </g>
             </svg>
           )}
-          <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-[#0b1b6e] rounded-full"></span>
         </div>
 
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-sky-200 group-hover:text-white transition-colors">
+        {/* Dropdown Arrow */}
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-white">
           <polyline points="6 9 12 15 18 9" />
         </svg>
-      </div>
+      </button>
     </header>
   );
 }

@@ -47,11 +47,11 @@ export default function ProfileView({
   const [profileActionError, setProfileActionError] = useState("");
 
   return (
-    <div className="absolute inset-0 bg-[#bde5ff] flex items-start justify-center p-4 py-12 overflow-y-auto z-40 transition-all">
+    <div className="absolute inset-0 bg-[#f3f5fa] flex items-start justify-center p-4 py-12 overflow-y-auto z-40 transition-all">
       <div className="w-full max-w-lg flex flex-col items-center gap-4">
         {/* Header Title */}
-        <h2 className="text-[#091b6f] text-3xl font-extrabold tracking-wide text-center">
-          Profile (Admin)
+        <h2 className="text-[#000C7D] text-3xl font-extrabold tracking-wide text-center">
+          Profile
         </h2>
 
         {/* Main Rounded Card */}
@@ -94,7 +94,7 @@ export default function ProfileView({
             </div>
 
             {/* Admin Name & Badge */}
-            <h3 className="text-xl font-bold text-[#091b6f]">{adminProfile.name}</h3>
+            <h3 className="text-xl font-bold text-[#000C7D]">{adminProfile.name}</h3>
             <span className="px-4 py-0.5 bg-blue-100 text-blue-700 font-extrabold text-[10px] rounded-full uppercase tracking-wider border border-blue-200/50">
               Administrator
             </span>
@@ -136,7 +136,7 @@ export default function ProfileView({
                   setShowConfirmPassword(false);
                   setShowChangePasswordSubModal(true);
                 }}
-                className="px-5 py-1.5 border border-[#091b6f] hover:bg-sky-50 text-[#091b6f] text-xs font-bold rounded-full transition-colors cursor-pointer"
+                className="px-5 py-1.5 border border-[#000C7D] hover:bg-sky-50 text-[#000C7D] text-xs font-bold rounded-full transition-colors cursor-pointer"
               >
                 Change Password
               </button>
@@ -154,7 +154,7 @@ export default function ProfileView({
                   setProfileActionError("");
                   setShowEditNameSubModal(true);
                 }}
-                className="px-5 py-1.5 border border-[#091b6f] hover:bg-sky-50 text-[#091b6f] text-xs font-bold rounded-full transition-colors cursor-pointer"
+                className="px-5 py-1.5 border border-[#000C7D] hover:bg-sky-50 text-[#000C7D] text-xs font-bold rounded-full transition-colors cursor-pointer"
               >
                 Edit Name
               </button>
@@ -170,7 +170,7 @@ export default function ProfileView({
                 onClick={() => {
                   setShowChangePictureSubModal(true);
                 }}
-                className="px-5 py-1.5 border border-[#091b6f] hover:bg-sky-50 text-[#091b6f] text-xs font-bold rounded-full transition-colors cursor-pointer"
+                className="px-5 py-1.5 border border-[#000C7D] hover:bg-sky-50 text-[#000C7D] text-xs font-bold rounded-full transition-colors cursor-pointer"
               >
                 Change Picture
               </button>
@@ -200,7 +200,7 @@ export default function ProfileView({
       {showChangePasswordSubModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 transition-all animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100 p-6 flex flex-col gap-4">
-            <h3 className="text-[#091b6f] font-bold text-lg">Change Admin Password</h3>
+            <h3 className="text-[#000C7D] font-bold text-lg">Change Admin Password</h3>
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-1 text-left">
                 <label className="text-xs text-slate-500 font-bold uppercase tracking-wider">Current Password</label>
@@ -210,7 +210,7 @@ export default function ProfileView({
                     placeholder="Enter current password"
                     value={currentProfilePasswordInput}
                     onChange={(e) => setCurrentProfilePasswordInput(e.target.value)}
-                    className="border border-slate-200 rounded-lg pl-3 pr-10 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 text-[#091b6f] w-full"
+                    className="border border-slate-200 rounded-lg pl-3 pr-10 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 text-[#000C7D] w-full"
                   />
                   <button
                     type="button"
@@ -240,7 +240,7 @@ export default function ProfileView({
                     placeholder="Enter new password"
                     value={newProfilePasswordInput}
                     onChange={(e) => setNewProfilePasswordInput(e.target.value)}
-                    className="border border-slate-200 rounded-lg pl-3 pr-10 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 text-[#091b6f] w-full"
+                    className="border border-slate-200 rounded-lg pl-3 pr-10 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 text-[#000C7D] w-full"
                   />
                   <button
                     type="button"
@@ -270,7 +270,7 @@ export default function ProfileView({
                     placeholder="Confirm new password"
                     value={confirmProfilePasswordInput}
                     onChange={(e) => setConfirmProfilePasswordInput(e.target.value)}
-                    className="border border-slate-200 rounded-lg pl-3 pr-10 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 text-[#091b6f] w-full"
+                    className="border border-slate-200 rounded-lg pl-3 pr-10 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 text-[#000C7D] w-full"
                   />
                   <button
                     type="button"
@@ -334,7 +334,7 @@ export default function ProfileView({
       {showEditNameSubModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 transition-all animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100 p-6 flex flex-col gap-4">
-            <h3 className="text-[#091b6f] font-bold text-lg text-left">Edit Administrator Name</h3>
+            <h3 className="text-[#000C7D] font-bold text-lg text-left">Edit Administrator Name</h3>
             <div className="flex flex-col gap-1 text-left">
               <label className="text-xs text-slate-500 font-bold uppercase tracking-wider">New Name</label>
               <input
@@ -342,7 +342,7 @@ export default function ProfileView({
                 placeholder="Enter display name"
                 value={newProfileNameInput}
                 onChange={(e) => setNewProfileNameInput(e.target.value)}
-                className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 text-[#091b6f]"
+                className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 text-[#000C7D]"
               />
               {profileActionError && <p className="text-rose-500 text-xs font-bold text-center mt-2">{profileActionError}</p>}
             </div>
@@ -378,7 +378,7 @@ export default function ProfileView({
       {showChangePictureSubModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 transition-all animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100 p-6 flex flex-col gap-4">
-            <h3 className="text-[#091b6f] font-bold text-lg text-left">Change Profile Picture</h3>
+            <h3 className="text-[#000C7D] font-bold text-lg text-left">Change Profile Picture</h3>
 
             {/* Image Upload Area */}
             <div className="flex flex-col items-center gap-3 p-4 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50 hover:bg-slate-100/50 transition-all relative">
@@ -411,7 +411,7 @@ export default function ProfileView({
                 )}
               </div>
               <div className="text-center">
-                <p className="text-xs font-bold text-[#091b6f]">Click to upload a new picture</p>
+                <p className="text-xs font-bold text-[#000C7D]">Click to upload a new picture</p>
                 <p className="text-[10px] text-slate-400 mt-0.5">Supports PNG, JPG, or GIF</p>
               </div>
             </div>

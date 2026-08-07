@@ -1,5 +1,5 @@
 import React from "react";
-import { Driver } from "../../data/mockData";
+import { Driver } from "../../types";
 
 interface EditDriverModalProps {
   isOpen: boolean;
@@ -23,7 +23,7 @@ export default function EditDriverModal({
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4 transition-all">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        <div className="bg-[#0b1b6e] text-white px-6 py-4 flex items-center justify-between">
+        <div className="bg-[#000C7D] text-white px-6 py-4 flex items-center justify-between">
           <h3 className="font-bold text-lg">Edit Driver Account</h3>
           <button onClick={onClose} className="text-white/80 hover:text-white transition-colors cursor-pointer">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -33,79 +33,108 @@ export default function EditDriverModal({
           </button>
         </div>
 
-        <form onSubmit={onSubmit} className="p-6 flex flex-col gap-4 text-left">
+        <form onSubmit={onSubmit} className="p-6 flex flex-col gap-4 text-left max-h-[80vh] overflow-y-auto">
+          {/* Personal Info */}
+          <h4 className="text-xs font-bold text-[#000C7D] uppercase tracking-wider border-b pb-1">Personal Info</h4>
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Driver Full Name</label>
+            <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Driver Full Name</label>
             <input
               type="text"
               required
               value={editFormData.name}
               onChange={(e) => setEditFormData((prev: any) => ({ ...prev, name: e.target.value }))}
-              className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f]"
+              className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#000C7D]"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Phone</label>
-              <input
-                type="tel"
-                required
-                value={editFormData.phone}
-                onChange={(e) => setEditFormData((prev: any) => ({ ...prev, phone: e.target.value }))}
-                className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f]"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">License Number</label>
-              <input
-                type="text"
-                required
-                value={editFormData.license}
-                onChange={(e) => setEditFormData((prev: any) => ({ ...prev, license: e.target.value }))}
-                className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f]"
-              />
-            </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Phone</label>
+            <input
+              type="tel"
+              required
+              value={editFormData.phone}
+              onChange={(e) => setEditFormData((prev: any) => ({ ...prev, phone: e.target.value }))}
+              className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#000C7D]"
+            />
           </div>
+
+
 
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Body Number</label>
-              <input
-                type="text"
-                required
-                value={editFormData.bodyNumber}
-                onChange={(e) => setEditFormData((prev: any) => ({ ...prev, bodyNumber: e.target.value }))}
-                className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f]"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">TODA</label>
+              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">TODA</label>
               <select
                 value={editFormData.toda}
                 onChange={(e) => setEditFormData((prev: any) => ({ ...prev, toda: e.target.value }))}
-                className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold bg-white outline-hidden focus:border-blue-500 transition-all cursor-pointer text-[#091b6f]"
+                className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold bg-white outline-hidden focus:border-blue-500 transition-all cursor-pointer text-[#000C7D]"
               >
                 <option value="LHITC-TODA">LHITC-TODA</option>
                 <option value="BYPASS ILAYANG BAGUIO-TODA">BYPASS ILAYANG BAGUIO-TODA</option>
                 <option value="CHOT-TODA">CHOT-TODA</option>
               </select>
             </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Account Status</label>
+              <select
+                value={editFormData.status}
+                onChange={(e) => setEditFormData((prev: any) => ({ ...prev, status: e.target.value as "Active" | "Inactive" }))}
+                className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold bg-white outline-hidden focus:border-blue-500 transition-all cursor-pointer text-[#000C7D]"
+              >
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
           </div>
 
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Account Status</label>
-            <select
-              value={editFormData.status}
-              onChange={(e) => setEditFormData((prev: any) => ({ ...prev, status: e.target.value as "Active" | "Inactive" }))}
-              className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold bg-white outline-hidden focus:border-blue-500 transition-all cursor-pointer text-[#091b6f]"
-            >
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-            </select>
+          {/* License Info */}
+          <h4 className="text-xs font-bold text-[#000C7D] uppercase tracking-wider border-b pb-1">License Details</h4>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1 col-span-2">
+              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">License Number</label>
+              <input
+                type="text"
+                placeholder="Enter License Number"
+                value={editFormData.license}
+                onChange={(e) => setEditFormData((prev: any) => ({ ...prev, license: e.target.value }))}
+                className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#000C7D]"
+              />
+            </div>
+            <div className="flex flex-col gap-1 col-span-2">
+              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">License Expiry Date</label>
+              <input
+                type="date"
+                value={editFormData.licenseExpiryDate || ""}
+                onChange={(e) => setEditFormData((prev: any) => ({ ...prev, licenseExpiryDate: e.target.value }))}
+                className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 transition-all text-[#000C7D]"
+              />
+            </div>
           </div>
 
-          <div className="flex items-center justify-end gap-3 mt-5 pt-5 border-t border-slate-100">
+          {/* Franchise Info */}
+          <h4 className="text-xs font-bold text-[#000C7D] uppercase tracking-wider border-b pb-1">Franchise Details</h4>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1 col-span-2">
+              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Franchise Number</label>
+              <input
+                type="text"
+                placeholder="Enter Franchise Number"
+                value={editFormData.franchiseNumber || ""}
+                onChange={(e) => setEditFormData((prev: any) => ({ ...prev, franchiseNumber: e.target.value }))}
+                className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#000C7D]"
+              />
+            </div>
+            <div className="flex flex-col gap-1 col-span-2">
+              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Franchise Expiry Date</label>
+              <input
+                type="date"
+                value={editFormData.franchiseExpiryDate || ""}
+                onChange={(e) => setEditFormData((prev: any) => ({ ...prev, franchiseExpiryDate: e.target.value }))}
+                className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 transition-all text-[#000C7D]"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 mt-5 pt-5 border-t border-slate-100 shrink-0">
             <button
               type="button"
               onClick={onClose}

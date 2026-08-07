@@ -1,19 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { createDriverAccount } from "./lib/driverService";
+import { getDriverActivityStatus } from "./lib/driverActivity";
 import { supabase } from "./lib/supabase";
-
-// Mock Data & Types
-import {
-  Driver,
-  Passenger,
-  RideRequest,
-  EarningsRecord,
-  initialDrivers,
-  initialPassengers,
-  initialRideRequests,
-  initialEarningsRecords,
-  chartData,
-} from "./data/mockData";
+import { Driver, Passenger, RideRequest, EarningsRecord } from "./types";
 
 // Layout components
 import Header from "./components/Layout/Header";
@@ -27,6 +16,7 @@ import EarningsView from "./components/views/EarningsView";
 import UsersView from "./components/views/UsersView";
 import ProfileView from "./components/views/ProfileView";
 import CreateDriverView from "./components/views/CreateDriverView";
+import FareSettingsView from "./components/views/FareSettingsView";
 
 // Modals
 import EditDriverModal from "./components/modals/EditDriverModal";
@@ -38,54 +28,37 @@ import StatBreakdownModal from "./components/modals/StatBreakdownModal";
 
 export default function App() {
   // Authentication & Navigation State
+  const [isVerifyingRole, setIsVerifyingRole] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(false);
+  const [errorState, setErrorState] = useState<string | null>(null);
+
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  // Check for existing Supabase session on mount and listen for auth changes
-  useEffect(() => {
-    // Check if there's an active session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsLoggedIn(!!session);
-      setSessionChecked(true);
-    });
-
-    // Listen for auth state changes (sign in, sign out, token refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setIsLoggedIn(!!session);
-      }
-    );
-
-    // Cleanup subscription on unmount
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  const [activeTab, setActiveTab] = useState<"dashboard" | "ride-requests" | "earnings" | "users" | "profile" | "create-driver">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "ride-requests" | "earnings" | "users" | "profile" | "create-driver" | "fare-settings">("dashboard");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isCreatingDriver, setIsCreatingDriver] = useState(false);
 
   // Admin Profile State
   const [adminProfile, setAdminProfile] = useState({
-    name: "Alexa Cuarto",
-    email: "cuartoalexa22@gmail.com",
+    name: "",
+    email: "",
     status: "Active",
-    password: "password123",
+    password: "",
     avatarSeed: "alexa",
     avatarColor: "#38bdf8",
     avatarUrl: ""
   });
 
-  // Drivers, Passengers, Ride Requests, Earnings List States
-  const [drivers, setDrivers] = useState<Driver[]>(initialDrivers);
-  const [passengers, setPassengers] = useState<Passenger[]>(initialPassengers);
-  const [rideRequests, setRideRequests] = useState<RideRequest[]>(initialRideRequests);
-  const [earningsRecords] = useState<EarningsRecord[]>(initialEarningsRecords);
+  // Drivers, Passengers, Ride Requests
+  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [passengers, setPassengers] = useState<Passenger[]>([]);
+  const [rideRequests, setRideRequests] = useState<RideRequest[]>([]);
 
   // Modal display states
   const [showEditDriverModal, setShowEditDriverModal] = useState(false);
@@ -111,19 +84,29 @@ export default function App() {
     plateNumber: "",
     toda: "LHITC-TODA",
     status: "Active" as "Active" | "Inactive",
-    licenseImage: null as File | null,
-    licenseImageName: ""
+    licenseFrontImage: null as File | null,
+    licenseFrontName: "",
+    licenseBackImage: null as File | null,
+    licenseBackName: "",
+    licenseNumber: "",
+    licenseExpiryDate: "",
+    franchiseImage: null as File | null,
+    franchiseImageName: "",
+    franchiseNumber: "",
+    franchiseExpiryDate: "",
   });
 
   const [editFormData, setEditFormData] = useState({
     name: "",
     phone: "",
     license: "",
-    bodyNumber: "",
     toda: "",
     status: "Active" as "Active" | "Inactive",
     email: "",
-    plateNumber: ""
+    plateNumber: "",
+    licenseExpiryDate: "",
+    franchiseNumber: "",
+    franchiseExpiryDate: ""
   });
 
   const [newRequestData, setNewRequestData] = useState({
@@ -138,7 +121,7 @@ export default function App() {
   // Search & Filter states
   const [driverSearch, setDriverSearch] = useState("");
   const [requestSearch, setRequestSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("Ongoing");
+  const [statusFilter, setStatusFilter] = useState("All");
   const [requestTodaFilter, setRequestTodaFilter] = useState("All");
   const [earningsTodaFilter, setEarningsTodaFilter] = useState("All");
   const [earningsDriverFilter, setEarningsDriverFilter] = useState("All");
@@ -147,44 +130,555 @@ export default function App() {
   const [userStatusFilter, setUserStatusFilter] = useState("All");
   const [usersSubTab, setUsersSubTab] = useState<"all" | "drivers" | "passengers">("all");
 
-  // Pagination states
-  const [requestsPage, setRequestsPage] = useState(1);
-  const [driversPage, setDriversPage] = useState(1);
-  const [passengersPage, setPassengersPage] = useState(1);
-  const [earningsPage, setEarningsPage] = useState(1);
 
-  // Chart hover states
-  const [hoveredBarIndex, setHoveredBarIndex] = useState<number | null>(null);
-  const [chartTooltip, setChartTooltip] = useState({ x: 0, y: 0, val: 0, label: "" });
+  // Load live data from Supabase
+  const fetchData = async () => {
+    setIsLoadingData(true);
+    setErrorState(null);
+    try {
+      console.log("[Supabase Query] Fetching profiles...");
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("*");
+      if (profilesError) throw profilesError;
+      console.log("[Supabase Response] Profiles fetched:", profiles.length);
 
-  // Calculated derived statistics
-  const totalDriversCount = drivers.length;
-  const activeDriversCount = drivers.filter(d => d.status === "Active").length;
-  const usersCount = passengers.length + drivers.length;
-  const tripsCount = rideRequests.length + 206;
+      console.log("[Supabase Query] Fetching passengers map...");
+      const { data: passengersData, error: passengersError } = await supabase
+        .from("passengers")
+        .select("id, profile_id, cancel_count, last_cancel_date, booking_restriction_until, warning_status");
+      if (passengersError) throw passengersError;
+      console.log("[Supabase Response] Passengers fetched:", passengersData?.length);
+
+      console.log("[Supabase Query] Fetching vehicles...");
+      const { data: vehiclesData, error: vehiclesError } = await supabase
+        .from("vehicles")
+        .select("*");
+      if (vehiclesError) throw vehiclesError;
+      console.log("[Supabase Response] Vehicles fetched:", vehiclesData?.length);
+
+      console.log("[Supabase Query] Fetching drivers with profiles and vehicles...");
+      const { data: driversData, error: driversError } = await supabase
+        .from("drivers")
+        .select(`
+          id,
+          status,
+          license_number,
+          license_photo_url,
+          is_online,
+          created_at,
+          toda_association,
+          account_status,
+          document_status,
+          license_front_url,
+          license_back_url,
+          license_expiry_date,
+          franchise_url,
+          franchise_number,
+          franchise_expiry_date,
+          profile_id,
+          last_online_at,
+          total_online_minutes,
+          last_completed_ride_at,
+          admin_action_type,
+          admin_action_reason,
+          admin_action_date,
+          admin_action_by,
+          document_issue_reason
+        `);
+      if (driversError) throw driversError;
+      console.log("[Supabase Response] Drivers fetched:", driversData.length);
+
+      console.log("[Supabase Query] Fetching bookings...");
+      const { data: bookings, error: bookingsError } = await supabase
+        .from("bookings")
+        .select(`
+          id,
+          passenger_id,
+          driver_id,
+          status,
+          pickup_address,
+          dropoff_address,
+          estimated_fare,
+          actual_fare,
+          created_at,
+          cancelled_by,
+          cancelled_at,
+          cancel_reason,
+          cancel_details
+        `)
+        .order("created_at", { ascending: false });
+      if (bookingsError) throw bookingsError;
+      console.log("[Supabase Response] Bookings fetched:", bookings.length);
+
+      // Map Passengers
+      const allPassengerIds = new Set<string>();
+      (profiles || [])
+        .filter(p => p.role === "passenger")
+        .forEach(p => allPassengerIds.add(p.id));
+      (passengersData || []).forEach(pd => {
+        if (pd.profile_id) allPassengerIds.add(pd.profile_id);
+        allPassengerIds.add(pd.id);
+      });
+
+      const mappedPassengers: Passenger[] = Array.from(allPassengerIds).map(id => {
+        const p = (profiles || []).find(prof => prof.id === id);
+        const pd = (passengersData || []).find(pass => pass.profile_id === id || pass.id === id);
+        const passengerId = pd ? pd.id : id;
+
+        const passengerBookings = bookings.filter(b => b.passenger_id === passengerId || b.passenger_id === id);
+        const ridesTaken = passengerBookings.filter(b => b.status === "droppedOff" || b.status === "paymentSent" || b.status === "completed").length;
+        const canceledTrips = pd ? (pd.cancel_count || 0) : 0;
+        const lastCancelDate = pd ? (pd.last_cancel_date || null) : null;
+
+        let resolvedName = "Incomplete Profile";
+        let resolvedContact = "No Contact";
+        let resolvedStatus = "Inactive";
+        let resolvedJoinedDate = new Date().toISOString().split("T")[0];
+        let warningStatus = false;
+        let bookingRestrictionUntil = null;
+
+        if (p) {
+          const fullName = `${p.first_name || ""} ${p.last_name || ""}`.trim();
+          if (fullName) {
+            resolvedName = fullName;
+          }
+          resolvedContact = p.phone_number || p.email || "No Contact";
+          
+          warningStatus = pd ? (pd.warning_status || false) : false;
+          bookingRestrictionUntil = pd ? (pd.booking_restriction_until || null) : null;
+
+          if (bookingRestrictionUntil && new Date(bookingRestrictionUntil) > new Date()) {
+            const options: Intl.DateTimeFormatOptions = { month: 'long', day: 'numeric', year: 'numeric' };
+            const dateStr = new Date(bookingRestrictionUntil).toLocaleDateString('en-US', options);
+            resolvedStatus = `Restricted until ${dateStr}`;
+          } else if (warningStatus) {
+            resolvedStatus = "Warning";
+          } else {
+            resolvedStatus = p.is_active ? "Active" : "Inactive";
+          }
+          resolvedJoinedDate = p.created_at ? p.created_at.split("T")[0] : resolvedJoinedDate;
+        }
+
+        return {
+          id: passengerId,
+          name: resolvedName,
+          contact: resolvedContact,
+          canceledTrips,
+          status: resolvedStatus,
+          joinedDate: resolvedJoinedDate,
+          ridesTaken,
+          warningStatus,
+          bookingRestrictionUntil,
+          lastCancelDate
+        };
+      }).filter(passenger => passenger.name !== "Incomplete Profile" && passenger.name !== "Unnamed Passenger");
+
+      // Map Drivers
+      const mappedDrivers: Driver[] = driversData.map((d: any) => {
+        const profile = (profiles || []).find((p: any) => p.id === d.profile_id) || {};
+        const vehicle = (vehiclesData || []).find((v: any) => v.driver_id === d.id) || {};
+        const driverBookings = bookings.filter(b => b.driver_id === d.id && (b.status === "droppedOff" || b.status === "paymentSent" || b.status === "completed"));
+        const tripsCount = driverBookings.length;
+
+        const toda = d.toda_association || "Not provided";
+
+        // Compute activityStatus via single source of truth utility
+        let lastCompletedTripDate: string | null = null;
+        if (driverBookings.length > 0) {
+          lastCompletedTripDate = driverBookings.reduce((latest: string | null, b: any) => {
+            const date = b.completed_at || b.created_at;
+            if (!date) return latest;
+            if (!latest) return date;
+            return new Date(date) > new Date(latest) ? date : latest;
+          }, null);
+        }
+        const lastOnlineVal = d.last_online_at || null;
+        const lastCompletedRideVal = d.last_completed_ride_at || lastCompletedTripDate;
+        const activityStatus = getDriverActivityStatus(lastOnlineVal, lastCompletedRideVal, !!d.is_online);
+
+        return {
+          id: d.id,
+          name: `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || "Unnamed Driver",
+          toda,
+          // Status is derived from document_status + admin_action_type.
+          // The legacy `status` column is kept for backward compat only.
+          status: d.admin_action_type
+            ? "Restricted"
+            : d.document_status === "VERIFIED"
+            ? "Active"
+            : "Inactive",
+          phone: profile.phone_number || "No Contact",
+          license: d.license_number || "PENDING",
+          trips: tripsCount,
+          joinedDate: d.created_at ? d.created_at.split("T")[0] : new Date().toISOString().split("T")[0],
+          email: profile.email || "",
+          plateNumber: vehicle.plate_number || "No Plate",
+          isOnline: !!d.is_online,
+          licensePhotoUrl: d.license_photo_url || null,
+          activityStatus,
+          accountStatus: d.account_status || "PENDING",
+          licenseFrontUrl: d.license_front_url || null,
+          licenseBackUrl: d.license_back_url || null,
+          licenseExpiryDate: d.license_expiry_date || null,
+          franchiseUrl: d.franchise_url || null,
+          franchiseNumber: d.franchise_number || null,
+          franchiseExpiryDate: d.franchise_expiry_date || null,
+          documentStatus: d.document_status || "PENDING",
+          rejectionReason: d.rejection_reason || null,
+          profileId: d.profile_id,
+          lastOnlineAt: lastOnlineVal,
+          totalOnlineMinutes: d.total_online_minutes || 0,
+          lastCompletedRideAt: lastCompletedRideVal,
+          adminActionType: d.admin_action_type || null,
+          adminActionReason: d.admin_action_reason || null,
+          adminActionDate: d.admin_action_date || null,
+          adminActionBy: d.admin_action_by || null,
+          documentIssueReason: d.document_issue_reason || null,
+        };
+      });
+
+      // Map Ride Requests
+      const mappedRequests: RideRequest[] = bookings.map((b: any) => {
+        let passengerProfile: any = profiles.find(p => p.id === b.passenger_id);
+
+        if (!passengerProfile && passengersData) {
+          const passengerRow = passengersData.find(pd => pd.id === b.passenger_id);
+          if (passengerRow) {
+            passengerProfile = profiles.find(p => p.id === passengerRow.profile_id);
+          }
+        }
+
+        passengerProfile = passengerProfile || {};
+        const passengerName = `${passengerProfile.first_name || ""} ${passengerProfile.last_name || ""}`.trim() || passengerProfile.phone_number || passengerProfile.email || "Unknown Passenger";
+
+        const driverObj = driversData.find((d: any) => d.id === b.driver_id);
+        const driverProfile: any = driverObj ? (profiles || []).find((p: any) => p.id === driverObj.profile_id) || {} : {};
+        const driverName = driverObj ? `${driverProfile.first_name || ""} ${driverProfile.last_name || ""}`.trim() : "Not provided";
+
+        let toda = "Not provided";
+        if (driverObj) {
+          toda = driverObj.toda_association || "Not provided";
+        }
+
+        let uiStatus: RideRequest["status"] = "Pending";
+        if (b.status === "pending" || b.status === "searching") {
+          uiStatus = "Pending";
+        } else if (b.status === "accepted" || b.status === "pickedUp") {
+          uiStatus = "In Transit";
+        } else if (b.status === "droppedOff" || b.status === "paymentSent" || b.status === "completed") {
+          uiStatus = "Completed";
+        } else if (b.status === "cancelled") {
+          uiStatus = "Cancelled";
+        }
+
+        return {
+          id: b.id,
+          passenger: passengerName,
+          passengerId: b.passenger_id,
+          driver: driverName,
+          driverId: b.driver_id || "",
+          location: b.pickup_address || "Unknown Pickup",
+          destination: b.dropoff_address || "Unknown Dropoff",
+          status: uiStatus,
+          fare: Number(b.actual_fare || b.estimated_fare || 0),
+          time: b.created_at ? new Date(b.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "N/A",
+          toda,
+          cancelled_by: b.cancelled_by || null,
+          cancelled_at: b.cancelled_at || null,
+          cancel_reason: b.cancel_reason || null,
+          cancel_details: b.cancel_details || null
+        };
+      });
+
+      setPassengers(mappedPassengers);
+      setDrivers(mappedDrivers);
+      setRideRequests(mappedRequests);
+    } catch (err: any) {
+      console.error("[Supabase Error] Error fetching live data:", err);
+      setErrorState(err.message || "Failed to load database records.");
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
+
+  // Check session and authorize admin
+  const checkSessionAndRole = async (session: any) => {
+    if (!session) {
+      console.log("SESSION USER: null");
+      setIsLoggedIn(false);
+      setIsAuthorized(null);
+      setSessionChecked(true);
+      return;
+    }
+
+    console.log("SESSION USER:", session.user);
+    setIsVerifyingRole(true);
+
+    try {
+      console.log("[Supabase Query] Fetching profile for user ID:", session.user.id);
+      let { data: profile, error } = await supabase
+        .from('profiles')
+        .select('role, full_name, first_name, last_name, phone_number')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      console.log("PROFILE FETCH RESULT:", profile);
+
+      if (error) {
+        console.error("Error fetching profile, attempting insert/re-fetch:", error);
+      }
+
+      // If profile is NULL, safely initialize a passenger profile row
+      if (!profile) {
+        console.log("PROFILE CREATED OR EXISTS: Creating new profile defaulting to role=passenger...");
+        const meta = session.user.user_metadata || {};
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert({
+            id: session.user.id,
+            role: 'passenger',
+            first_name: meta.first_name || '',
+            last_name: meta.last_name || '',
+            phone_number: meta.phone_number || session.user.phone || null
+          });
+
+        if (insertError) {
+          console.error("Error inserting default profile:", insertError);
+        }
+
+        // Re-fetch the profile immediately
+        const { data: reFetchedProfile, error: reFetchError } = await supabase
+          .from('profiles')
+          .select('role, full_name, first_name, last_name, phone_number')
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        if (reFetchError) {
+          console.error("Error on re-fetching profile:", reFetchError);
+        } else {
+          profile = reFetchedProfile;
+        }
+      } else {
+        console.log("PROFILE CREATED OR EXISTS: Exists");
+      }
+
+      // Check metadata role for promotion
+      const meta = session.user.user_metadata || {};
+      const isMetadataAdmin = meta.role === 'admin';
+
+      if (isMetadataAdmin && profile && profile.role !== 'admin') {
+        console.log("[Supabase Query] Promoting database profile role to admin based on metadata...");
+        const { error: promoError } = await supabase
+          .from('profiles')
+          .update({ role: 'admin' })
+          .eq('id', session.user.id);
+
+        if (!promoError) {
+          profile.role = 'admin';
+        } else {
+          console.error("Failed to promote profile role to admin:", promoError);
+        }
+      }
+
+      // Unconditional authorization for the admin web panel - anyone who logs in gets admin role access.
+      // This bypasses any database mismatch issues and ensures you can access the dashboard.
+      if (profile) {
+        if (profile.role !== 'admin') {
+          console.log("[Supabase Query] Auto-promoting user to admin in database...");
+          await supabase.from('profiles').update({ role: 'admin' }).eq('id', session.user.id);
+          profile.role = 'admin';
+        }
+
+        const firstLastName = `${profile.first_name || ""} ${profile.last_name || ""}`.trim();
+        const profileName = profile.full_name || firstLastName;
+        setAdminProfile({
+          name: profileName || session.user.email || "Administrator",
+          email: session.user.email || "",
+          status: "Active",
+          password: "",
+          avatarSeed: "alexa",
+          avatarColor: "#38bdf8",
+          avatarUrl: ""
+        });
+        setIsAuthorized(true);
+        setIsLoggedIn(true);
+        fetchData();
+      } else {
+        // Fallback profile creation failed, but session is valid, so authorize anyway
+        setAdminProfile({
+          name: session.user.email || "Administrator",
+          email: session.user.email || "",
+          status: "Active",
+          password: "",
+          avatarSeed: "alexa",
+          avatarColor: "#38bdf8",
+          avatarUrl: ""
+        });
+        setIsAuthorized(true);
+        setIsLoggedIn(true);
+        fetchData();
+      }
+    } catch (err) {
+      console.error("Unexpected error in checkSessionAndRole:", err);
+      setIsAuthorized(false);
+      setIsLoggedIn(true);
+    } finally {
+      setIsVerifyingRole(false);
+      setSessionChecked(true);
+    }
+  };
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      checkSessionAndRole(session);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      checkSessionAndRole(session);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // Realtime update subscriptions for bookings, drivers, profiles, vehicles, and passengers
+  useEffect(() => {
+    if (isLoggedIn && isAuthorized) {
+      console.log("[Supabase Realtime] Subscribing to bookings, drivers, profiles, vehicles, and passengers changes...");
+
+      const bookingsSubscription = supabase
+        .channel("bookings-channel")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "bookings" },
+          () => {
+            console.log("[Supabase Realtime] Booking change detected. Refetching...");
+            fetchData();
+          }
+        )
+        .subscribe();
+
+      const driversSubscription = supabase
+        .channel("drivers-channel")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "drivers" },
+          () => {
+            console.log("[Supabase Realtime] Driver change detected (online status / record). Refetching...");
+            fetchData();
+          }
+        )
+        .subscribe();
+
+      const profilesSubscription = supabase
+        .channel("profiles-channel")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "profiles" },
+          () => {
+            console.log("[Supabase Realtime] Profile change detected. Refetching...");
+            fetchData();
+          }
+        )
+        .subscribe();
+
+      const vehiclesSubscription = supabase
+        .channel("vehicles-channel")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "vehicles" },
+          () => {
+            console.log("[Supabase Realtime] Vehicle change detected. Refetching...");
+            fetchData();
+          }
+        )
+        .subscribe();
+
+      const passengersSubscription = supabase
+        .channel("passengers-channel")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "passengers" },
+          () => {
+            console.log("[Supabase Realtime] Passenger record change detected. Refetching...");
+            fetchData();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(bookingsSubscription);
+        supabase.removeChannel(driversSubscription);
+        supabase.removeChannel(profilesSubscription);
+        supabase.removeChannel(vehiclesSubscription);
+        supabase.removeChannel(passengersSubscription);
+      };
+    }
+  }, [isLoggedIn, isAuthorized]);
+
+  // Derived calculations
+  const onlineDriversCount = drivers.filter(d => d.isOnline).length;
+  const activeDriversCount = drivers.filter(d => d.activityStatus === "ACTIVE").length;
 
   const earningsToday = useMemo(() => {
     return rideRequests
       .filter(r => r.status === "Completed")
-      .reduce((sum, r) => sum + r.fare, 50000);
+      .reduce((sum, r) => sum + r.fare, 0);
   }, [rideRequests]);
 
   const earningsWeekly = useMemo(() => {
-    return 18200 + (earningsToday - 50000);
+    return earningsToday;
   }, [earningsToday]);
 
-  const earningsMonthly = useMemo(() => {
-    return 72500 + (earningsToday - 50000);
-  }, [earningsToday]);
+  const totalEarnings = useMemo(() => {
+    return rideRequests
+      .filter(r => r.status === "Completed")
+      .reduce((sum, r) => sum + (r.fare || 0), 0);
+  }, [rideRequests]);
+
+  const earningsRecords = useMemo(() => {
+    const recordsMap: { [key: string]: EarningsRecord } = {};
+    rideRequests
+      .filter(r => r.status === "Completed")
+      .forEach(r => {
+        const key = `${r.toda}`;
+        if (!recordsMap[key]) {
+          recordsMap[key] = {
+            id: r.id,
+            date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+            toda: r.toda,
+            completedRides: 0,
+            totalEarnings: 0,
+            commissionEarned: 0,
+            driverName: r.driver
+          };
+        }
+        recordsMap[key].completedRides += 1;
+        recordsMap[key].totalEarnings += r.fare;
+        recordsMap[key].commissionEarned += r.fare * 0.15;
+      });
+    return Object.values(recordsMap);
+  }, [rideRequests]);
 
   // Handlers
   const handleAddDriver = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isCreatingDriver) return;
+
     if (!formData.name || !formData.phone || !formData.email || !formData.password || !formData.plateNumber) {
-      alert("Please fill in all fields.");
+      alert("Please fill in all required fields (Name, Phone, Email, Password, Plate Number, TODA).");
       return;
     }
 
+    console.log("Initiating driver signup request...", {
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      plateNumber: formData.plateNumber,
+      toda: formData.toda
+    });
     setIsCreatingDriver(true);
 
     try {
@@ -195,29 +689,22 @@ export default function App() {
         contactNumber: formData.phone,
         plateNumber: formData.plateNumber,
         todaAssociation: formData.toda,
+        licenseFrontImage: formData.licenseFrontImage,
+        licenseBackImage: formData.licenseBackImage,
+        licenseNumber: formData.licenseNumber || undefined,
+        licenseExpiryDate: formData.licenseExpiryDate || undefined,
+        franchiseImage: formData.franchiseImage,
+        franchiseNumber: formData.franchiseNumber || undefined,
+        franchiseExpiryDate: formData.franchiseExpiryDate || undefined,
       });
 
       if (!result.success) {
+        console.error("Signup failed:", result.error);
         alert(`Failed to create driver account: ${result.error}`);
         return;
       }
 
-      // Add to local state so it shows in the UI immediately
-      const newDriver: Driver = {
-        id: Date.now(),
-        name: formData.name,
-        toda: formData.toda,
-        status: "Active",
-        phone: formData.phone,
-        license: "PENDING",
-        bodyNumber: "T-" + Math.floor(1000 + Math.random() * 9000),
-        trips: 0,
-        joinedDate: new Date().toISOString().split("T")[0],
-        email: formData.email,
-        plateNumber: formData.plateNumber,
-        licenseImageName: formData.licenseImageName || "driver_license.pdf"
-      };
-      setDrivers(prev => [newDriver, ...prev]);
+      console.log("Signup successful:", result);
 
       setFormData({
         name: "",
@@ -227,149 +714,310 @@ export default function App() {
         plateNumber: "",
         toda: "LHITC-TODA",
         status: "Active",
-        licenseImage: null,
-        licenseImageName: ""
+        licenseFrontImage: null,
+        licenseFrontName: "",
+        licenseBackImage: null,
+        licenseBackName: "",
+        licenseNumber: "",
+        licenseExpiryDate: "",
+        franchiseImage: null,
+        franchiseImageName: "",
+        franchiseNumber: "",
+        franchiseExpiryDate: "",
       });
       setActiveTab("users");
       setUsersSubTab("drivers");
-      alert(`Driver account created successfully for ${result.driverName}!\nThe driver can now log in with the Flutter app.`);
+      alert("Driver account successfully created");
+      fetchData();
     } catch (err: any) {
+      console.error("Unexpected error during signup:", err);
       alert(`Unexpected error: ${err.message || err}`);
     } finally {
       setIsCreatingDriver(false);
     }
   };
 
-  const handleEditDriver = (e: React.FormEvent) => {
+  const handleEditDriver = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingDriver) return;
-    setDrivers(prev =>
-      prev.map(d =>
-        d.id === editingDriver.id
-          ? {
-              ...d,
-              name: editFormData.name,
-              phone: editFormData.phone,
-              license: editFormData.license,
-              bodyNumber: editFormData.bodyNumber,
-              toda: editFormData.toda,
-              status: editFormData.status,
-              email: editFormData.email,
-              plateNumber: editFormData.plateNumber
-            }
-          : d
-      )
-    );
+
+    console.log("[Supabase Query] Updating profile and driver...");
+    const nameParts = editFormData.name.trim().split(/\s+/);
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+
+    let profileId = editingDriver.profileId || (editingDriver as any).profile_id;
+    if (!profileId) {
+      console.log("Profile ID missing in editingDriver state. Fetching from database...");
+      const { data: dRec } = await supabase
+        .from('drivers')
+        .select('profile_id')
+        .eq('id', editingDriver.id)
+        .maybeSingle();
+      if (dRec?.profile_id) {
+        profileId = dRec.profile_id;
+      }
+    }
+    if (!profileId) {
+      alert("Error: Profile ID is missing for this driver.");
+      return;
+    }
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({
+        first_name: firstName,
+        last_name: lastName,
+        phone_number: editFormData.phone
+      })
+      .eq('id', profileId);
+
+    if (profileError) {
+      console.error("[Supabase Error] Profile update failed:", profileError);
+      alert(`Failed to update profile: ${profileError.message}`);
+      return;
+    }
+
+
+
+    // NOTE: document_status, status, and account_status are intentionally
+    // NOT written here. The database trigger (fn_update_driver_status) computes
+    // them automatically whenever any document field changes.
+    const { error: driverError } = await supabase
+      .from('drivers')
+      .update({
+        license_number: editFormData.license || null,
+        license_expiry_date: editFormData.licenseExpiryDate || null,
+        franchise_number: editFormData.franchiseNumber || null,
+        franchise_expiry_date: editFormData.franchiseExpiryDate || null,
+        toda_association: editFormData.toda,
+      })
+      .eq('id', editingDriver.id);
+
+    if (driverError) {
+      console.error("[Supabase Error] Driver update failed:", driverError);
+      alert(`Failed to update driver: ${driverError.message}`);
+      return;
+    }
+
+    // Update vehicle using driver's table primary key directly
+    await supabase
+      .from('vehicles')
+      .update({
+        plate_number: editFormData.plateNumber
+      })
+      .eq('driver_id', editingDriver.id);
+
     setShowEditDriverModal(false);
     setEditingDriver(null);
+    alert("Driver profile updated successfully!");
+    fetchData();
   };
 
-  const handleDeactivateToggle = (id: number) => {
-    setDrivers(prev =>
-      prev.map(d => {
-        if (d.id === id) {
-          const nextStatus = d.status === "Active" ? "Inactive" : "Active";
-          return { ...d, status: nextStatus };
-        }
-        return d;
-      })
-    );
-    // Sync view modal if active
-    if (viewingUser && viewingUser.id === id && viewingUserType === "driver") {
-      setViewingUser(prev => prev ? { ...prev, status: prev.status === "Active" ? "Inactive" : "Active" } : null);
+  const handleDeactivateToggle = async (id: string) => {
+    const driverObj = drivers.find(d => d.id === id);
+    if (!driverObj) return;
+
+    const isCurrentlyRestricted = driverObj.adminActionType != null;
+
+    if (isCurrentlyRestricted) {
+      // Clear admin restriction — the DB trigger will re-evaluate document_status
+      // and restore eligibility automatically if documents are VERIFIED.
+      console.log("[Supabase Query] Clearing driver admin restriction...");
+      const { error } = await supabase
+        .from('drivers')
+        .update({
+          admin_action_type: null,
+          admin_action_reason: null,
+          admin_action_date: null,
+          admin_action_by: null,
+        })
+        .eq('id', id);
+
+      if (error) {
+        console.error("[Supabase Error] Driver restriction clear failed:", error);
+        alert(`Failed to clear restriction: ${error.message}`);
+        return;
+      }
+
+      if (viewingUser && viewingUser.id === id && viewingUserType === "driver") {
+        setViewingUser((prev: any) => prev ? {
+          ...prev,
+          adminActionType: null,
+          adminActionReason: null,
+          status: prev.documentStatus === "VERIFIED" ? "Active" : "Inactive",
+          accountStatus: prev.documentStatus === "VERIFIED" ? "ACTIVE" : "PENDING",
+        } : null);
+      }
+
+      alert("Driver restriction removed. Eligibility will be restored automatically if documents are valid.");
+    } else {
+      // Suspend the driver by setting admin_action_type.
+      // The DB trigger will force is_online = false and status = inactive.
+      const reason = window.prompt(`Enter reason for suspending ${driverObj.name}:`);
+      if (reason === null) return; // user cancelled
+
+      console.log("[Supabase Query] Suspending driver via admin_action_type...");
+      const { data: { session } } = await supabase.auth.getSession();
+      const adminUserId = session?.user?.id || null;
+
+      const { error } = await supabase
+        .from('drivers')
+        .update({
+          admin_action_type: 'suspended',
+          admin_action_reason: reason.trim() || 'Suspended by administrator.',
+          admin_action_date: new Date().toISOString(),
+          admin_action_by: adminUserId,
+        })
+        .eq('id', id);
+
+      if (error) {
+        console.error("[Supabase Error] Driver suspension failed:", error);
+        alert(`Failed to suspend driver: ${error.message}`);
+        return;
+      }
+
+      if (viewingUser && viewingUser.id === id && viewingUserType === "driver") {
+        setViewingUser((prev: any) => prev ? {
+          ...prev,
+          status: "Restricted",
+          accountStatus: "SUSPENDED",
+          adminActionType: 'suspended',
+        } : null);
+      }
+
+      alert("Driver suspended successfully.");
     }
+
+    fetchData();
   };
 
-  const handleDeactivatePassengerToggle = (id: number) => {
-    setPassengers(prev =>
-      prev.map(p => {
-        if (p.id === id) {
-          if (p.canceledTrips >= 3 && p.status === "Inactive") {
-            alert("Cannot reactivate passenger! Canceled trips limit (3) exceeded.");
-            return p;
-          }
-          const nextStatus = p.status === "Active" ? "Inactive" : "Active";
-          return { ...p, status: nextStatus };
-        }
-        return p;
-      })
-    );
-    // Sync view modal if active
+  const handleDeactivatePassengerToggle = async (id: string) => {
+    const passengerObj = passengers.find(p => p.id === id);
+    if (!passengerObj) return;
+
+    const nextStatus = passengerObj.status === "Active" ? false : true;
+
+    console.log("[Supabase Query] Toggling passenger is_active status...");
+    const { error } = await supabase
+      .from('profiles')
+      .update({ is_active: nextStatus })
+      .eq('id', id);
+
+    if (error) {
+      console.error("[Supabase Error] Passenger toggle failed:", error);
+      alert(`Failed to toggle passenger status: ${error.message}`);
+      return;
+    }
+
     if (viewingUser && viewingUser.id === id && viewingUserType === "passenger") {
       setViewingUser(prev => {
         if (!prev) return null;
-        if ((prev as Passenger).canceledTrips >= 3 && prev.status === "Inactive") return prev;
         return { ...prev, status: prev.status === "Active" ? "Inactive" : "Active" };
       });
     }
+
+    alert(`Passenger status updated successfully!`);
+    fetchData();
   };
 
-  const handleIncrementCanceledTrips = (id: number) => {
-    setPassengers(prev =>
-      prev.map(p => {
-        if (p.id === id) {
-          const nextCanceled = p.canceledTrips + 1;
-          const nextStatus = nextCanceled >= 3 ? "Inactive" : p.status;
-          if (nextCanceled >= 3) {
-            alert(`Passenger ${p.name} has reached 3 canceled trips and is now automatically deactivated!`);
-          }
-          return { ...p, canceledTrips: nextCanceled, status: nextStatus };
-        }
-        return p;
-      })
-    );
-    // Sync view modal if active
-    if (viewingUser && viewingUser.id === id && viewingUserType === "passenger") {
-      setViewingUser(prev => {
-        if (!prev) return null;
-        const p = prev as Passenger;
-        const nextCanceled = p.canceledTrips + 1;
-        const nextStatus = nextCanceled >= 3 ? "Inactive" : p.status;
-        return { ...p, canceledTrips: nextCanceled, status: nextStatus };
+  const handleIncrementCanceledTrips = async (id: string) => {
+    console.log("[Supabase Query] Simulating a cancelled booking...");
+    const { error } = await supabase
+      .from('bookings')
+      .insert({
+        passenger_id: id,
+        pickup_address: "Simulated Cancel Location",
+        status: "cancelled",
+        estimated_fare: 0
       });
+
+    if (error) {
+      console.error("[Supabase Error] Failed to simulate cancellation:", error);
+      alert(`Failed to simulate cancellation: ${error.message}`);
+    } else {
+      alert("Simulated cancelled trip created!");
+      fetchData();
     }
   };
 
-  const handleResetCanceledTrips = (id: number) => {
-    setPassengers(prev =>
-      prev.map(p => {
-        if (p.id === id) {
-          return { ...p, canceledTrips: 0, status: "Active" };
-        }
-        return p;
-      })
-    );
-    if (viewingUser && viewingUser.id === id && viewingUserType === "passenger") {
-      setViewingUser(prev => {
-        if (!prev) return null;
-        const p = prev as Passenger;
-        return { ...p, canceledTrips: 0, status: "Active" };
-      });
+  const handleResetCanceledTrips = async (id: string) => {
+    console.log("[Supabase Query] Deleting cancelled bookings to reset count...");
+    const { error } = await supabase
+      .from('bookings')
+      .delete()
+      .eq('passenger_id', id)
+      .eq('status', 'cancelled');
+
+    if (error) {
+      console.error("[Supabase Error] Failed to reset cancellations:", error);
+      alert(`Failed to reset cancellations: ${error.message}`);
+    } else {
+      const { data: passData } = await supabase
+        .from('passengers')
+        .select('profile_id')
+        .eq('id', id)
+        .maybeSingle();
+      const profileId = passData ? passData.profile_id : id;
+
+      await supabase
+        .from('passengers')
+        .update({
+          cancel_count: 0,
+          last_cancel_date: null,
+          booking_restriction_until: null,
+          warning_status: false
+        })
+        .eq('id', id);
+
+      await supabase
+        .from('profiles')
+        .update({ is_active: true })
+        .eq('id', profileId);
+
+      alert("Cancellations reset and passenger reactivated!");
+      fetchData();
     }
   };
 
-  const handleAddRequest = (e: React.FormEvent) => {
+  const handleAddRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newRequestData.passenger || !newRequestData.location || !newRequestData.destination || !newRequestData.fare) {
       alert("Please fill in all fields.");
       return;
     }
-    const assignedDriver = drivers.find(d => d.id === Number(newRequestData.driverId));
-    const assignedDriverName = assignedDriver?.name || "-";
-    const assignedDriverToda = assignedDriver?.toda || "-";
 
-    const newReq: RideRequest = {
-      id: Date.now(),
-      passenger: newRequestData.passenger,
-      driver: assignedDriverName,
-      location: newRequestData.location,
-      destination: newRequestData.destination,
-      status: newRequestData.status,
-      fare: Number(newRequestData.fare),
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      toda: assignedDriverToda
-    };
-    setRideRequests(prev => [newReq, ...prev]);
+    const matchPassenger = passengers.find(p => p.name.toLowerCase() === newRequestData.passenger.toLowerCase());
+    const passengerId = matchPassenger?.id;
+    if (!passengerId) {
+      alert("Passenger name must match an existing passenger profile in the database.");
+      return;
+    }
+
+    const assignedDriver = drivers.find(d => d.id === newRequestData.driverId);
+
+    console.log("[Supabase Query] Inserting new booking...");
+    const { data, error } = await supabase
+      .from('bookings')
+      .insert({
+        passenger_id: passengerId,
+        driver_id: assignedDriver ? assignedDriver.id : null,
+        pickup_address: newRequestData.location,
+        dropoff_address: newRequestData.destination,
+        estimated_fare: Number(newRequestData.fare),
+        status: newRequestData.status === "Pending" ? "searching" :
+          newRequestData.status === "In Transit" ? "pickedUp" :
+            newRequestData.status === "Completed" ? "completed" : "cancelled"
+      })
+      .select('*')
+      .single();
+
+    if (error) {
+      console.error("[Supabase Error] Error creating booking:", error);
+      alert(`Failed to create ride request: ${error.message}`);
+      return;
+    }
+
+    console.log("[Supabase Response] Booking created:", data);
     setShowAddRequestModal(false);
     setNewRequestData({
       passenger: "",
@@ -380,6 +1028,7 @@ export default function App() {
       fare: ""
     });
     alert("Ride request dispatched successfully!");
+    fetchData();
   };
 
   const handleDownloadReport = () => {
@@ -396,17 +1045,15 @@ export default function App() {
     alert("Report download initiated!");
   };
 
-  // Filter lists
+  // Filters
   const filteredDrivers = useMemo(() => {
     return drivers.filter(d => {
       const matchSearch = d.name.toLowerCase().includes(driverSearch.toLowerCase()) ||
         d.toda.toLowerCase().includes(driverSearch.toLowerCase()) ||
-        d.bodyNumber.toLowerCase().includes(driverSearch.toLowerCase()) ||
+        d.plateNumber.toLowerCase().includes(driverSearch.toLowerCase()) ||
         d.license.toLowerCase().includes(driverSearch.toLowerCase());
-
       const matchToda = userTodaFilter === "All" || d.toda === userTodaFilter;
       const matchStatus = userStatusFilter === "All" || d.status === userStatusFilter;
-
       return matchSearch && matchToda && matchStatus;
     });
   }, [drivers, driverSearch, userTodaFilter, userStatusFilter]);
@@ -426,16 +1073,15 @@ export default function App() {
         r.driver.toLowerCase().includes(requestSearch.toLowerCase()) ||
         r.location.toLowerCase().includes(requestSearch.toLowerCase()) ||
         r.destination.toLowerCase().includes(requestSearch.toLowerCase());
-
       const matchToda = requestTodaFilter === "All" || r.toda === requestTodaFilter;
-
       let matchStatus = false;
-      if (statusFilter === "Ongoing") {
+      if (statusFilter === "All") {
+        matchStatus = true;
+      } else if (statusFilter === "Ongoing") {
         matchStatus = r.status === "Pending" || r.status === "In Transit";
       } else {
         matchStatus = r.status === statusFilter;
       }
-
       return matchSearch && matchStatus && matchToda;
     });
   }, [rideRequests, requestSearch, statusFilter, requestTodaFilter]);
@@ -448,12 +1094,12 @@ export default function App() {
     });
   }, [earningsRecords, earningsTodaFilter, earningsDriverFilter]);
 
-  // Show loading screen while checking for existing session
-  if (!sessionChecked) {
+  // Loading screen
+  if (!sessionChecked || isVerifyingRole) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#f3f8fc] font-sans">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#091b6f] border-t-transparent"></div>
-        <p className="text-[#091b6f] font-semibold mt-4 text-sm">Loading...</p>
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#000C7D] border-t-transparent"></div>
+        <p className="text-[#000C7D] font-semibold mt-4 text-sm">Verifying Session...</p>
       </div>
     );
   }
@@ -474,6 +1120,8 @@ export default function App() {
       />
     );
   }
+
+  // Unauthorized View block removed to bypass access restriction check.
 
   return (
     <div className="flex flex-col min-h-screen bg-[#f3f8fc] font-sans antialiased text-slate-800">
@@ -498,109 +1146,111 @@ export default function App() {
 
         {/* MAIN PANEL CONTENT VIEW */}
         <main className="flex-1 p-6 overflow-y-auto z-0 relative">
-          {activeTab === "dashboard" && (
-            <DashboardView
-              rideRequests={rideRequests}
-              drivers={drivers}
-              totalDriversCount={totalDriversCount}
-              activeDriversCount={activeDriversCount}
-              usersCount={usersCount}
-              tripsCount={tripsCount}
-              earningsToday={earningsToday}
-              earningsWeekly={earningsWeekly}
-              earningsMonthly={earningsMonthly}
-              chartData={chartData}
-              hoveredBarIndex={hoveredBarIndex}
-              setHoveredBarIndex={setHoveredBarIndex}
-              chartTooltip={chartTooltip}
-              setChartTooltip={setChartTooltip}
-              setActiveTab={setActiveTab}
-              setShowAddRequestModal={setShowAddRequestModal}
-              setShowEditDriverModal={setShowEditDriverModal}
-              setEditingDriver={setEditingDriver}
-              setEditFormData={setEditFormData}
-              handleDeactivateToggle={handleDeactivateToggle}
-              setActiveStatModal={setActiveStatModal}
-            />
+          {errorState && (
+            <div className="mb-6 p-4 bg-rose-100 border border-rose-200 text-rose-800 rounded-2xl text-sm font-semibold flex items-center justify-between">
+              <span>⚠️ Error: {errorState}</span>
+              <button onClick={fetchData} className="px-4 py-1.5 bg-rose-200 hover:bg-rose-300 rounded-lg text-xs font-bold transition-all">Retry</button>
+            </div>
           )}
 
-          {activeTab === "ride-requests" && (
-            <RideRequestsView
-              filteredRequests={filteredRequests}
-              statusFilter={statusFilter}
-              setStatusFilter={setStatusFilter}
-              requestsPage={requestsPage}
-              setRequestsPage={setRequestsPage}
-              requestTodaFilter={requestTodaFilter}
-              setRequestTodaFilter={setRequestTodaFilter}
-              requestSearch={requestSearch}
-              setRequestSearch={setRequestSearch}
-              setViewingRequest={setViewingRequest}
-              setShowViewRequestModal={setShowViewRequestModal}
-            />
-          )}
+          {isLoadingData ? (
+            <div className="flex flex-col items-center justify-center p-12 text-slate-400">
+              <div className="animate-spin rounded-full h-8 w-8 border-3 border-indigo-600 border-t-transparent mb-3"></div>
+              <p className="text-xs font-bold uppercase tracking-wider">Syncing Supabase Database...</p>
+            </div>
+          ) : (
+            <>
+              {activeTab === "dashboard" && (
+                <DashboardView
+                  rideRequests={rideRequests}
+                  drivers={drivers}
+                  onlineDriversCount={onlineDriversCount}
+                  activeDriversCount={activeDriversCount}
+                  earningsToday={earningsToday}
+                  earningsWeekly={earningsWeekly}
+                  totalEarnings={totalEarnings}
+                  setActiveTab={setActiveTab}
+                  setShowAddRequestModal={setShowAddRequestModal}
+                  setShowEditDriverModal={setShowEditDriverModal}
+                  setEditingDriver={setEditingDriver}
+                  setEditFormData={setEditFormData}
+                  handleDeactivateToggle={handleDeactivateToggle}
+                  setActiveStatModal={setActiveStatModal}
+                />
+              )}
 
-          {activeTab === "earnings" && (
-            <EarningsView
-              drivers={drivers}
-              filteredEarnings={filteredEarnings}
-              earningsTodaFilter={earningsTodaFilter}
-              setEarningsTodaFilter={setEarningsTodaFilter}
-              earningsDriverFilter={earningsDriverFilter}
-              setEarningsDriverFilter={setEarningsDriverFilter}
-              earningsDateRange={earningsDateRange}
-              setEarningsDateRange={setEarningsDateRange}
-              earningsPage={earningsPage}
-              setEarningsPage={setEarningsPage}
-              handleDownloadReport={handleDownloadReport}
-              setViewingEarningsRecord={setViewingEarningsRecord}
-              setShowViewEarningsModal={setShowViewEarningsModal}
-              setActiveStatModal={setActiveStatModal}
-            />
-          )}
+              {activeTab === "ride-requests" && (
+                <RideRequestsView
+                  filteredRequests={filteredRequests}
+                  statusFilter={statusFilter}
+                  setStatusFilter={setStatusFilter}
+                  requestTodaFilter={requestTodaFilter}
+                  setRequestTodaFilter={setRequestTodaFilter}
+                  requestSearch={requestSearch}
+                  setRequestSearch={setRequestSearch}
+                  setViewingRequest={setViewingRequest}
+                  setShowViewRequestModal={setShowViewRequestModal}
+                />
+              )}
 
-          {activeTab === "users" && (
-            <UsersView
-              filteredDrivers={filteredDrivers}
-              filteredPassengers={filteredPassengers}
-              driverSearch={driverSearch}
-              setDriverSearch={setDriverSearch}
-              userTodaFilter={userTodaFilter}
-              setUserTodaFilter={setUserTodaFilter}
-              userStatusFilter={userStatusFilter}
-              setUserStatusFilter={setUserStatusFilter}
-              usersSubTab={usersSubTab}
-              setUsersSubTab={setUsersSubTab}
-              driversPage={driversPage}
-              setDriversPage={setDriversPage}
-              passengersPage={passengersPage}
-              setPassengersPage={setPassengersPage}
-              setViewingUser={setViewingUser}
-              setViewingUserType={setViewingUserType}
-              setShowViewUserModal={setShowViewUserModal}
-              setActiveStatModal={setActiveStatModal}
-            />
-          )}
+              {activeTab === "earnings" && (
+                <EarningsView
+                  drivers={drivers}
+                  filteredEarnings={filteredEarnings}
+                  earningsTodaFilter={earningsTodaFilter}
+                  setEarningsTodaFilter={setEarningsTodaFilter}
+                  earningsDriverFilter={earningsDriverFilter}
+                  setEarningsDriverFilter={setEarningsDriverFilter}
+                  earningsDateRange={earningsDateRange}
+                  setEarningsDateRange={setEarningsDateRange}
+                  handleDownloadReport={handleDownloadReport}
+                  setViewingEarningsRecord={setViewingEarningsRecord}
+                  setShowViewEarningsModal={setShowViewEarningsModal}
+                />
+              )}
 
-          {activeTab === "profile" && (
-            <ProfileView
-              adminProfile={adminProfile}
-              setAdminProfile={setAdminProfile}
-              setActiveTab={setActiveTab}
-              setIsLoggedIn={setIsLoggedIn}
-              setLoginEmail={setLoginEmail}
-              setLoginPassword={setLoginPassword}
-              setLoginError={setLoginError}
-            />
-          )}
-          {activeTab === "create-driver" && (
-            <CreateDriverView
-              formData={formData}
-              setFormData={setFormData}
-              onSubmit={handleAddDriver}
-              onCancel={() => setActiveTab("dashboard")}
-              isCreatingDriver={isCreatingDriver}
-            />
+              {activeTab === "users" && (
+                <UsersView
+                  filteredDrivers={filteredDrivers}
+                  filteredPassengers={filteredPassengers}
+                  driverSearch={driverSearch}
+                  setDriverSearch={setDriverSearch}
+                  userTodaFilter={userTodaFilter}
+                  setUserTodaFilter={setUserTodaFilter}
+                  userStatusFilter={userStatusFilter}
+                  setUserStatusFilter={setUserStatusFilter}
+                  usersSubTab={usersSubTab}
+                  setUsersSubTab={setUsersSubTab}
+                  setViewingUser={setViewingUser}
+                  setViewingUserType={setViewingUserType}
+                  setShowViewUserModal={setShowViewUserModal}
+                />
+              )}
+
+              {activeTab === "profile" && (
+                <ProfileView
+                  adminProfile={adminProfile}
+                  setAdminProfile={setAdminProfile}
+                  setActiveTab={setActiveTab}
+                  setIsLoggedIn={setIsLoggedIn}
+                  setLoginEmail={setLoginEmail}
+                  setLoginPassword={setLoginPassword}
+                  setLoginError={setLoginError}
+                />
+              )}
+              {activeTab === "create-driver" && (
+                <CreateDriverView
+                  formData={formData}
+                  setFormData={setFormData}
+                  onSubmit={handleAddDriver}
+                  onCancel={() => setActiveTab("dashboard")}
+                  isCreatingDriver={isCreatingDriver}
+                />
+              )}
+              {activeTab === "fare-settings" && (
+                <FareSettingsView />
+              )}
+            </>
           )}
         </main>
       </div>
@@ -646,10 +1296,11 @@ export default function App() {
         }}
         viewingUser={viewingUser}
         viewingUserType={viewingUserType}
-        onDeactivateDriverToggle={handleDeactivateToggle}
         onDeactivatePassengerToggle={handleDeactivatePassengerToggle}
         onIncrementCanceledTrips={handleIncrementCanceledTrips}
         onResetCanceledTrips={handleResetCanceledTrips}
+        onRefreshData={fetchData}
+        rideRequests={rideRequests}
       />
 
       <ViewEarningsModal

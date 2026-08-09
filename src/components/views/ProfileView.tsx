@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { supabase } from "../../lib/supabase";
 
 interface AdminProfile {
   name: string;
@@ -8,31 +9,26 @@ interface AdminProfile {
   avatarUrl: string;
   avatarColor: string;
   avatarSeed: string;
-  isPrimaryAdmin: boolean;
 }
 
 interface ProfileViewProps {
-  isOpen: boolean;
   adminProfile: AdminProfile;
   setAdminProfile: React.Dispatch<React.SetStateAction<AdminProfile>>;
-  onClose: () => void;
-  onSaveProfile: (updates: {
-    fullName?: string;
-    avatarUrl?: string | null;
-    avatarColor?: string;
-  }) => Promise<void>;
-  onSavePassword: (currentPassword: string, newPassword: string) => Promise<void>;
-  onLogout: () => Promise<void>;
+  setActiveTab: (tab: "dashboard" | "ride-requests" | "earnings" | "users" | "profile") => void;
+  setIsLoggedIn: (loggedIn: boolean) => void;
+  setLoginEmail?: (email: string) => void;
+  setLoginPassword?: (password: string) => void;
+  setLoginError?: (err: string) => void;
 }
 
 export default function ProfileView({
-  isOpen,
   adminProfile,
   setAdminProfile,
-  onClose,
-  onSaveProfile,
-  onSavePassword,
-  onLogout,
+  setActiveTab,
+  setIsLoggedIn,
+  setLoginEmail,
+  setLoginPassword,
+  setLoginError,
 }: ProfileViewProps) {
   // Local sub-modal states
   const [showChangePasswordSubModal, setShowChangePasswordSubModal] = useState(false);
@@ -49,41 +45,22 @@ export default function ProfileView({
 
   const [newProfileNameInput, setNewProfileNameInput] = useState("");
   const [profileActionError, setProfileActionError] = useState("");
-  const [isSavingProfileAction, setIsSavingProfileAction] = useState(false);
-
-  if (!isOpen) return null;
-
-  const saveProfileUpdate = async (
-    updates: Parameters<typeof onSaveProfile>[0],
-    localUpdate: (prev: AdminProfile) => AdminProfile,
-    successMessage: string,
-    afterSave?: () => void,
-  ) => {
-    setIsSavingProfileAction(true);
-    setProfileActionError("");
-    try {
-      await onSaveProfile(updates);
-      setAdminProfile(localUpdate);
-      afterSave?.();
-      alert(successMessage);
-    } catch (error) {
-      setProfileActionError(`Unable to save profile: ${error instanceof Error ? error.message : error}`);
-    } finally {
-      setIsSavingProfileAction(false);
-    }
-  };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-start justify-center p-3 py-8 overflow-y-auto z-50 transition-all animate-in fade-in duration-200 sm:p-4 sm:py-12">
+    <div className="absolute inset-0 bg-[#f3f5fa] flex items-start justify-center p-4 py-12 overflow-y-auto z-40 transition-all">
       <div className="w-full max-w-lg flex flex-col items-center gap-4">
+        {/* Header Title */}
+        <h2 className="text-[#000C7D] text-3xl font-extrabold tracking-wide text-center">
+          Profile
+        </h2>
 
         {/* Main Rounded Card */}
-        <div className="bg-white rounded-xl shadow-lg w-full p-5 flex flex-col items-center gap-6 relative border border-blue-100 sm:p-8">
+        <div className="bg-white rounded-3xl shadow-xl w-full p-8 flex flex-col items-center gap-6 relative border border-blue-100">
           {/* Back Button / Close Icon */}
           <button
-            onClick={onClose}
+            onClick={() => setActiveTab("dashboard")}
             className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
-            title="Close profile"
+            title="Back to Dashboard"
           >
             <svg width="22" height="22" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" fill="none">
               <line x1="18" y1="6" x2="6" y2="18" />
@@ -117,9 +94,9 @@ export default function ProfileView({
             </div>
 
             {/* Admin Name & Badge */}
-            <h3 className="break-anywhere text-center text-xl font-bold text-[#091b6f]">{adminProfile.name}</h3>
-            <span className="break-anywhere px-4 py-0.5 bg-blue-100 text-blue-700 font-extrabold text-[10px] rounded-full uppercase tracking-wider border border-blue-200/50 text-center">
-              {adminProfile.isPrimaryAdmin ? "Primary Administrator" : "Administrator"}
+            <h3 className="text-xl font-bold text-[#000C7D]">{adminProfile.name}</h3>
+            <span className="px-4 py-0.5 bg-blue-100 text-blue-700 font-extrabold text-[10px] rounded-full uppercase tracking-wider border border-blue-200/50">
+              Administrator
             </span>
           </div>
 
@@ -128,22 +105,22 @@ export default function ProfileView({
             {/* Email Section */}
             <div className="py-4 flex flex-col gap-1 text-left">
               <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Email</span>
-              <span className="break-anywhere text-sm font-semibold text-slate-700">{adminProfile.email}</span>
+              <span className="text-sm font-semibold text-slate-700">{adminProfile.email}</span>
             </div>
 
             {/* Account Status Section */}
             <div className="py-4 flex flex-col gap-1 text-left">
               <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Account Status</span>
-              <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
+              <div className="flex items-center gap-2">
                 <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-700 font-extrabold text-[10px] rounded-md">
                   {adminProfile.status}
                 </span>
-                <span className="break-anywhere text-xs text-slate-400 font-semibold">Your account is active and in good standing.</span>
+                <span className="text-xs text-slate-400 font-semibold">Your account is active and in good standing.</span>
               </div>
             </div>
 
             {/* Password Section */}
-            <div className="py-4 flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
+            <div className="py-4 flex items-center justify-between gap-4">
               <div className="flex flex-col gap-1 text-left">
                 <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Password</span>
                 <span className="text-sm font-bold text-slate-600">{"•".repeat(adminProfile.password.length)}</span>
@@ -159,17 +136,17 @@ export default function ProfileView({
                   setShowConfirmPassword(false);
                   setShowChangePasswordSubModal(true);
                 }}
-                className="px-5 py-2 border border-[#091b6f] hover:bg-sky-50 text-[#091b6f] text-xs font-bold rounded-full transition-colors cursor-pointer"
+                className="px-5 py-1.5 border border-[#000C7D] hover:bg-sky-50 text-[#000C7D] text-xs font-bold rounded-full transition-colors cursor-pointer"
               >
                 Change Password
               </button>
             </div>
 
             {/* Name Section */}
-            <div className="py-4 flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
+            <div className="py-4 flex items-center justify-between gap-4">
               <div className="flex flex-col gap-1 text-left">
                 <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Name</span>
-                <span className="break-anywhere text-sm font-bold text-slate-700">{adminProfile.name}</span>
+                <span className="text-sm font-bold text-slate-700">{adminProfile.name}</span>
               </div>
               <button
                 onClick={() => {
@@ -177,14 +154,14 @@ export default function ProfileView({
                   setProfileActionError("");
                   setShowEditNameSubModal(true);
                 }}
-                className="px-5 py-2 border border-[#091b6f] hover:bg-sky-50 text-[#091b6f] text-xs font-bold rounded-full transition-colors cursor-pointer"
+                className="px-5 py-1.5 border border-[#000C7D] hover:bg-sky-50 text-[#000C7D] text-xs font-bold rounded-full transition-colors cursor-pointer"
               >
                 Edit Name
               </button>
             </div>
 
             {/* Profile Picture Section */}
-            <div className="py-4 flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
+            <div className="py-4 flex items-center justify-between gap-4">
               <div className="flex flex-col gap-1 text-left">
                 <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Profile Picture</span>
                 <span className="text-xs text-slate-400 font-semibold">Update your profile picture</span>
@@ -193,7 +170,7 @@ export default function ProfileView({
                 onClick={() => {
                   setShowChangePictureSubModal(true);
                 }}
-                className="px-5 py-2 border border-[#091b6f] hover:bg-sky-50 text-[#091b6f] text-xs font-bold rounded-full transition-colors cursor-pointer"
+                className="px-5 py-1.5 border border-[#000C7D] hover:bg-sky-50 text-[#000C7D] text-xs font-bold rounded-full transition-colors cursor-pointer"
               >
                 Change Picture
               </button>
@@ -202,12 +179,17 @@ export default function ProfileView({
 
           {/* Logout Button */}
           <button
-            onClick={() => {
+            onClick={async () => {
               if (confirm("Are you sure you want to log out?")) {
-                void onLogout();
+                await supabase.auth.signOut();
+                setIsLoggedIn(false);
+                setActiveTab("dashboard");
+                if (setLoginEmail) setLoginEmail("");
+                if (setLoginPassword) setLoginPassword("");
+                if (setLoginError) setLoginError("");
               }
             }}
-            className="w-full bg-[#ef2b2b] hover:bg-red-600 text-white font-bold py-3.5 px-6 rounded-lg shadow-sm hover:shadow transition-all cursor-pointer text-center text-sm uppercase tracking-wider"
+            className="w-full bg-[#ef2b2b] hover:bg-red-600 text-white font-bold py-3.5 px-6 rounded-2xl shadow-md hover:shadow-lg transition-all cursor-pointer text-center text-sm uppercase tracking-wider"
           >
             Logout
           </button>
@@ -217,8 +199,8 @@ export default function ProfileView({
       {/* CHANGE PASSWORD SUB-MODAL */}
       {showChangePasswordSubModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 transition-all animate-in fade-in duration-200">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100 p-6 flex flex-col gap-4">
-            <h3 className="text-[#091b6f] font-bold text-lg">Change Admin Password</h3>
+          <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100 p-6 flex flex-col gap-4">
+            <h3 className="text-[#000C7D] font-bold text-lg">Change Admin Password</h3>
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-1 text-left">
                 <label className="text-xs text-slate-500 font-bold uppercase tracking-wider">Current Password</label>
@@ -228,7 +210,7 @@ export default function ProfileView({
                     placeholder="Enter current password"
                     value={currentProfilePasswordInput}
                     onChange={(e) => setCurrentProfilePasswordInput(e.target.value)}
-                    className="border border-slate-200 rounded-lg pl-3 pr-10 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 text-[#091b6f] w-full"
+                    className="border border-slate-200 rounded-lg pl-3 pr-10 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 text-[#000C7D] w-full"
                   />
                   <button
                     type="button"
@@ -258,7 +240,7 @@ export default function ProfileView({
                     placeholder="Enter new password"
                     value={newProfilePasswordInput}
                     onChange={(e) => setNewProfilePasswordInput(e.target.value)}
-                    className="border border-slate-200 rounded-lg pl-3 pr-10 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 text-[#091b6f] w-full"
+                    className="border border-slate-200 rounded-lg pl-3 pr-10 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 text-[#000C7D] w-full"
                   />
                   <button
                     type="button"
@@ -288,7 +270,7 @@ export default function ProfileView({
                     placeholder="Confirm new password"
                     value={confirmProfilePasswordInput}
                     onChange={(e) => setConfirmProfilePasswordInput(e.target.value)}
-                    className="border border-slate-200 rounded-lg pl-3 pr-10 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 text-[#091b6f] w-full"
+                    className="border border-slate-200 rounded-lg pl-3 pr-10 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 text-[#000C7D] w-full"
                   />
                   <button
                     type="button"
@@ -322,8 +304,11 @@ export default function ProfileView({
               </button>
               <button
                 type="button"
-                disabled={isSavingProfileAction}
-                onClick={async () => {
+                onClick={() => {
+                  if (currentProfilePasswordInput !== adminProfile.password) {
+                    setProfileActionError("Current password is incorrect.");
+                    return;
+                  }
                   if (!newProfilePasswordInput) {
                     setProfileActionError("New password cannot be empty.");
                     return;
@@ -332,22 +317,13 @@ export default function ProfileView({
                     setProfileActionError("Passwords do not match.");
                     return;
                   }
-                  setIsSavingProfileAction(true);
-                  setProfileActionError("");
-                  try {
-                    await onSavePassword(currentProfilePasswordInput, newProfilePasswordInput);
-                    setAdminProfile((prev) => ({ ...prev, password: newProfilePasswordInput }));
-                    setShowChangePasswordSubModal(false);
-                    alert("Password updated successfully!");
-                  } catch (error) {
-                    setProfileActionError(error instanceof Error ? error.message : String(error));
-                  } finally {
-                    setIsSavingProfileAction(false);
-                  }
+                  setAdminProfile((prev) => ({ ...prev, password: newProfilePasswordInput }));
+                  setShowChangePasswordSubModal(false);
+                  alert("Password updated successfully!");
                 }}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition-colors cursor-pointer"
               >
-                {isSavingProfileAction ? "Saving..." : "Save Password"}
+                Save Password
               </button>
             </div>
           </div>
@@ -357,8 +333,8 @@ export default function ProfileView({
       {/* EDIT NAME SUB-MODAL */}
       {showEditNameSubModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 transition-all animate-in fade-in duration-200">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100 p-6 flex flex-col gap-4">
-            <h3 className="text-[#091b6f] font-bold text-lg text-left">Edit Administrator Name</h3>
+          <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100 p-6 flex flex-col gap-4">
+            <h3 className="text-[#000C7D] font-bold text-lg text-left">Edit Administrator Name</h3>
             <div className="flex flex-col gap-1 text-left">
               <label className="text-xs text-slate-500 font-bold uppercase tracking-wider">New Name</label>
               <input
@@ -366,7 +342,7 @@ export default function ProfileView({
                 placeholder="Enter display name"
                 value={newProfileNameInput}
                 onChange={(e) => setNewProfileNameInput(e.target.value)}
-                className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 text-[#091b6f]"
+                className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 text-[#000C7D]"
               />
               {profileActionError && <p className="text-rose-500 text-xs font-bold text-center mt-2">{profileActionError}</p>}
             </div>
@@ -380,22 +356,18 @@ export default function ProfileView({
               </button>
               <button
                 type="button"
-                disabled={isSavingProfileAction}
                 onClick={() => {
                   if (!newProfileNameInput.trim()) {
                     setProfileActionError("Name cannot be empty.");
                     return;
                   }
-                  void saveProfileUpdate(
-                    { fullName: newProfileNameInput },
-                    (prev) => ({ ...prev, name: newProfileNameInput.trim() }),
-                    "Administrator name updated!",
-                    () => setShowEditNameSubModal(false),
-                  );
+                  setAdminProfile((prev) => ({ ...prev, name: newProfileNameInput }));
+                  setShowEditNameSubModal(false);
+                  alert("Administrator name updated!");
                 }}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition-colors cursor-pointer"
               >
-                {isSavingProfileAction ? "Saving..." : "Save Name"}
+                Save Name
               </button>
             </div>
           </div>
@@ -405,11 +377,11 @@ export default function ProfileView({
       {/* CHANGE PICTURE SUB-MODAL */}
       {showChangePictureSubModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 transition-all animate-in fade-in duration-200">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100 p-6 flex flex-col gap-4">
-            <h3 className="text-[#091b6f] font-bold text-lg text-left">Change Profile Picture</h3>
+          <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100 p-6 flex flex-col gap-4">
+            <h3 className="text-[#000C7D] font-bold text-lg text-left">Change Profile Picture</h3>
 
             {/* Image Upload Area */}
-            <div className="flex flex-col items-center gap-3 p-4 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50 hover:bg-slate-100/50 transition-all relative">
+            <div className="flex flex-col items-center gap-3 p-4 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50 hover:bg-slate-100/50 transition-all relative">
               <input
                 type="file"
                 accept="image/*"
@@ -418,12 +390,8 @@ export default function ProfileView({
                   if (file) {
                     const reader = new FileReader();
                     reader.onloadend = () => {
-                      const avatarUrl = reader.result as string;
-                      void saveProfileUpdate(
-                        { avatarUrl },
-                        (prev) => ({ ...prev, avatarUrl }),
-                        "Profile picture uploaded successfully!",
-                      );
+                      setAdminProfile((prev) => ({ ...prev, avatarUrl: reader.result as string }));
+                      alert("Profile picture uploaded successfully!");
                     };
                     reader.readAsDataURL(file);
                   }
@@ -443,7 +411,7 @@ export default function ProfileView({
                 )}
               </div>
               <div className="text-center">
-                <p className="text-xs font-bold text-[#091b6f]">Click to upload a new picture</p>
+                <p className="text-xs font-bold text-[#000C7D]">Click to upload a new picture</p>
                 <p className="text-[10px] text-slate-400 mt-0.5">Supports PNG, JPG, or GIF</p>
               </div>
             </div>
@@ -452,11 +420,8 @@ export default function ProfileView({
               <button
                 type="button"
                 onClick={() => {
-                  void saveProfileUpdate(
-                    { avatarUrl: null },
-                    (prev) => ({ ...prev, avatarUrl: "" }),
-                    "Custom profile picture removed.",
-                  );
+                  setAdminProfile((prev) => ({ ...prev, avatarUrl: "" }));
+                  alert("Custom profile picture removed.");
                 }}
                 className="w-full py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl font-bold text-xs transition-colors cursor-pointer border border-rose-100"
               >
@@ -479,17 +444,15 @@ export default function ProfileView({
                   key={theme.color}
                   type="button"
                   onClick={() => {
-                    void saveProfileUpdate(
-                      { avatarColor: theme.color, avatarUrl: null },
-                      (prev) => ({ ...prev, avatarColor: theme.color, avatarUrl: "" }),
-                      `Profile accent updated to ${theme.name}!`,
-                      () => setShowChangePictureSubModal(false),
-                    );
+                    setAdminProfile((prev) => ({ ...prev, avatarColor: theme.color, avatarUrl: "" }));
+                    setShowChangePictureSubModal(false);
+                    alert(`Profile accent updated to ${theme.name}!`);
                   }}
-                  className={`border rounded-xl p-3 flex flex-col items-center gap-2.5 transition-all cursor-pointer ${!adminProfile.avatarUrl && adminProfile.avatarColor === theme.color
+                  className={`border rounded-2xl p-3 flex flex-col items-center gap-2.5 transition-all hover:scale-[1.02] cursor-pointer ${
+                    !adminProfile.avatarUrl && adminProfile.avatarColor === theme.color
                       ? "border-blue-500 bg-blue-50/50"
                       : "border-slate-200 hover:border-blue-300 hover:bg-slate-50/50"
-                    }`}
+                  }`}
                 >
                   <div
                     className="w-10 h-10 rounded-full border-2 border-white shadow-inner flex items-center justify-center"

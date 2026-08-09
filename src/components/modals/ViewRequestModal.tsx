@@ -4,26 +4,22 @@ interface ViewRequestModalProps {
   isOpen: boolean;
   onClose: () => void;
   viewingRequest: RideRequest | null;
-  isSuperAdmin: boolean;
-  onDeleteBooking: (rideId: string | number) => Promise<boolean>;
 }
 
 export default function ViewRequestModal({
   isOpen,
   onClose,
   viewingRequest,
-  isSuperAdmin,
-  onDeleteBooking,
 }: ViewRequestModalProps) {
   if (!isOpen || !viewingRequest) return null;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-3 transition-all animate-in fade-in duration-200 sm:p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[92vh] overflow-hidden border border-slate-100 flex flex-col">
-        <div className="bg-[#0b1b6e] text-white px-4 py-5 flex items-center justify-between gap-3 sm:px-6">
-          <div className="min-w-0 text-left">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 transition-all animate-in fade-in duration-200">
+      <div className="bg-white rounded-3xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-100 flex flex-col">
+        <div className="bg-[#000C7D] text-white px-6 py-5 flex items-center justify-between">
+          <div className="text-left">
             <span className="text-xs font-bold uppercase tracking-wider text-sky-200">Ride Booking Audit</span>
-            <h3 className="break-anywhere font-bold text-base sm:text-lg">Request #{viewingRequest.id.toString().slice(-6)}</h3>
+            <h3 className="font-bold text-lg">Request #{viewingRequest.id.toString().slice(-6)}</h3>
           </div>
           <button onClick={onClose} className="text-white/85 hover:text-white transition-colors cursor-pointer">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -33,106 +29,92 @@ export default function ViewRequestModal({
           </button>
         </div>
 
-        <div className="p-4 flex flex-col gap-6 text-left overflow-y-auto sm:p-6">
-          <div className="grid grid-cols-1 gap-x-6 gap-y-4 text-sm md:grid-cols-3">
+        <div className="p-6 flex flex-col gap-6 text-left">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
             <div>
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Passenger</p>
-              <p className="break-anywhere font-bold text-[#091b6f] text-base mt-0.5">{viewingRequest.passenger}</p>
+              <p className="font-bold text-[#000C7D] text-base mt-0.5">{viewingRequest.passenger}</p>
             </div>
             <div>
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Assigned Driver</p>
-              <p className="break-anywhere font-bold text-slate-700 text-base mt-0.5">{viewingRequest.driver}</p>
+              <p className="font-bold text-slate-700 text-base mt-0.5">{viewingRequest.driver}</p>
             </div>
-            <div className="md:col-span-2">
+            <div>
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Pickup Location</p>
-              <p className="break-anywhere font-bold text-slate-700 mt-0.5">{viewingRequest.location}</p>
+              <p className="font-bold text-slate-700 mt-0.5">{viewingRequest.location}</p>
             </div>
-            <div className="md:col-span-2">
+            <div>
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Destination</p>
-              <p className="break-anywhere font-bold text-slate-700 mt-0.5">{viewingRequest.destination || "N/A"}</p>
-            </div>
-            <div>
-              <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Pickup Coordinates</p>
-              <p className="font-bold text-slate-700 mt-0.5">
-                {viewingRequest.pickupLatitude && viewingRequest.pickupLongitude
-                  ? `${viewingRequest.pickupLatitude.toFixed(5)}, ${viewingRequest.pickupLongitude.toFixed(5)}`
-                  : "N/A"}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Drop-off Coordinates</p>
-              <p className="font-bold text-slate-700 mt-0.5">
-                {viewingRequest.dropoffLatitude && viewingRequest.dropoffLongitude
-                  ? `${viewingRequest.dropoffLatitude.toFixed(5)}, ${viewingRequest.dropoffLongitude.toFixed(5)}`
-                  : "N/A"}
-              </p>
+              <p className="font-bold text-slate-700 mt-0.5">{viewingRequest.destination || "N/A"}</p>
             </div>
             <div>
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Fare Value</p>
-              <p className="font-extrabold text-[#091b6f] text-lg mt-0.5">
-                ₱{viewingRequest.fare.toLocaleString()}
-              </p>
+              <p className="font-extrabold text-[#000C7D] text-lg mt-0.5">₱{viewingRequest.fare}</p>
             </div>
             <div>
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Booking Time</p>
               <p className="font-bold text-slate-500 mt-0.5">{viewingRequest.time}</p>
             </div>
             <div>
-              <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Driver Earning</p>
-              <p className="font-extrabold text-emerald-700 text-lg mt-0.5">
-                {viewingRequest.earningAmount > 0
-                  ? `₱${viewingRequest.earningAmount.toLocaleString()}`
-                  : "Not recorded yet"}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Earning Date</p>
-              <p className="font-bold text-slate-500 mt-0.5">{viewingRequest.earningDate || "N/A"}</p>
-            </div>
-            <div>
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">TODA Association</p>
-              <p className="break-anywhere font-bold text-slate-600 mt-0.5">{viewingRequest.toda}</p>
+              <p className="font-bold text-slate-600 mt-0.5">{viewingRequest.toda}</p>
             </div>
             <div>
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Ride Status</p>
               <div className="mt-1">
                 <span
-                  className={`inline-block px-3 py-1 rounded-full text-xs font-extrabold ${viewingRequest.status === "Completed"
+                  className={`inline-block px-3 py-1 rounded-full text-xs font-extrabold ${
+                    viewingRequest.status === "Completed"
                       ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
                       : viewingRequest.status === "In Transit"
-                        ? "bg-emerald-500 text-white border border-emerald-600"
-                        : viewingRequest.status === "Pending"
-                          ? "bg-amber-50 text-amber-600 border border-amber-100"
-                          : viewingRequest.status === "Scheduled"
-                            ? "bg-indigo-50 text-indigo-600 border border-indigo-100"
-                            : "bg-rose-50 text-rose-600 border border-rose-100"
-                    }`}
+                      ? "bg-emerald-500 text-white border border-emerald-600"
+                      : viewingRequest.status === "Pending"
+                      ? "bg-amber-50 text-amber-600 border border-amber-100"
+                      : viewingRequest.status === "Scheduled"
+                      ? "bg-indigo-50 text-indigo-600 border border-indigo-100"
+                      : "bg-rose-50 text-rose-600 border border-rose-100"
+                  }`}
                 >
                   {viewingRequest.status}
                 </span>
               </div>
             </div>
+            {viewingRequest.status === "Cancelled" && (
+              <>
+                <div>
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Cancelled By</p>
+                  <p className="font-bold text-rose-700 mt-0.5">{viewingRequest.cancelled_by || "Unknown"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Cancelled At</p>
+                  <p className="font-bold text-slate-600 mt-0.5">
+                    {viewingRequest.cancelled_at
+                      ? new Date(viewingRequest.cancelled_at).toLocaleString()
+                      : "N/A"}
+                  </p>
+                </div>
+                <div className="col-span-2 bg-rose-50/50 p-3 rounded-xl border border-rose-100/50 flex flex-col gap-2">
+                  <div>
+                    <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Cancellation Reason</p>
+                    <p className="font-bold text-slate-700 mt-0.5">{viewingRequest.cancel_reason || "None provided"}</p>
+                  </div>
+                  {viewingRequest.cancel_details && (
+                    <div>
+                      <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Cancellation Details</p>
+                      <p className="font-bold text-slate-700 mt-0.5">{viewingRequest.cancel_details}</p>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
 
-          <div className="pt-2 mt-1 flex flex-col-reverse items-stretch justify-end gap-3 sm:flex-row sm:items-center">
-            {isSuperAdmin && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (!window.confirm(`Delete booking #${viewingRequest.id.toString().slice(-6)}? This cannot be undone.`)) return;
-                  void onDeleteBooking(viewingRequest.id);
-                }}
-                className="px-6 py-2.5 rounded-lg text-sm font-bold transition-all cursor-pointer shadow-xs bg-rose-600 text-white hover:bg-rose-700"
-              >
-                Delete Booking
-              </button>
-            )}
+          <div className="border-t border-slate-100 pt-5 mt-2 flex items-center justify-end">
             <button
-              type="button"
               onClick={onClose}
-              className="w-full px-6 py-2.5 bg-[#091b6f] hover:bg-blue-800 text-white rounded-lg font-bold text-sm transition-colors cursor-pointer shadow-xs hover:shadow sm:w-auto"
+              className="px-6 py-2.5 bg-[#000C7D] hover:bg-blue-800 text-white rounded-xl font-bold text-sm transition-colors cursor-pointer shadow-sm hover:shadow"
             >
-              Close Booking Audit
+              Close Audit Detail
             </button>
           </div>
         </div>

@@ -5,98 +5,38 @@ interface RideRequestsViewProps {
   filteredRequests: RideRequest[];
   statusFilter: string;
   setStatusFilter: (val: string) => void;
-  requestsPage: number;
-  setRequestsPage: React.Dispatch<React.SetStateAction<number>>;
   requestTodaFilter: string;
   setRequestTodaFilter: (val: string) => void;
-  bookingStartDate: string;
-  setBookingStartDate: (val: string) => void;
-  bookingEndDate: string;
-  setBookingEndDate: (val: string) => void;
   requestSearch: string;
   setRequestSearch: (val: string) => void;
-  handleDownloadReport: () => void;
   setViewingRequest: (val: RideRequest | null) => void;
   setShowViewRequestModal: (val: boolean) => void;
-  setActiveStatModal: (val: string | null) => void;
 }
 
 export default function RideRequestsView({
   filteredRequests,
   statusFilter,
   setStatusFilter,
-  requestsPage,
-  setRequestsPage,
   requestTodaFilter,
   setRequestTodaFilter,
-  bookingStartDate,
-  setBookingStartDate,
-  bookingEndDate,
-  setBookingEndDate,
   requestSearch,
   setRequestSearch,
-  handleDownloadReport,
   setViewingRequest,
   setShowViewRequestModal,
-  setActiveStatModal,
 }: RideRequestsViewProps) {
-  const itemsPerPage = 7;
-  const totalEarnings = filteredRequests.reduce((sum, record) => sum + record.earningAmount, 0);
-  const totalCompletedRides = filteredRequests.filter((record) => record.status === "Completed").length;
+  const [showAllRequests, setShowAllRequests] = React.useState(false);
+  const displayedRequests = showAllRequests ? filteredRequests : filteredRequests.slice(0, 9);
 
   return (
-    <div className="flex flex-col gap-4 max-w-7xl mx-auto sm:gap-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-xl font-extrabold text-[#091b6f] sm:text-2xl">Booking Logs</h1>
-        <p className="break-anywhere text-sm font-semibold text-slate-500">
-          Review bookings, ride status, fare values, and driver earnings in one place.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <button
-          type="button"
-          onClick={() => setActiveStatModal("total-earnings")}
-          className="rounded-lg border border-slate-100 bg-[#091b6f] p-5 text-left text-white shadow-sm transition hover:bg-[#132b91] cursor-pointer"
-        >
-          <p className="text-xs font-extrabold uppercase text-sky-200">Total Earnings</p>
-          <p className="break-anywhere mt-2 text-2xl font-extrabold sm:text-3xl">₱{totalEarnings.toLocaleString()}</p>
-          <p className="mt-3 text-xs font-semibold text-sky-200/80">From the visible ride history rows</p>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveStatModal("completed-rides")}
-          className="rounded-lg border border-slate-100 bg-white p-5 text-left shadow-sm transition hover:border-[#091b6f]/20 cursor-pointer"
-        >
-          <p className="text-xs font-extrabold uppercase text-slate-400">Completed Rides</p>
-          <p className="mt-2 text-2xl font-extrabold text-[#091b6f] sm:text-3xl">{totalCompletedRides.toLocaleString()}</p>
-          <p className="mt-3 text-xs font-semibold text-slate-500">Completed rides in the current history view</p>
-        </button>
-
-        <div className="rounded-lg border border-slate-100 bg-white p-5 shadow-sm">
-          <p className="text-xs font-extrabold uppercase text-slate-400">Logged Bookings</p>
-          <p className="mt-2 text-2xl font-extrabold text-[#091b6f] sm:text-3xl">{filteredRequests.length.toLocaleString()}</p>
-          <button
-            type="button"
-            onClick={handleDownloadReport}
-            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#4c75f2] px-4 py-2 text-xs font-extrabold text-white hover:bg-blue-600 cursor-pointer sm:w-auto"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-            Download Earnings CSV
-          </button>
-        </div>
-      </div>
-
+    <div className="flex flex-col gap-6 max-w-7xl mx-auto">
       {/* Category Filter Buttons Row */}
-      <div className="bg-[#b3e2ff]/30 p-3 rounded-lg flex flex-wrap items-center justify-between gap-3 border border-[#b3e2ff]/50">
-        <div className="flex flex-wrap sm:flex-nowrap bg-slate-100 p-1 rounded-lg border border-slate-200 w-full sm:w-auto justify-center">
+      <div className="bg-[#b3e2ff]/30 p-3 rounded-xl flex flex-wrap items-center gap-3 border border-[#b3e2ff]/50">
+        <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
           {[
+            { key: "All", label: "All" },
             { key: "Ongoing", label: "Ongoing" },
+            { key: "Pending", label: "Pending" },
+            { key: "In Transit", label: "In Transit" },
             { key: "Completed", label: "Completed" },
             { key: "Cancelled", label: "Cancelled" },
           ].map((tab) => (
@@ -104,55 +44,26 @@ export default function RideRequestsView({
               key={tab.key}
               onClick={() => {
                 setStatusFilter(tab.key);
-                setRequestsPage(1);
               }}
-              className={`px-4 py-2 rounded-md text-xs font-bold transition-all cursor-pointer w-full sm:w-auto text-center ${statusFilter === tab.key
-                ? "bg-[#091b6f] text-white shadow-sm"
-                : "text-slate-600 hover:text-[#091b6f]"
-                }`}
+              className={`px-4 py-2 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                statusFilter === tab.key
+                  ? "bg-[#000C7D] text-white shadow-sm"
+                  : "text-slate-600 hover:text-[#000C7D]"
+              }`}
             >
-              {tab.key === "Ongoing" ? "Ongoing Rides" : tab.label}
+              {tab.label}
             </button>
           ))}
         </div>
 
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-          <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
-            <span className="text-[10px] font-extrabold uppercase text-slate-400">Start</span>
-            <input
-              type="date"
-              value={bookingStartDate}
-              onChange={(e) => {
-                setBookingStartDate(e.target.value);
-                setRequestsPage(1);
-              }}
-              className="text-xs font-bold text-[#091b6f] outline-none"
-            />
-          </label>
-          <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
-            <span className="text-[10px] font-extrabold uppercase text-slate-400">End</span>
-            <input
-              type="date"
-              value={bookingEndDate}
-              min={bookingStartDate || undefined}
-              onChange={(e) => {
-                setBookingEndDate(e.target.value);
-                setRequestsPage(1);
-              }}
-              className="text-xs font-bold text-[#091b6f] outline-none"
-            />
-          </label>
-        </div>
-
         {/* TODA Dropdown Filter */}
-        <div className="relative w-full sm:w-auto">
+        <div className="relative">
           <select
             value={requestTodaFilter}
             onChange={(e) => {
               setRequestTodaFilter(e.target.value);
-              setRequestsPage(1);
             }}
-            className="w-full pl-3 pr-8 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-[#091b6f] cursor-pointer appearance-none outline-hidden focus:border-blue-500 sm:w-56"
+            className="pl-3 pr-8 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-[#000C7D] cursor-pointer appearance-none outline-hidden focus:border-blue-500"
           >
             <option value="All">All TODAs</option>
             <option value="LHITC-TODA">LHITC-TODA</option>
@@ -166,16 +77,40 @@ export default function RideRequestsView({
           </span>
         </div>
 
+        {/* Status / Date Filter */}
+        <div className="relative">
+          <select
+            className="pl-3 pr-8 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-[#000C7D] cursor-pointer appearance-none outline-hidden focus:border-blue-500"
+            defaultValue="all-status"
+          >
+            <option value="all-status">All Time</option>
+            <option value="pending">Pending Only</option>
+            <option value="intransit">In Transit Only</option>
+          </select>
+          <span className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-slate-400">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </span>
+        </div>
 
+        {/* Apply Filter Button */}
+        <button
+          onClick={() => setShowAllRequests(false)}
+          className="px-5 py-2 bg-[#4c75f2] hover:bg-blue-600 text-white font-bold text-xs rounded-lg shadow-sm hover:shadow transition-all cursor-pointer"
+        >
+          Apply Filter
+        </button>
       </div>
 
       {/* Main List Container */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4 flex flex-col gap-4 sm:p-6">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col gap-4">
         {/* Section Header with Search Bar */}
-        <div className="flex flex-col items-stretch justify-between gap-4 sm:flex-row sm:items-center">
-          <div className="flex min-w-0 items-center gap-2">
-            <h2 className="break-anywhere text-[#091b6f] font-bold text-base sm:text-lg">
-              {statusFilter} Booking History
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">🔔</span>
+            <h2 className="text-[#000C7D] font-bold text-lg">
+              {statusFilter} Ride Requests ({filteredRequests.length})
             </h2>
           </div>
 
@@ -193,83 +128,72 @@ export default function RideRequestsView({
               value={requestSearch}
               onChange={(e) => {
                 setRequestSearch(e.target.value);
-                setRequestsPage(1);
               }}
-              className="w-full pl-9 pr-4 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold outline-hidden focus:border-[#091b6f] transition-all text-[#091b6f]"
+              className="w-full pl-9 pr-4 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold outline-hidden focus:border-[#000C7D] transition-all text-[#000C7D]"
             />
           </div>
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="min-w-[1120px] w-full table-fixed text-left border-collapse">
-            <colgroup>
-              <col className="w-[150px]" />
-              <col className="w-[210px]" />
-              <col className="w-[210px]" />
-              <col className="w-[150px]" />
-              <col className="w-[145px]" />
-              <col className="w-[135px]" />
-              <col className="w-[95px]" />
-              <col className="w-[115px]" />
-              <col className="w-[110px]" />
-            </colgroup>
+        <div className="overflow-x-auto" id="requests-list-table">
+          <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-100 bg-slate-50 text-slate-400 text-xs font-bold uppercase whitespace-nowrap">
-                <th className="px-3 pb-3">Passenger</th>
-                <th className="px-3 pb-3">Pickup</th>
-                <th className="px-3 pb-3">Destination</th>
-                <th className="px-3 pb-3">Driver</th>
-                <th className="px-3 pb-3">TODA</th>
-                <th className="px-3 pb-3">Booking Date</th>
-                <th className="px-3 pb-3">Fare</th>
-                <th className="px-3 pb-3">Status</th>
-                <th className="px-3 pb-3 text-center">Actions</th>
+              <tr className="border-b border-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider">
+                <th className="pb-3 pl-3">Passenger Name</th>
+                <th className="pb-3">Driver Name</th>
+                <th className="pb-3">Status</th>
+                <th className="pb-3">Cancellation Reason</th>
+                <th className="pb-3">Cancellation Details</th>
+                <th className="pb-3">Cancelled By</th>
+                <th className="pb-3">Cancelled Date</th>
+                <th className="pb-3 text-center pr-3">Actions</th>
               </tr>
             </thead>
             <tbody className="text-sm font-semibold divide-y divide-slate-50">
-              {filteredRequests
-                .slice((requestsPage - 1) * itemsPerPage, requestsPage * itemsPerPage)
-                .map((r) => (
-                  <tr key={r.id} className="hover:bg-slate-50/50 transition-colors whitespace-nowrap">
-                    <td className="px-3 py-5 text-[#091b6f] font-bold truncate" title={r.passenger}>{r.passenger}</td>
-                    <td className="px-3 py-5 text-slate-600 truncate" title={r.location}>{r.location}</td>
-                    <td className="px-3 py-5 text-slate-500 truncate" title={r.destination}>{r.destination}</td>
-                    <td className="px-3 py-5 text-slate-700 truncate" title={r.driver}>{r.driver}</td>
-                    <td className="px-3 py-5 text-slate-600 truncate" title={r.toda}>{r.toda}</td>
-                    <td className="px-3 py-5 text-slate-600 truncate" title={r.time || "-"}>{r.time || "-"}</td>
-                    <td className="px-3 py-5 font-extrabold text-[#091b6f] truncate">₱{r.fare.toLocaleString()}</td>
-                    <td className="px-3 py-5">
-                      <span
-                        className={`inline-flex w-[92px] justify-center px-2 py-1 rounded-full text-[10px] font-bold ${r.status === "Completed"
+              {displayedRequests.map((r) => (
+                <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
+                  <td className="py-5 pl-3 text-[#000C7D] font-bold">{r.passenger}</td>
+                  <td className="py-5 px-2 text-slate-700">{r.driver}</td>
+                  <td className="py-5">
+                    <span
+                      className={`inline-block px-4 py-1 rounded-full text-[10px] font-bold ${
+                        r.status === "Completed"
                           ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
                           : r.status === "In Transit"
-                            ? "bg-emerald-500 text-white border border-emerald-600"
-                            : r.status === "Pending"
-                              ? "bg-amber-100 text-amber-600 border border-amber-200"
-                              : "bg-rose-50 text-rose-600 border border-rose-100"
-                          }`}
-                      >
-                        {r.status}
-                      </span>
-                    </td>
-                    <td className="px-3 py-5 text-center">
-                      <button
-                        onClick={() => {
-                          setViewingRequest(r);
-                          setShowViewRequestModal(true);
-                        }}
-                        className="px-5 py-2 bg-[#4c75f2] hover:bg-blue-600 text-white rounded-lg text-xs font-bold shadow-xs hover:shadow-sm transition-all cursor-pointer"
-                      >
-                        View
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                          ? "bg-emerald-500 text-white border border-emerald-600"
+                          : r.status === "Pending"
+                          ? "bg-amber-100 text-amber-600 border border-amber-200"
+                          : r.status === "Scheduled"
+                          ? "bg-indigo-50 text-indigo-600 border border-indigo-100"
+                          : "bg-rose-50 text-rose-600 border border-rose-100"
+                      }`}
+                    >
+                      {r.status}
+                    </span>
+                  </td>
+                  <td className="py-5 px-2 text-slate-600">{r.cancel_reason || "-"}</td>
+                  <td className="py-5 px-2 text-slate-500 max-w-[200px] truncate" title={r.cancel_details || undefined}>{r.cancel_details || "-"}</td>
+                  <td className="py-5 px-2 text-rose-600 font-semibold">{r.cancelled_by || "-"}</td>
+                  <td className="py-5 px-2 text-slate-500">
+                    {r.cancelled_at ? new Date(r.cancelled_at).toLocaleString() : "-"}
+                  </td>
+                  <td className="py-5 text-center pr-3">
+                    <button
+                      onClick={() => {
+                        setViewingRequest(r);
+                        setShowViewRequestModal(true);
+                      }}
+                      className="px-5 py-2 bg-[#4c75f2] hover:bg-blue-600 text-white rounded-lg text-xs font-bold shadow-xs hover:shadow-sm transition-all cursor-pointer"
+                    >
+                      View
+                    </button>
+                  </td>
+                </tr>
+              ))}
               {filteredRequests.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="py-16 text-center text-slate-400 font-medium">
-                    No booking logs found matching your query.
+                  <td colSpan={8} className="py-16 text-center text-slate-400 font-medium">
+                    No requests found matching your query.
                   </td>
                 </tr>
               )}
@@ -277,40 +201,34 @@ export default function RideRequestsView({
           </table>
         </div>
 
-        {/* Pagination */}
-        {filteredRequests.length > 0 && (
-          <div className="flex flex-col items-stretch gap-3 border-t border-slate-100 pt-6 mt-2 sm:flex-row sm:items-center sm:justify-between">
-            <span className="text-xs text-slate-500 font-bold">
-              Page {requestsPage} of {Math.ceil(filteredRequests.length / itemsPerPage)}
-            </span>
-
-            <div className="flex items-center gap-1.5">
+        {/* View All Button */}
+        {filteredRequests.length > 9 && (
+          <div className="flex justify-center pt-6 border-t border-slate-100 mt-2">
+            {!showAllRequests ? (
               <button
-                onClick={() => setRequestsPage((prev) => Math.max(prev - 1, 1))}
-                disabled={requestsPage === 1}
-                className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded-lg border ${requestsPage === 1
-                  ? "opacity-30 border-slate-200 text-slate-400 cursor-not-allowed"
-                  : "border-slate-200 hover:bg-slate-50 text-[#091b6f] cursor-pointer"
-                  }`}
+                onClick={() => {
+                  setShowAllRequests(true);
+                  setTimeout(() => {
+                    document.getElementById("requests-list-table")?.scrollIntoView({ behavior: "smooth" });
+                  }, 50);
+                }}
+                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer"
               >
-                &lt;
+                View All ({filteredRequests.length} Requests)
               </button>
-
+            ) : (
               <button
-                onClick={() =>
-                  setRequestsPage((prev) =>
-                    Math.min(prev + 1, Math.ceil(filteredRequests.length / itemsPerPage))
-                  )
-                }
-                disabled={requestsPage === Math.ceil(filteredRequests.length / itemsPerPage)}
-                className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded-lg border ${requestsPage === Math.ceil(filteredRequests.length / itemsPerPage)
-                  ? "opacity-30 border-slate-200 text-slate-400 cursor-not-allowed"
-                  : "border-slate-200 hover:bg-slate-50 text-[#091b6f] cursor-pointer"
-                  }`}
+                onClick={() => {
+                  setShowAllRequests(false);
+                  setTimeout(() => {
+                    document.getElementById("requests-list-table")?.scrollIntoView({ behavior: "smooth" });
+                  }, 50);
+                }}
+                className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer"
               >
-                &gt;
+                Show Less
               </button>
-            </div>
+            )}
           </div>
         )}
       </div>

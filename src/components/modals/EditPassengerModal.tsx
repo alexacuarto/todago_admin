@@ -40,7 +40,7 @@ export default function EditPassengerModal({
               type="text"
               required
               value={editFormData.name}
-              onChange={(e) => setEditFormData((prev) => ({ ...prev, name: e.target.value }))}
+              onChange={(e) => setEditFormData((prev: PassengerEditFormData) => ({ ...prev, name: e.target.value }))}
               className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f]"
             />
           </div>
@@ -60,7 +60,7 @@ export default function EditPassengerModal({
               <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Status</label>
               <select
                 value={editFormData.status}
-                onChange={(e) => setEditFormData((prev) => ({ ...prev, status: e.target.value as "Active" | "Inactive" }))}
+                onChange={(e) => setEditFormData((prev: PassengerEditFormData) => ({ ...prev, status: e.target.value as "Active" | "Inactive" }))}
                 className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold bg-white outline-hidden focus:border-blue-500 transition-all cursor-pointer text-[#091b6f]"
               >
                 <option value="Active">Active</option>
@@ -86,7 +86,7 @@ export default function EditPassengerModal({
               type="password"
               minLength={8}
               value={editFormData.password}
-              onChange={(e) => setEditFormData((prev) => ({ ...prev, password: e.target.value }))}
+              onChange={(e) => setEditFormData((prev: PassengerEditFormData) => ({ ...prev, password: e.target.value }))}
               placeholder="Leave blank to keep current password"
               className="border border-slate-200 rounded-lg px-3 py-2 text-sm font-semibold outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-[#091b6f]"
             />

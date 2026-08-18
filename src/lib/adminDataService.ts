@@ -161,6 +161,9 @@ export async function fetchAdminDashboardData() {
       joinedDate: row.created_at?.split("T")[0] ?? "",
       email: profile?.email ?? "",
       plateNumber: row.plate_number ?? "",
+      isOnline: row.status === "online" || row.status === "busy",
+      activityStatus: row.status === "online" || row.status === "busy" ? "ACTIVE" : "INACTIVE",
+      profileId: row.user_id,
       avatarUrl: profile?.avatar_url ?? undefined,
       licenseImageUrl,
       licenseImageName: row.license_image_url ? row.license_image_url.split("/").pop() : undefined,
@@ -193,7 +196,9 @@ export async function fetchAdminDashboardData() {
     return {
       id: row.id,
       passenger: passengerProfile?.full_name ?? "Passenger",
+      passengerId: row.passenger_id,
       driver: driverProfile?.full_name ?? "-",
+      driverId: row.driver_id ?? "",
       location: row.pickup_address ?? "",
       destination: row.dropoff_address ?? "",
       pickupLatitude: row.pickup_latitude == null ? null : Number(row.pickup_latitude),
@@ -230,6 +235,7 @@ export async function fetchAdminDashboardData() {
       toda: driver?.toda_association ?? driver?.tricycle_body_number ?? "-",
       completedRides: ride?.status === "completed" ? 1 : 0,
       totalEarnings: Number(row.gross_fare ?? 0),
+      commissionEarned: Number(row.gross_fare ?? 0) * 0.15,
       driverName: driverProfile?.full_name ?? "Driver",
     };
   });

@@ -268,7 +268,7 @@ export default function AdminManagementView({
                 event.preventDefault();
                 const saved = await onUpdateAdmin(viewingAdmin, editForm);
                 if (!saved) return;
-                setViewingAdmin(prev =>
+                setViewingAdmin((prev: AdminAccount | null) =>
                   prev
                     ? {
                         ...prev,
@@ -278,7 +278,7 @@ export default function AdminManagementView({
                       }
                     : prev,
                 );
-                setEditForm(prev => ({ ...prev, password: "" }));
+                setEditForm((prev) => ({ ...prev, password: "" }));
               }}
             >
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

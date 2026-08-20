@@ -57,6 +57,14 @@ export interface Passenger {
   bookingRestrictionUntil?: string | null;
   lastCancelDate?: string | null;
   avatarUrl?: string;
+  accountPassengerType?: string;
+  discountDocumentUrl?: string | null;
+  discountDocumentStatus?: "NOT_REQUIRED" | "PENDING" | "VERIFIED" | "REJECTED" | string;
+  discountDocumentType?: string | null;
+  discountDocumentRejectionReason?: string | null;
+  discountDocumentSubmittedAt?: string | null;
+  discountDocumentReviewedAt?: string | null;
+  discountEligible?: boolean;
 }
 
 export interface RideRequest {

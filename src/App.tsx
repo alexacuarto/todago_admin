@@ -146,7 +146,22 @@ export default function App() {
       console.log("[Supabase Query] Fetching passengers map...");
       const { data: passengersData, error: passengersError } = await supabase
         .from("passengers")
-        .select("id, profile_id, cancel_count, last_cancel_date, booking_restriction_until, warning_status");
+        .select(`
+          id,
+          profile_id,
+          cancel_count,
+          last_cancel_date,
+          booking_restriction_until,
+          warning_status,
+          account_passenger_type,
+          discount_document_url,
+          discount_document_status,
+          discount_document_type,
+          discount_document_rejection_reason,
+          discount_document_submitted_at,
+          discount_document_reviewed_at,
+          discount_eligible
+        `);
       if (passengersError) throw passengersError;
       console.log("[Supabase Response] Passengers fetched:", passengersData?.length);
 
@@ -272,7 +287,15 @@ export default function App() {
           ridesTaken,
           warningStatus,
           bookingRestrictionUntil,
-          lastCancelDate
+          lastCancelDate,
+          accountPassengerType: pd?.account_passenger_type || "Regular",
+          discountDocumentUrl: pd?.discount_document_url || null,
+          discountDocumentStatus: pd?.discount_document_status || "NOT_REQUIRED",
+          discountDocumentType: pd?.discount_document_type || null,
+          discountDocumentRejectionReason: pd?.discount_document_rejection_reason || null,
+          discountDocumentSubmittedAt: pd?.discount_document_submitted_at || null,
+          discountDocumentReviewedAt: pd?.discount_document_reviewed_at || null,
+          discountEligible: pd?.discount_eligible || false
         };
       }).filter(passenger => passenger.name !== "Incomplete Profile" && passenger.name !== "Unnamed Passenger");
 

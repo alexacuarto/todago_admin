@@ -290,6 +290,7 @@ export default function UsersView({
                 <tr className="border-b border-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider">
                   <th className="pb-3 pl-3">Name</th>
                   <th className="pb-3">Contact</th>
+                  <th className="pb-3">Discount ID</th>
                   <th className="pb-3">Cancellations</th>
                   <th className="pb-3">Account Status</th>
                   <th className="pb-3 text-center pr-3">Actions</th>
@@ -312,6 +313,21 @@ export default function UsersView({
                         <p className="text-[#000C7D] font-bold">{p.name}</p>
                       </td>
                       <td className="py-4 text-slate-600 text-left">{p.contact}</td>
+                      <td className="py-4 text-left">
+                        <span
+                          className={`inline-block px-3 py-0.5 rounded-full text-[10px] font-bold border ${
+                            p.discountDocumentStatus === "PENDING"
+                              ? "bg-amber-50 text-amber-700 border-amber-100"
+                              : p.discountDocumentStatus === "VERIFIED"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                                : p.discountDocumentStatus === "REJECTED"
+                                  ? "bg-rose-50 text-rose-700 border-rose-100"
+                                  : "bg-slate-50 text-slate-500 border-slate-100"
+                          }`}
+                        >
+                          {p.accountPassengerType || "Regular"} · {p.discountDocumentStatus || "NOT_REQUIRED"}
+                        </span>
+                      </td>
                       <td className="py-4 text-slate-600 text-left">{p.canceledTrips}</td>
                       <td className="py-4 text-left">
                         <span className={`inline-block px-3 py-0.5 rounded-full text-[10px] font-bold ${statusClass}`}>
@@ -335,7 +351,7 @@ export default function UsersView({
                 })}
                 {filteredPassengers.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="py-12 text-center text-slate-400 font-medium">
+                    <td colSpan={6} className="py-12 text-center text-slate-400 font-medium">
                       No passengers registered matching your search query.
                     </td>
                   </tr>

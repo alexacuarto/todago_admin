@@ -63,6 +63,8 @@ export default function FareSettingsView() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [savingOneWay, setSavingOneWay] = useState(false);
   const [savingRoundTrip, setSavingRoundTrip] = useState(false);
+  const [oneWayChangeMessage, setOneWayChangeMessage] = useState("");
+  const [roundTripChangeMessage, setRoundTripChangeMessage] = useState("");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Load fare settings from Supabase on mount
@@ -118,24 +120,32 @@ export default function FareSettingsView() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  const saveToSupabase = async (config: FareConfig, setLoading: (v: boolean) => void, setter: (v: FareConfig) => void, cacheKey: string) => {
+  const saveToSupabase = async (
+    config: FareConfig,
+    changeMessage: string,
+    setChangeMessage: (v: string) => void,
+    setLoading: (v: boolean) => void,
+    setter: (v: FareConfig) => void,
+    cacheKey: string
+  ) => {
+    if (!changeMessage.trim()) {
+      triggerToast("Error: Please add a fare change message before saving.");
+      return;
+    }
+
     setLoading(true);
     try {
-      const updatePayload = {
-        display_label: config.displayLabel,
-        base_fare: config.baseFare,
-        included_km: config.includedKm,
-        succeeding_km_fare: config.succeedingKmFare,
-        student_discount: config.studentDiscount,
-        pwd_discount: config.pwdDiscount,
-        senior_citizen_discount: config.seniorCitizenDiscount,
-        updated_at: new Date().toISOString(),
-      };
-
-      const { error } = await supabase
-        .from("fare_configurations")
-        .update(updatePayload)
-        .eq("trip_type", config.tripType);
+      const { error } = await supabase.rpc("update_fare_configuration_with_message", {
+        p_trip_type: config.tripType,
+        p_display_label: config.displayLabel,
+        p_base_fare: config.baseFare,
+        p_included_km: config.includedKm,
+        p_succeeding_km_fare: config.succeedingKmFare,
+        p_student_discount: config.studentDiscount,
+        p_pwd_discount: config.pwdDiscount,
+        p_senior_citizen_discount: config.seniorCitizenDiscount,
+        p_message: changeMessage.trim(),
+      });
 
       if (error) throw error;
 
@@ -143,7 +153,8 @@ export default function FareSettingsView() {
       const updated = { ...config, lastUpdated: nowStr };
       setter(updated);
       localStorage.setItem(cacheKey, JSON.stringify(updated));
-      triggerToast(`${config.displayLabel} pricing updated successfully!`);
+      setChangeMessage("");
+      triggerToast(`${config.displayLabel} pricing updated and users notified.`);
     } catch (err: any) {
       console.error("Error saving fare settings:", err);
       triggerToast(`Error: ${err.message || "Failed to save"}`);
@@ -153,10 +164,10 @@ export default function FareSettingsView() {
   };
 
   const handleSaveOneWay = () =>
-    saveToSupabase(oneWay, setSavingOneWay, setOneWay, "toda_go_fare_oneway");
+    saveToSupabase(oneWay, oneWayChangeMessage, setOneWayChangeMessage, setSavingOneWay, setOneWay, "toda_go_fare_oneway");
 
   const handleSaveRoundTrip = () =>
-    saveToSupabase(roundTrip, setSavingRoundTrip, setRoundTrip, "toda_go_fare_roundtrip");
+    saveToSupabase(roundTrip, roundTripChangeMessage, setRoundTripChangeMessage, setSavingRoundTrip, setRoundTrip, "toda_go_fare_roundtrip");
 
   // Loading state
   if (isLoadingData) {
@@ -255,6 +266,16 @@ export default function FareSettingsView() {
                   onChange={(e) => setOneWay({ ...oneWay, seniorCitizenDiscount: Number(e.target.value) })}
                   className="w-full bg-white border border-[#c7dfff] hover:border-blue-400 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 rounded-xl px-4 py-3 text-sm font-bold text-[#172554] transition-all" />
               </div>
+              <div className="flex flex-col gap-1.5 col-span-2">
+                <label className="text-[10px] font-extrabold text-[#000C7D] tracking-wider uppercase">Fare Change Message</label>
+                <textarea
+                  value={oneWayChangeMessage}
+                  onChange={(e) => setOneWayChangeMessage(e.target.value)}
+                  rows={3}
+                  placeholder="Explain why this fare changed. This is sent to passenger and driver apps."
+                  className="w-full bg-white border border-[#c7dfff] hover:border-blue-400 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 rounded-xl px-4 py-3 text-sm font-bold text-[#172554] transition-all resize-none"
+                />
+              </div>
             </div>
           </div>
           <div className="bg-[#f5f9ff] px-8 py-5 border-t border-slate-100 flex items-center justify-between">
@@ -314,6 +335,16 @@ export default function FareSettingsView() {
                 <input type="number" value={roundTrip.seniorCitizenDiscount}
                   onChange={(e) => setRoundTrip({ ...roundTrip, seniorCitizenDiscount: Number(e.target.value) })}
                   className="w-full bg-white border border-[#c7dfff] hover:border-blue-400 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 rounded-xl px-4 py-3 text-sm font-bold text-[#172554] transition-all" />
+              </div>
+              <div className="flex flex-col gap-1.5 col-span-2">
+                <label className="text-[10px] font-extrabold text-[#000C7D] tracking-wider uppercase">Fare Change Message</label>
+                <textarea
+                  value={roundTripChangeMessage}
+                  onChange={(e) => setRoundTripChangeMessage(e.target.value)}
+                  rows={3}
+                  placeholder="Explain why this fare changed. This is sent to passenger and driver apps."
+                  className="w-full bg-white border border-[#c7dfff] hover:border-blue-400 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 rounded-xl px-4 py-3 text-sm font-bold text-[#172554] transition-all resize-none"
+                />
               </div>
             </div>
           </div>

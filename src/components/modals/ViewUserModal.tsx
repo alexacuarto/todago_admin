@@ -26,8 +26,10 @@ export default function ViewUserModal({
   rideRequests = [],
 }: ViewUserModalProps) {
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
-  const [zoomType, setZoomType] = useState<"front" | "back" | "franchise" | null>(null);
+  const [zoomType, setZoomType] = useState<"front" | "back" | "franchise" | "discount" | null>(null);
   const [loadingSignedUrl, setLoadingSignedUrl] = useState(false);
+  const [discountReviewReason, setDiscountReviewReason] = useState("");
+  const [isReviewingDiscount, setIsReviewingDiscount] = useState(false);
 
   // Edit info fields
   const [isEditingInfo, setIsEditingInfo] = useState(false);
@@ -76,15 +78,18 @@ export default function ViewUserModal({
       setActiveAdminAction(null);
       setAdminReasonInput("");
       setIsExecutingAdminAction(false);
+      setDiscountReviewReason("");
+      setIsReviewingDiscount(false);
     }
   }, [viewingUser, viewingUserType, isOpen]);
 
   // Handle Close-up document zoom
-  const handleZoomClick = async (type: "front" | "back" | "franchise") => {
+  const handleZoomClick = async (type: "front" | "back" | "franchise" | "discount") => {
     let url = "";
     if (type === "front") url = viewingUser?.licenseFrontUrl || viewingUser?.licensePhotoUrl || "";
     if (type === "back") url = viewingUser?.licenseBackUrl || "";
     if (type === "franchise") url = viewingUser?.franchiseUrl || "";
+    if (type === "discount") url = viewingUser?.discountDocumentUrl || "";
 
     if (!url) return;
 
@@ -92,18 +97,23 @@ export default function ViewUserModal({
     setLoadingSignedUrl(true);
     try {
       let path = url;
-      if (url.includes('/driver-documents/')) {
+      if (url.includes('/discount-ids/')) {
+        const parts = url.split('/discount-ids/');
+        path = parts[parts.length - 1];
+      } else if (url.includes('/driver-documents/')) {
         const parts = url.split('/driver-documents/');
         path = parts[parts.length - 1];
       } else if (url.includes('/licenses/')) {
         const parts = url.split('/licenses/');
         path = parts[parts.length - 1];
+      } else if (type === "discount") {
+        path = url;
       } else {
         path = url.split('/').pop() || '';
       }
       path = decodeURIComponent(path);
 
-      const bucketName = url.includes('/licenses/') ? 'licenses' : 'driver-documents';
+      const bucketName = type === "discount" ? "discount-ids" : url.includes('/licenses/') ? 'licenses' : 'driver-documents';
 
       const { data, error } = await supabase.storage
         .from(bucketName)
@@ -120,6 +130,32 @@ export default function ViewUserModal({
       setSignedUrl(url);
     } finally {
       setLoadingSignedUrl(false);
+    }
+  };
+
+  const handleReviewDiscount = async (status: "VERIFIED" | "REJECTED") => {
+    if (!viewingUser?.id || isReviewingDiscount) return;
+    if (status === "REJECTED" && !discountReviewReason.trim()) {
+      alert("Please add a rejection reason.");
+      return;
+    }
+
+    setIsReviewingDiscount(true);
+    try {
+      const { error } = await supabase.rpc("review_passenger_discount_document", {
+        p_passenger_id: viewingUser.id,
+        p_status: status,
+        p_reason: status === "REJECTED" ? discountReviewReason.trim() : null,
+      });
+
+      if (error) throw error;
+      alert(status === "VERIFIED" ? "Passenger discount ID approved." : "Passenger discount ID rejected.");
+      onRefreshData?.();
+    } catch (err: any) {
+      console.error("Discount review failed:", err);
+      alert(err.message || "Failed to review discount ID.");
+    } finally {
+      setIsReviewingDiscount(false);
     }
   };
 
@@ -789,6 +825,61 @@ export default function ViewUserModal({
                     )}
                   </p>
                 </div>
+                <div className="col-span-2 border border-slate-100 rounded-xl p-4 bg-slate-50/70">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                    <div>
+                      <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Discount Verification</p>
+                      <p className="font-extrabold text-[#000C7D] mt-1">
+                        {(viewingUser as Passenger).accountPassengerType || "Regular"} · {(viewingUser as Passenger).discountDocumentStatus || "NOT_REQUIRED"}
+                      </p>
+                      {(viewingUser as Passenger).discountDocumentSubmittedAt && (
+                        <p className="text-xs text-slate-500 font-semibold mt-1">
+                          Submitted {new Date((viewingUser as Passenger).discountDocumentSubmittedAt!).toLocaleString()}
+                        </p>
+                      )}
+                      {(viewingUser as Passenger).discountDocumentRejectionReason && (
+                        <p className="text-xs text-rose-600 font-semibold mt-2">
+                          Reason: {(viewingUser as Passenger).discountDocumentRejectionReason}
+                        </p>
+                      )}
+                    </div>
+                    {(viewingUser as Passenger).discountDocumentUrl && (
+                      <button
+                        onClick={() => handleZoomClick("discount")}
+                        className="px-4 py-2 bg-white border border-blue-100 text-[#000C7D] rounded-lg text-xs font-bold hover:bg-blue-50 transition-all cursor-pointer"
+                      >
+                        View Uploaded ID
+                      </button>
+                    )}
+                  </div>
+                  {(viewingUser as Passenger).discountDocumentStatus === "PENDING" && (
+                    <div className="mt-4 flex flex-col gap-3">
+                      <textarea
+                        value={discountReviewReason}
+                        onChange={(e) => setDiscountReviewReason(e.target.value)}
+                        rows={2}
+                        placeholder="Rejection reason, required only when rejecting."
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 resize-none"
+                      />
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={() => handleReviewDiscount("VERIFIED")}
+                          disabled={isReviewingDiscount}
+                          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold disabled:opacity-60 cursor-pointer"
+                        >
+                          Approve ID
+                        </button>
+                        <button
+                          onClick={() => handleReviewDiscount("REJECTED")}
+                          disabled={isReviewingDiscount}
+                          className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold disabled:opacity-60 cursor-pointer"
+                        >
+                          Reject ID
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Passenger Ride History List */}
@@ -1056,7 +1147,7 @@ export default function ViewUserModal({
               />
             )}
             <div className="mt-3 text-center text-[#000C7D] font-extrabold text-sm uppercase">
-              {zoomType === "front" ? "License Front Copy" : zoomType === "back" ? "License Back Copy" : "Franchise Permit Copy"}
+              {zoomType === "front" ? "License Front Copy" : zoomType === "back" ? "License Back Copy" : zoomType === "discount" ? "Passenger Discount ID" : "Franchise Permit Copy"}
             </div>
           </div>
         </div>

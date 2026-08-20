@@ -1,7 +1,7 @@
 /**
  * Shared domain types for the TodaGo Admin Dashboard.
  * All data is sourced from Supabase — these types reflect the
- * shape returned by adminDataService after mapping database rows.
+ * live booking, profile, driver, passenger, and fare rows used by the app.
  */
 
 export interface Driver {
@@ -45,6 +45,7 @@ export interface Driver {
 
 export interface Passenger {
   id: string;
+  profileId?: string;
   name: string;
   contact: string;
   email?: string;

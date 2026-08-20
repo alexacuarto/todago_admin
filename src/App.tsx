@@ -225,6 +225,7 @@ export default function App() {
         const p = (profiles || []).find(prof => prof.id === id);
         const pd = (passengersData || []).find(pass => pass.profile_id === id || pass.id === id);
         const passengerId = pd ? pd.id : id;
+        const profileId = pd?.profile_id || p?.id || id;
 
         const passengerBookings = bookings.filter(b => b.passenger_id === passengerId || b.passenger_id === id);
         const ridesTaken = passengerBookings.filter(b => b.status === "droppedOff" || b.status === "paymentSent" || b.status === "completed").length;
@@ -262,6 +263,7 @@ export default function App() {
 
         return {
           id: passengerId,
+          profileId,
           name: resolvedName,
           contact: resolvedContact,
           canceledTrips,
@@ -481,15 +483,7 @@ export default function App() {
         }
       }
 
-      // Unconditional authorization for the admin web panel - anyone who logs in gets admin role access.
-      // This bypasses any database mismatch issues and ensures you can access the dashboard.
-      if (profile) {
-        if (profile.role !== 'admin') {
-          console.log("[Supabase Query] Auto-promoting user to admin in database...");
-          await supabase.from('profiles').update({ role: 'admin' }).eq('id', session.user.id);
-          profile.role = 'admin';
-        }
-
+      if (profile?.role === 'admin') {
         const firstLastName = `${profile.first_name || ""} ${profile.last_name || ""}`.trim();
         const profileName = profile.full_name || firstLastName;
         setAdminProfile({
@@ -505,19 +499,10 @@ export default function App() {
         setIsLoggedIn(true);
         fetchData();
       } else {
-        // Fallback profile creation failed, but session is valid, so authorize anyway
-        setAdminProfile({
-          name: session.user.email || "Administrator",
-          email: session.user.email || "",
-          status: "Active",
-          password: "",
-          avatarSeed: "alexa",
-          avatarColor: "#38bdf8",
-          avatarUrl: ""
-        });
-        setIsAuthorized(true);
-        setIsLoggedIn(true);
-        fetchData();
+        await supabase.auth.signOut();
+        setIsAuthorized(false);
+        setIsLoggedIn(false);
+        setLoginError("Only administrator accounts can access the dashboard.");
       }
     } catch (err) {
       console.error("Unexpected error in checkSessionAndRole:", err);
@@ -896,12 +881,13 @@ export default function App() {
     if (!passengerObj) return;
 
     const nextStatus = passengerObj.status === "Active" ? false : true;
+    const profileId = passengerObj.profileId || id;
 
     console.log("[Supabase Query] Toggling passenger is_active status...");
     const { error } = await supabase
       .from('profiles')
       .update({ is_active: nextStatus })
-      .eq('id', id);
+      .eq('id', profileId);
 
     if (error) {
       console.error("[Supabase Error] Passenger toggle failed:", error);
@@ -927,7 +913,10 @@ export default function App() {
       .insert({
         passenger_id: id,
         pickup_address: "Simulated Cancel Location",
+        dropoff_address: "Simulated Cancel Destination",
         status: "cancelled",
+        cancelled_by: "passenger",
+        cancel_reason: "Admin simulation",
         estimated_fare: 0
       });
 

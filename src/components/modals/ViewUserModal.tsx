@@ -772,6 +772,10 @@ export default function ViewUserModal({
                   <p className="font-bold text-slate-700 mt-0.5">{(viewingUser as Passenger).contact}</p>
                 </div>
                 <div>
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Email</p>
+                  <p className="font-bold text-slate-700 mt-0.5">{(viewingUser as Passenger).email || "N/A"}</p>
+                </div>
+                <div>
                   <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Joined Date</p>
                   <p className="font-bold text-slate-500 mt-0.5">{(viewingUser as Passenger).joinedDate}</p>
                 </div>

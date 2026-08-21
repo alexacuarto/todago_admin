@@ -96,6 +96,23 @@ export interface RideRequest {
   earningId?: string;
   earningAmount?: number;
   earningDate?: string;
+  regularFare?: number | null;
+  provisionalDiscountedFare?: number | null;
+  finalFare?: number | null;
+  discountReviewStatus?: string | null;
+  bookingDiscountRequests?: BookingDiscountRequest[];
+}
+
+export interface BookingDiscountRequest {
+  id: string;
+  bookingId: string;
+  discountType: "Student" | "Senior Citizen" | "PWD" | string;
+  companionIndex: number;
+  idImagePath: string;
+  status: "PENDING" | "APPROVED" | "REJECTED" | string;
+  reviewedByDriverId?: string | null;
+  reviewedAt?: string | null;
+  rejectionReason?: string | null;
 }
 
 export interface EarningsRecord {

@@ -216,11 +216,26 @@ export default function App() {
           dropoff_address,
           estimated_fare,
           actual_fare,
+          regular_fare,
+          provisional_discounted_fare,
+          final_fare,
+          discount_review_status,
           created_at,
           cancelled_by,
           cancelled_at,
           cancel_reason,
-          cancel_details
+          cancel_details,
+          booking_discount_requests (
+            id,
+            booking_id,
+            discount_type,
+            companion_index,
+            id_image_path,
+            status,
+            reviewed_by_driver_id,
+            reviewed_at,
+            rejection_reason
+          )
         `)
         .order("created_at", { ascending: false });
       if (bookingsError) throw bookingsError;
@@ -281,6 +296,7 @@ export default function App() {
           profileId,
           name: resolvedName,
           contact: resolvedContact,
+          email: p?.email || "",
           canceledTrips,
           status: resolvedStatus,
           joinedDate: resolvedJoinedDate,
@@ -406,7 +422,24 @@ export default function App() {
           location: b.pickup_address || "Unknown Pickup",
           destination: b.dropoff_address || "Unknown Dropoff",
           status: uiStatus,
-          fare: Number(b.actual_fare || b.estimated_fare || 0),
+          fare: Number(b.final_fare || b.actual_fare || b.estimated_fare || 0),
+          regularFare: b.regular_fare != null ? Number(b.regular_fare) : null,
+          provisionalDiscountedFare: b.provisional_discounted_fare != null ? Number(b.provisional_discounted_fare) : null,
+          finalFare: b.final_fare != null ? Number(b.final_fare) : null,
+          discountReviewStatus: b.discount_review_status || null,
+          bookingDiscountRequests: Array.isArray(b.booking_discount_requests)
+            ? b.booking_discount_requests.map((request: any) => ({
+                id: request.id,
+                bookingId: request.booking_id,
+                discountType: request.discount_type,
+                companionIndex: Number(request.companion_index || 0),
+                idImagePath: request.id_image_path,
+                status: request.status,
+                reviewedByDriverId: request.reviewed_by_driver_id || null,
+                reviewedAt: request.reviewed_at || null,
+                rejectionReason: request.rejection_reason || null,
+              }))
+            : [],
           time: b.created_at ? new Date(b.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "N/A",
           toda,
           cancelled_by: b.cancelled_by || null,

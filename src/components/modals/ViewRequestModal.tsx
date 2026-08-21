@@ -51,6 +51,28 @@ export default function ViewRequestModal({
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Fare Value</p>
               <p className="font-extrabold text-[#000C7D] text-lg mt-0.5">₱{viewingRequest.fare}</p>
             </div>
+            {viewingRequest.discountReviewStatus && (
+              <div>
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Discount Review</p>
+                <p className="font-bold text-slate-700 mt-0.5">{viewingRequest.discountReviewStatus}</p>
+              </div>
+            )}
+            {(viewingRequest.regularFare || viewingRequest.provisionalDiscountedFare || viewingRequest.finalFare) && (
+              <div className="col-span-2 grid grid-cols-3 gap-3 bg-slate-50 rounded-xl p-3 border border-slate-100">
+                <div>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Regular</p>
+                  <p className="font-extrabold text-slate-700">₱{viewingRequest.regularFare ?? "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Provisional</p>
+                  <p className="font-extrabold text-slate-700">₱{viewingRequest.provisionalDiscountedFare ?? "N/A"}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Final</p>
+                  <p className="font-extrabold text-[#000C7D]">₱{viewingRequest.finalFare ?? viewingRequest.fare}</p>
+                </div>
+              </div>
+            )}
             <div>
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Booking Time</p>
               <p className="font-bold text-slate-500 mt-0.5">{viewingRequest.time}</p>
@@ -108,6 +130,42 @@ export default function ViewRequestModal({
               </>
             )}
           </div>
+
+          {viewingRequest.bookingDiscountRequests && viewingRequest.bookingDiscountRequests.length > 0 && (
+            <div className="border border-amber-100 bg-amber-50/40 rounded-2xl p-4">
+              <p className="text-xs text-amber-700 font-extrabold uppercase tracking-wider mb-3">
+                Companion Discount IDs
+              </p>
+              <div className="flex flex-col gap-3">
+                {viewingRequest.bookingDiscountRequests.map((request) => (
+                  <div key={request.id} className="bg-white border border-amber-100 rounded-xl p-3 flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-bold text-[#000C7D] text-sm">
+                        {request.discountType} Companion {request.companionIndex}
+                      </p>
+                      <p className="text-xs font-semibold text-slate-500 mt-0.5">
+                        {request.reviewedAt ? `Reviewed ${new Date(request.reviewedAt).toLocaleString()}` : "Pending driver review"}
+                      </p>
+                      {request.rejectionReason && (
+                        <p className="text-xs font-semibold text-rose-600 mt-1">Reason: {request.rejectionReason}</p>
+                      )}
+                    </div>
+                    <span
+                      className={`px-3 py-1 rounded-full text-[11px] font-extrabold ${
+                        request.status === "APPROVED"
+                          ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                          : request.status === "REJECTED"
+                            ? "bg-rose-50 text-rose-600 border border-rose-100"
+                            : "bg-amber-100 text-amber-700 border border-amber-200"
+                      }`}
+                    >
+                      {request.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="border-t border-slate-100 pt-5 mt-2 flex items-center justify-end">
             <button

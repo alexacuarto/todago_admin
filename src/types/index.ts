@@ -130,6 +130,7 @@ export type TripType = "one_way" | "round_trip";
 export type AdminTab =
   | "dashboard"
   | "ride-requests"
+  | "earnings"
   | "fare-settings"
   | "admin-management"
   | "users"

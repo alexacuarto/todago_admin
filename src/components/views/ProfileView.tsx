@@ -45,6 +45,116 @@ export default function ProfileView({
 
   const [newProfileNameInput, setNewProfileNameInput] = useState("");
   const [profileActionError, setProfileActionError] = useState("");
+  const [isSavingProfileAction, setIsSavingProfileAction] = useState(false);
+
+  const splitName = (name: string) => {
+    const parts = name.trim().split(/\s+/);
+    return {
+      firstName: parts[0] || "",
+      lastName: parts.slice(1).join(" "),
+    };
+  };
+
+  const saveAdminName = async () => {
+    const trimmedName = newProfileNameInput.trim();
+    if (!trimmedName) {
+      setProfileActionError("Name cannot be empty.");
+      return;
+    }
+
+    setIsSavingProfileAction(true);
+    setProfileActionError("");
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) throw new Error("No authenticated admin session found.");
+
+      const { firstName, lastName } = splitName(trimmedName);
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          full_name: trimmedName,
+          first_name: firstName,
+          last_name: lastName,
+        })
+        .eq("id", user.id);
+
+      if (error) throw error;
+
+      setAdminProfile((prev) => ({ ...prev, name: trimmedName }));
+      setShowEditNameSubModal(false);
+      alert("Administrator name updated.");
+    } catch (err: any) {
+      setProfileActionError(err.message || "Failed to update administrator name.");
+    } finally {
+      setIsSavingProfileAction(false);
+    }
+  };
+
+  const saveAdminPassword = async () => {
+    if (!currentProfilePasswordInput) {
+      setProfileActionError("Current password is required.");
+      return;
+    }
+    if (!newProfilePasswordInput) {
+      setProfileActionError("New password cannot be empty.");
+      return;
+    }
+    if (newProfilePasswordInput !== confirmProfilePasswordInput) {
+      setProfileActionError("Passwords do not match.");
+      return;
+    }
+
+    setIsSavingProfileAction(true);
+    setProfileActionError("");
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user?.email) throw new Error("No authenticated admin email found.");
+
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentProfilePasswordInput,
+      });
+      if (signInError) throw new Error("Current password is incorrect.");
+
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newProfilePasswordInput,
+      });
+      if (updateError) throw updateError;
+
+      setAdminProfile((prev) => ({ ...prev, password: "********" }));
+      setShowChangePasswordSubModal(false);
+      alert("Password updated successfully.");
+    } catch (err: any) {
+      setProfileActionError(err.message || "Failed to update password.");
+    } finally {
+      setIsSavingProfileAction(false);
+    }
+  };
+
+  const saveAvatarUrl = async (avatarUrl: string) => {
+    setIsSavingProfileAction(true);
+    setProfileActionError("");
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) throw new Error("No authenticated admin session found.");
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({ avatar_url: avatarUrl || null })
+        .eq("id", user.id);
+
+      if (error) throw error;
+      setAdminProfile((prev) => ({ ...prev, avatarUrl }));
+    } catch (err: any) {
+      setProfileActionError(err.message || "Failed to update profile picture.");
+      throw err;
+    } finally {
+      setIsSavingProfileAction(false);
+    }
+  };
 
   return (
     <div className="absolute inset-0 bg-[#f3f5fa] flex items-start justify-center p-4 py-12 overflow-y-auto z-40 transition-all">
@@ -106,17 +216,6 @@ export default function ProfileView({
             <div className="py-4 flex flex-col gap-1 text-left">
               <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Email</span>
               <span className="text-sm font-semibold text-slate-700">{adminProfile.email}</span>
-            </div>
-
-            {/* Account Status Section */}
-            <div className="py-4 flex flex-col gap-1 text-left">
-              <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Account Status</span>
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-700 font-extrabold text-[10px] rounded-md">
-                  {adminProfile.status}
-                </span>
-                <span className="text-xs text-slate-400 font-semibold">Your account is active and in good standing.</span>
-              </div>
             </div>
 
             {/* Password Section */}
@@ -304,26 +403,11 @@ export default function ProfileView({
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  if (currentProfilePasswordInput !== adminProfile.password) {
-                    setProfileActionError("Current password is incorrect.");
-                    return;
-                  }
-                  if (!newProfilePasswordInput) {
-                    setProfileActionError("New password cannot be empty.");
-                    return;
-                  }
-                  if (newProfilePasswordInput !== confirmProfilePasswordInput) {
-                    setProfileActionError("Passwords do not match.");
-                    return;
-                  }
-                  setAdminProfile((prev) => ({ ...prev, password: newProfilePasswordInput }));
-                  setShowChangePasswordSubModal(false);
-                  alert("Password updated successfully!");
-                }}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition-colors cursor-pointer"
+                onClick={saveAdminPassword}
+                disabled={isSavingProfileAction}
+                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition-colors cursor-pointer disabled:opacity-60"
               >
-                Save Password
+                {isSavingProfileAction ? "Saving..." : "Save Password"}
               </button>
             </div>
           </div>
@@ -356,18 +440,11 @@ export default function ProfileView({
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  if (!newProfileNameInput.trim()) {
-                    setProfileActionError("Name cannot be empty.");
-                    return;
-                  }
-                  setAdminProfile((prev) => ({ ...prev, name: newProfileNameInput }));
-                  setShowEditNameSubModal(false);
-                  alert("Administrator name updated!");
-                }}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition-colors cursor-pointer"
+                onClick={saveAdminName}
+                disabled={isSavingProfileAction}
+                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition-colors cursor-pointer disabled:opacity-60"
               >
-                Save Name
+                {isSavingProfileAction ? "Saving..." : "Save Name"}
               </button>
             </div>
           </div>
@@ -389,9 +466,13 @@ export default function ProfileView({
                   const file = e.target.files?.[0];
                   if (file) {
                     const reader = new FileReader();
-                    reader.onloadend = () => {
-                      setAdminProfile((prev) => ({ ...prev, avatarUrl: reader.result as string }));
-                      alert("Profile picture uploaded successfully!");
+                    reader.onloadend = async () => {
+                      try {
+                        await saveAvatarUrl(reader.result as string);
+                        alert("Profile picture uploaded successfully.");
+                      } catch {
+                        // Error text is shown in the modal.
+                      }
                     };
                     reader.readAsDataURL(file);
                   }
@@ -420,10 +501,12 @@ export default function ProfileView({
               <button
                 type="button"
                 onClick={() => {
-                  setAdminProfile((prev) => ({ ...prev, avatarUrl: "" }));
-                  alert("Custom profile picture removed.");
+                  saveAvatarUrl("")
+                    .then(() => alert("Custom profile picture removed."))
+                    .catch(() => undefined);
                 }}
-                className="w-full py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl font-bold text-xs transition-colors cursor-pointer border border-rose-100"
+                disabled={isSavingProfileAction}
+                className="w-full py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl font-bold text-xs transition-colors cursor-pointer border border-rose-100 disabled:opacity-60"
               >
                 Remove Custom Picture
               </button>
@@ -445,8 +528,12 @@ export default function ProfileView({
                   type="button"
                   onClick={() => {
                     setAdminProfile((prev) => ({ ...prev, avatarColor: theme.color, avatarUrl: "" }));
-                    setShowChangePictureSubModal(false);
-                    alert(`Profile accent updated to ${theme.name}!`);
+                    saveAvatarUrl("")
+                      .then(() => {
+                        setShowChangePictureSubModal(false);
+                        alert(`Profile accent updated to ${theme.name}.`);
+                      })
+                      .catch(() => undefined);
                   }}
                   className={`border rounded-2xl p-3 flex flex-col items-center gap-2.5 transition-all hover:scale-[1.02] cursor-pointer ${
                     !adminProfile.avatarUrl && adminProfile.avatarColor === theme.color

@@ -17,7 +17,7 @@ export default function Header({
   setMobileMenuOpen,
 }: HeaderProps) {
   return (
-    <header className="bg-[#000C7D] text-white flex items-center justify-between px-6 py-3 shadow-md z-20 shrink-0">
+    <header className="bg-[#000C7D] text-white flex items-center justify-between px-6 py-3 shadow-md z-30 shrink-0">
       <div className="flex items-center gap-3">
         {/* Mobile menu hamburger */}
         <button

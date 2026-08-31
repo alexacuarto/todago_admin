@@ -35,12 +35,46 @@ export interface Driver {
   profileId: string;
   lastOnlineAt?: string | null;
   totalOnlineMinutes?: number;
+  liveOnlineMinutes?: number;
   lastCompletedRideAt?: string | null;
   adminActionType?: string | null;
   adminActionReason?: string | null;
   adminActionDate?: string | null;
   adminActionBy?: string | null;
   documentIssueReason?: string | null;
+}
+
+export interface DriverProfileChangeRequest {
+  id: string;
+  driverId: string;
+  profileId: string;
+  fieldName: string;
+  currentValue?: string | null;
+  requestedValue: string;
+  status: "PENDING" | "APPROVED" | "REJECTED" | string;
+  rejectionReason?: string | null;
+  reviewedBy?: string | null;
+  reviewedAt?: string | null;
+  createdAt: string;
+}
+
+export interface FeedbackReport {
+  id: string;
+  reportType: "APP_FEEDBACK" | "DRIVER_FEEDBACK" | string;
+  title: string;
+  message: string;
+  category?: string | null;
+  status: "OPEN" | "REVIEWING" | "RESOLVED" | "DISMISSED" | string;
+  reporterProfileId?: string | null;
+  reporterPassengerId?: string | null;
+  reporterName?: string;
+  driverId?: string | null;
+  driverName?: string;
+  bookingId?: string | null;
+  route?: string;
+  adminNotes?: string | null;
+  createdAt: string;
+  updatedAt?: string | null;
 }
 
 export interface Passenger {
@@ -134,6 +168,7 @@ export type AdminTab =
   | "fare-settings"
   | "admin-management"
   | "users"
+  | "feedback"
   | "profile"
   | "create-driver";
 

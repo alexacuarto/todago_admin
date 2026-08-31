@@ -1,6 +1,6 @@
 interface SidebarProps {
-  activeTab: "dashboard" | "ride-requests" | "earnings" | "users" | "profile" | "create-driver" | "fare-settings";
-  setActiveTab: (tab: "dashboard" | "ride-requests" | "earnings" | "users" | "profile" | "create-driver" | "fare-settings") => void;
+  activeTab: "dashboard" | "ride-requests" | "earnings" | "users" | "feedback" | "profile" | "create-driver" | "fare-settings";
+  setActiveTab: (tab: "dashboard" | "ride-requests" | "earnings" | "users" | "feedback" | "profile" | "create-driver" | "fare-settings") => void;
   mobileMenuOpen: boolean;
   setMobileMenuOpen: (open: boolean) => void;
   usersSubTab: "drivers" | "passengers";
@@ -97,6 +97,14 @@ export default function Sidebar({
               <path d="M4 7h16M4 12h16M4 17h10" />
             </svg>
             <span>Fare Settings</span>
+          </button>
+
+          <button onClick={() => goTo("feedback")} className={getTabClass("feedback")}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
+              <path d="M8 9h8M8 13h5" />
+            </svg>
+            <span>Feedback</span>
           </button>
 
           <button onClick={() => goToUsers("drivers")} className={getTabClass("users")}>

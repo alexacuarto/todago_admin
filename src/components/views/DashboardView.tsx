@@ -6,7 +6,7 @@ interface DashboardViewProps {
   onlineDriversCount: number;
   activeDriversCount: number;
   totalEarnings: number;
-  setActiveTab: (tab: "dashboard" | "ride-requests" | "earnings" | "users" | "profile" | "create-driver" | "fare-settings") => void;
+  setActiveTab: (tab: "dashboard" | "ride-requests" | "earnings" | "users" | "feedback" | "profile" | "create-driver" | "fare-settings") => void;
   setActiveStatModal: (modal: string | null) => void;
 }
 
@@ -116,7 +116,7 @@ export default function DashboardView({
                 </tr>
               </thead>
               <tbody className="text-sm font-semibold divide-y divide-slate-50">
-                {rideRequests.slice(0, 6).map((request) => (
+                {rideRequests.slice(0, 4).map((request) => (
                   <tr key={request.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="py-3.5 pl-3 text-slate-700">{request.passenger}</td>
                     <td className="py-3.5 px-3 text-slate-600">{request.driver}</td>

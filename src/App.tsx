@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { createDriverAccount } from "./lib/driverService";
 import { getDriverActivityStatus } from "./lib/driverActivity";
 import { supabase } from "./lib/supabase";
-import { Driver, Passenger, RideRequest } from "./types";
+import { Driver, DriverProfileChangeRequest, FeedbackReport, Passenger, RideRequest } from "./types";
 
 // Layout components
 import Header from "./components/Layout/Header";
@@ -17,6 +17,7 @@ import UsersView from "./components/views/UsersView";
 import ProfileView from "./components/views/ProfileView";
 import CreateDriverView from "./components/views/CreateDriverView";
 import FareSettingsView from "./components/views/FareSettingsView";
+import FeedbackView from "./components/views/FeedbackView";
 
 // Modals
 import EditDriverModal from "./components/modals/EditDriverModal";
@@ -39,7 +40,7 @@ export default function App() {
   const [loginError, setLoginError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<"dashboard" | "ride-requests" | "earnings" | "users" | "profile" | "create-driver" | "fare-settings">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "ride-requests" | "earnings" | "users" | "feedback" | "profile" | "create-driver" | "fare-settings">("dashboard");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isCreatingDriver, setIsCreatingDriver] = useState(false);
 
@@ -58,6 +59,8 @@ export default function App() {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [passengers, setPassengers] = useState<Passenger[]>([]);
   const [rideRequests, setRideRequests] = useState<RideRequest[]>([]);
+  const [driverChangeRequests, setDriverChangeRequests] = useState<DriverProfileChangeRequest[]>([]);
+  const [feedbackReports, setFeedbackReports] = useState<FeedbackReport[]>([]);
 
   // Modal display states
   const [showEditDriverModal, setShowEditDriverModal] = useState(false);
@@ -241,6 +244,18 @@ export default function App() {
       if (bookingsError) throw bookingsError;
       console.log("[Supabase Response] Bookings fetched:", bookings.length);
 
+      const { data: changeRequestRows, error: changeRequestError } = await supabase
+        .from("driver_profile_change_requests")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (changeRequestError && changeRequestError.code !== "42P01") throw changeRequestError;
+
+      const { data: reportRows, error: reportRowsError } = await supabase
+        .from("reports")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (reportRowsError) throw reportRowsError;
+
       // Map Passengers
       const allPassengerIds = new Set<string>();
       (profiles || [])
@@ -337,6 +352,9 @@ export default function App() {
         const lastOnlineVal = d.last_online_at || null;
         const lastCompletedRideVal = d.last_completed_ride_at || lastCompletedTripDate;
         const activityStatus = getDriverActivityStatus(lastOnlineVal, lastCompletedRideVal, !!d.is_online);
+        const liveOnlineMinutes = d.is_online && lastOnlineVal
+          ? Math.max(0, Math.floor((Date.now() - new Date(lastOnlineVal).getTime()) / 60000))
+          : 0;
 
         return {
           id: d.id,
@@ -370,6 +388,7 @@ export default function App() {
           profileId: d.profile_id,
           lastOnlineAt: lastOnlineVal,
           totalOnlineMinutes: d.total_online_minutes || 0,
+          liveOnlineMinutes,
           lastCompletedRideAt: lastCompletedRideVal,
           adminActionType: d.admin_action_type || null,
           adminActionReason: d.admin_action_reason || null,
@@ -378,6 +397,20 @@ export default function App() {
           documentIssueReason: d.document_issue_reason || null,
         };
       });
+
+      const mappedChangeRequests: DriverProfileChangeRequest[] = (changeRequestRows || []).map((row: any) => ({
+        id: row.id,
+        driverId: row.driver_id,
+        profileId: row.profile_id,
+        fieldName: row.field_name,
+        currentValue: row.current_value || null,
+        requestedValue: row.requested_value || "",
+        status: row.status || "PENDING",
+        rejectionReason: row.rejection_reason || null,
+        reviewedBy: row.reviewed_by || null,
+        reviewedAt: row.reviewed_at || null,
+        createdAt: row.created_at,
+      }));
 
       // Map Ride Requests
       const mappedRequests: RideRequest[] = bookings.map((b: any) => {
@@ -458,9 +491,38 @@ export default function App() {
         };
       });
 
+      const mappedReports: FeedbackReport[] = (reportRows || []).map((row: any) => {
+        const reporterProfile = (profiles || []).find((p: any) => p.id === row.reporter_profile_id) || {};
+        const reporterName = `${reporterProfile.first_name || ""} ${reporterProfile.last_name || ""}`.trim() || reporterProfile.email || "Unknown Passenger";
+        const driverRow = row.driver_id ? driversData.find((d: any) => d.id === row.driver_id) : null;
+        const driverProfile = driverRow ? (profiles || []).find((p: any) => p.id === driverRow.profile_id) || {} : {};
+        const driverName = driverRow ? `${driverProfile.first_name || ""} ${driverProfile.last_name || ""}`.trim() || "Unnamed Driver" : undefined;
+        const booking = row.booking_id ? bookings.find((b: any) => b.id === row.booking_id) : null;
+        return {
+          id: row.id,
+          reportType: row.report_type || "APP_FEEDBACK",
+          title: row.title || "Feedback",
+          message: row.message || row.description || "",
+          category: row.category || null,
+          status: row.status || "OPEN",
+          reporterProfileId: row.reporter_profile_id || row.generated_by || null,
+          reporterPassengerId: row.reporter_passenger_id || null,
+          reporterName,
+          driverId: row.driver_id || null,
+          driverName,
+          bookingId: row.booking_id || null,
+          route: booking ? `${booking.pickup_address || "Pickup"} -> ${booking.dropoff_address || "Dropoff"}` : undefined,
+          adminNotes: row.admin_notes || null,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at || null,
+        };
+      });
+
       setPassengers(mappedPassengers);
       setDrivers(mappedDrivers);
       setRideRequests(mappedRequests);
+      setDriverChangeRequests(mappedChangeRequests);
+      setFeedbackReports(mappedReports);
     } catch (err: any) {
       console.error("[Supabase Error] Error fetching live data:", err);
       setErrorState(err.message || "Failed to load database records.");
@@ -593,10 +655,10 @@ export default function App() {
     };
   }, []);
 
-  // Realtime update subscriptions for bookings, drivers, profiles, vehicles, and passengers
+  // Realtime update subscriptions for active admin data.
   useEffect(() => {
     if (isLoggedIn && isAuthorized) {
-      console.log("[Supabase Realtime] Subscribing to bookings, drivers, profiles, vehicles, and passengers changes...");
+      console.log("[Supabase Realtime] Subscribing to admin data changes...");
 
       const bookingsSubscription = supabase
         .channel("bookings-channel")
@@ -658,12 +720,38 @@ export default function App() {
         )
         .subscribe();
 
+      const reportsSubscription = supabase
+        .channel("reports-channel")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "reports" },
+          () => {
+            console.log("[Supabase Realtime] Feedback report change detected. Refetching...");
+            fetchData();
+          }
+        )
+        .subscribe();
+
+      const driverRequestsSubscription = supabase
+        .channel("driver-change-requests-channel")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "driver_profile_change_requests" },
+          () => {
+            console.log("[Supabase Realtime] Driver change request detected. Refetching...");
+            fetchData();
+          }
+        )
+        .subscribe();
+
       return () => {
         supabase.removeChannel(bookingsSubscription);
         supabase.removeChannel(driversSubscription);
         supabase.removeChannel(profilesSubscription);
         supabase.removeChannel(vehiclesSubscription);
         supabase.removeChannel(passengersSubscription);
+        supabase.removeChannel(reportsSubscription);
+        supabase.removeChannel(driverRequestsSubscription);
       };
     }
   }, [isLoggedIn, isAuthorized]);
@@ -1212,6 +1300,10 @@ export default function App() {
                 />
               )}
 
+              {activeTab === "feedback" && (
+                <FeedbackView reports={feedbackReports} onRefresh={fetchData} />
+              )}
+
               {activeTab === "profile" && (
                 <ProfileView
                   adminProfile={adminProfile}
@@ -1288,6 +1380,7 @@ export default function App() {
         onDeletePassenger={handleDeletePassenger}
         onRefreshData={fetchData}
         rideRequests={rideRequests}
+        driverChangeRequests={driverChangeRequests}
       />
 
       <StatBreakdownModal

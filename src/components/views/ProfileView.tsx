@@ -14,7 +14,7 @@ interface AdminProfile {
 interface ProfileViewProps {
   adminProfile: AdminProfile;
   setAdminProfile: React.Dispatch<React.SetStateAction<AdminProfile>>;
-  setActiveTab: (tab: "dashboard" | "ride-requests" | "earnings" | "users" | "profile") => void;
+  setActiveTab: (tab: "dashboard" | "ride-requests" | "earnings" | "users" | "feedback" | "profile" | "create-driver" | "fare-settings") => void;
   setIsLoggedIn: (loggedIn: boolean) => void;
   setLoginEmail?: (email: string) => void;
   setLoginPassword?: (password: string) => void;

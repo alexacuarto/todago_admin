@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Driver, Passenger, RideRequest } from "../../types";
+import { Driver, DriverProfileChangeRequest, Passenger, RideRequest } from "../../types";
 import { supabase } from "../../lib/supabase";
 
 interface ViewUserModalProps {
@@ -13,6 +13,7 @@ interface ViewUserModalProps {
   onDeletePassenger: (passenger: Passenger) => void;
   onRefreshData?: () => void;
   rideRequests?: RideRequest[];
+  driverChangeRequests?: DriverProfileChangeRequest[];
 }
 
 const statusBadge = (status: string) => {
@@ -27,6 +28,14 @@ const Field = ({ label, value }: { label: string; value: React.ReactNode }) => (
     <div className="font-bold text-slate-700 mt-0.5 break-words">{value}</div>
   </div>
 );
+
+const formatMinutes = (minutes: number) => {
+  const safeMinutes = Math.max(0, Math.floor(minutes || 0));
+  const hours = Math.floor(safeMinutes / 60);
+  const mins = safeMinutes % 60;
+  if (hours === 0) return `${mins} min`;
+  return `${hours}h ${mins}m`;
+};
 
 const FilePicker = ({
   label,
@@ -73,6 +82,7 @@ export default function ViewUserModal({
   onDeletePassenger,
   onRefreshData,
   rideRequests = [],
+  driverChangeRequests = [],
 }: ViewUserModalProps) {
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [zoomType, setZoomType] = useState<"front" | "back" | "franchise" | "discount" | null>(null);
@@ -91,6 +101,8 @@ export default function ViewUserModal({
   const [activeDriverAction, setActiveDriverAction] = useState<"suspend" | "clear" | null>(null);
   const [driverActionReason, setDriverActionReason] = useState("");
   const [isExecutingDriverAction, setIsExecutingDriverAction] = useState(false);
+  const [reviewingRequestId, setReviewingRequestId] = useState<string | null>(null);
+  const [changeRequestReason, setChangeRequestReason] = useState("");
   const [ridePage, setRidePage] = useState(1);
 
   useEffect(() => {
@@ -123,6 +135,9 @@ export default function ViewUserModal({
 
   const driver = viewingUserType === "driver" ? viewingUser as Driver : null;
   const passenger = viewingUserType === "passenger" ? viewingUser as Passenger : null;
+  const visibleDriverChangeRequests = driver
+    ? driverChangeRequests.filter((request) => request.driverId === driver.id)
+    : [];
 
   const handleZoomClick = async (type: "front" | "back" | "franchise" | "discount") => {
     const url =
@@ -256,6 +271,41 @@ export default function ViewUserModal({
     }
   };
 
+  const fieldLabel = (fieldName: string) => {
+    const labels: Record<string, string> = {
+      full_name: "Full Name",
+      toda_association: "TODA Association",
+      license_number: "License Number",
+      plate_number: "Plate Number",
+      phone_number: "Phone Number",
+      email: "Email",
+      address: "Address",
+    };
+    return labels[fieldName] || fieldName.replace(/_/g, " ");
+  };
+
+  const handleReviewChangeRequest = async (requestId: string, status: "APPROVED" | "REJECTED") => {
+    if (status === "REJECTED" && !changeRequestReason.trim()) {
+      alert("Please add a rejection reason.");
+      return;
+    }
+    setReviewingRequestId(requestId);
+    try {
+      const { error } = await supabase.rpc("review_driver_profile_change_request", {
+        p_request_id: requestId,
+        p_status: status,
+        p_reason: status === "REJECTED" ? changeRequestReason.trim() : null,
+      });
+      if (error) throw error;
+      setChangeRequestReason("");
+      await onRefreshData?.();
+    } catch (err: any) {
+      alert(err.message || "Failed to review driver change request.");
+    } finally {
+      setReviewingRequestId(null);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 transition-all animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl shadow-xl w-full max-w-2xl overflow-hidden border border-slate-100 flex flex-col animate-in zoom-in-95 max-h-[90vh]">
@@ -292,6 +342,18 @@ export default function ViewUserModal({
                   value={<span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${statusBadge(driver.activityStatus)}`}>{driver.activityStatus}</span>}
                 />
                 <Field
+                  label="Online State"
+                  value={driver.isOnline ? "Online" : "Offline"}
+                />
+                <Field
+                  label="Total Online Time"
+                  value={formatMinutes((driver.totalOnlineMinutes || 0) + (driver.liveOnlineMinutes || 0))}
+                />
+                <Field
+                  label="Current Session"
+                  value={driver.isOnline ? formatMinutes(driver.liveOnlineMinutes || 0) : "Not active"}
+                />
+                <Field
                   label="Last Completed Ride"
                   value={driver.lastCompletedRideAt ? new Date(driver.lastCompletedRideAt).toLocaleString() : "Never"}
                 />
@@ -316,6 +378,54 @@ export default function ViewUserModal({
                     {driver.franchiseUrl && <button type="button" onClick={() => handleZoomClick("franchise")} className="self-start px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 text-[10px] font-bold rounded-lg cursor-pointer">Permit Image</button>}
                   </div>
                 </div>
+              </div>
+
+              <div className="flex flex-col gap-3 border border-slate-100 p-4 rounded-2xl bg-slate-50/20">
+                <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider">Driver Change Requests</h4>
+                {visibleDriverChangeRequests.length === 0 ? (
+                  <p className="text-xs font-semibold text-slate-500">No submitted change requests.</p>
+                ) : (
+                  visibleDriverChangeRequests.map((request) => (
+                    <div key={request.id} className="bg-white border border-slate-200 rounded-xl p-3 flex flex-col gap-3">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                        <Field label="Field" value={fieldLabel(request.fieldName)} />
+                        <Field label="Current" value={request.currentValue || "N/A"} />
+                        <Field label="Requested" value={request.requestedValue} />
+                      </div>
+                      <div className="flex flex-col md:flex-row gap-2 md:items-center md:justify-between">
+                        <span className={`self-start inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${statusBadge(request.status)}`}>
+                          {request.status}
+                        </span>
+                        {request.status === "PENDING" && (
+                          <div className="flex flex-col md:flex-row gap-2 md:items-center">
+                            <input
+                              value={changeRequestReason}
+                              onChange={(event) => setChangeRequestReason(event.target.value)}
+                              placeholder="Rejection reason"
+                              className="border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-700"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleReviewChangeRequest(request.id, "APPROVED")}
+                              disabled={reviewingRequestId === request.id}
+                              className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold cursor-pointer disabled:opacity-60"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleReviewChangeRequest(request.id, "REJECTED")}
+                              disabled={reviewingRequestId === request.id}
+                              className="px-3 py-1.5 bg-rose-600 text-white rounded-lg text-xs font-bold cursor-pointer disabled:opacity-60"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
 
               <form onSubmit={handleSaveDocuments} className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col gap-4">

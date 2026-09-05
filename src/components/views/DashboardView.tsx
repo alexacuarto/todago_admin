@@ -7,7 +7,7 @@ interface DashboardViewProps {
   activeDriversCount: number;
   totalEarnings: number;
   setActiveTab: (tab: "dashboard" | "ride-requests" | "earnings" | "users" | "feedback" | "profile" | "create-driver" | "fare-settings") => void;
-  setActiveStatModal: (modal: string | null) => void;
+  setActiveStatModal?: (modal: string | null) => void;
 }
 
 const money = (value: number) => `₱ ${value.toLocaleString()}`;
@@ -26,7 +26,6 @@ export default function DashboardView({
   activeDriversCount,
   totalEarnings,
   setActiveTab,
-  setActiveStatModal,
 }: DashboardViewProps) {
   const todaEarnings = Object.values(
     rideRequests
@@ -56,50 +55,19 @@ export default function DashboardView({
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-        <div
-          onClick={() => setActiveStatModal("online-drivers")}
-          className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between hover:shadow-md transition-all duration-200 cursor-pointer"
-        >
-          <div className="flex flex-col gap-1">
-            <span className="text-slate-400 font-bold text-xs uppercase tracking-wider">Online Drivers</span>
-            <span className="text-3xl font-extrabold text-[#000C7D]">{onlineDriversCount}</span>
-          </div>
-          <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
-          </div>
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-center">
+          <span className="text-slate-400 font-bold text-xs uppercase tracking-wider">Online Drivers</span>
+          <span className="text-3xl font-extrabold text-[#000C7D] mt-1">{onlineDriversCount}</span>
         </div>
 
-        <div
-          onClick={() => setActiveStatModal("active-drivers")}
-          className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between hover:shadow-md transition-all duration-200 cursor-pointer"
-        >
-          <div className="flex flex-col gap-1">
-            <span className="text-slate-400 font-bold text-xs uppercase tracking-wider">Active Drivers</span>
-            <span className="text-3xl font-extrabold text-[#000C7D]">{activeDriversCount}</span>
-          </div>
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 text-slate-400">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="6" cy="18" r="3" />
-              <circle cx="18" cy="18" r="3" />
-              <path d="M6 15h12M9 15l2-7h6l1 7M11 8V5h3" />
-            </svg>
-          </div>
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-center">
+          <span className="text-slate-400 font-bold text-xs uppercase tracking-wider">Active Drivers</span>
+          <span className="text-3xl font-extrabold text-[#000C7D] mt-1">{activeDriversCount}</span>
         </div>
 
-        <div
-          onClick={() => setActiveTab("earnings")}
-          className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between hover:shadow-md transition-all duration-200 cursor-pointer"
-        >
-          <div className="flex flex-col gap-1">
-            <span className="text-slate-400 font-bold text-xs uppercase tracking-wider">Total Earnings</span>
-            <span className="text-3xl font-extrabold text-[#000C7D]">{money(totalEarnings)}</span>
-          </div>
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="1" x2="12" y2="23" />
-              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-            </svg>
-          </div>
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-center">
+          <span className="text-slate-400 font-bold text-xs uppercase tracking-wider">Total Earnings</span>
+          <span className="text-3xl font-extrabold text-[#000C7D] mt-1">{money(totalEarnings)}</span>
         </div>
       </div>
 

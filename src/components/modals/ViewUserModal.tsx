@@ -104,7 +104,7 @@ export default function ViewUserModal({
   const [franchiseFile, setFranchiseFile] = useState<File | null>(null);
   const [franchisePlateNo, setFranchisePlateNo] = useState("");
   const [isSavingDocs, setIsSavingDocs] = useState(false);
-  const [activeDriverAction, setActiveDriverAction] = useState<"suspend" | "clear" | null>(null);
+  const [activeDriverAction, setActiveDriverAction] = useState<"restrict" | "clear" | null>(null);
   const [driverActionReason, setDriverActionReason] = useState("");
   const [isExecutingDriverAction, setIsExecutingDriverAction] = useState(false);
   const [reviewingRequestId, setReviewingRequestId] = useState<string | null>(null);
@@ -113,6 +113,7 @@ export default function ViewUserModal({
   const [passengerIdPreviewUrl, setPassengerIdPreviewUrl] = useState<string | null>(null);
   const [selectedToda, setSelectedToda] = useState("");
   const [isUpdatingToda, setIsUpdatingToda] = useState(false);
+  const [isDeletingUser, setIsDeletingUser] = useState(false);
 
   useEffect(() => {
     if (viewingUser && viewingUserType === "driver") {
@@ -339,25 +340,81 @@ export default function ViewUserModal({
 
   const handleDriverAction = async () => {
     if (!driver || !activeDriverAction) return;
-    if (activeDriverAction === "suspend" && !driverActionReason.trim()) {
-      alert("Please enter a suspension reason.");
+    if (activeDriverAction === "restrict" && !driverActionReason.trim()) {
+      alert("Please enter a restriction reason.");
       return;
     }
 
     setIsExecutingDriverAction(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const update = activeDriverAction === "clear"
-        ? { admin_action_type: null, admin_action_reason: null, admin_action_date: null, admin_action_by: null }
-        : {
-            admin_action_type: "suspended",
-            admin_action_reason: driverActionReason.trim(),
-            admin_action_date: new Date().toISOString(),
-            admin_action_by: session?.user?.id || null,
-          };
-      const { error } = await supabase.from("drivers").update(update).eq("id", driver.id);
-      if (error) throw error;
-      alert(activeDriverAction === "clear" ? "Driver restriction removed." : "Driver suspended.");
+
+      if (activeDriverAction === "restrict") {
+        const { error: rpcError } = await supabase.rpc("admin_restrict_driver", {
+          p_driver_id: driver.id,
+          p_reason: driverActionReason.trim(),
+        });
+        if (rpcError) {
+          console.warn("RPC admin_restrict_driver unavailable, falling back to direct table update:", rpcError);
+          const { error } = await supabase
+            .from("drivers")
+            .update({
+              admin_action_type: "restricted",
+              admin_action_reason: driverActionReason.trim(),
+              admin_action_date: new Date().toISOString(),
+              admin_action_by: session?.user?.id || null,
+              is_online: false,
+            })
+            .eq("id", driver.id);
+          if (error) throw error;
+
+          const recipientId = driver.profileId || driver.id;
+          await supabase.from("notifications").insert({
+            recipient_id: recipientId,
+            type: "in_app",
+            title: "Account Restricted",
+            body: `Your driver account has been restricted by the administrator. Reason: ${driverActionReason.trim()}`,
+            notification_category: "account_status",
+            data: {
+              action: "driver_restricted",
+              reason: driverActionReason.trim(),
+              date: new Date().toISOString(),
+            },
+          });
+        }
+      } else {
+        const { error: rpcError } = await supabase.rpc("admin_lift_driver_restriction", {
+          p_driver_id: driver.id,
+        });
+        if (rpcError) {
+          console.warn("RPC admin_lift_driver_restriction unavailable, falling back to direct table update:", rpcError);
+          const { error } = await supabase
+            .from("drivers")
+            .update({
+              admin_action_type: null,
+              admin_action_reason: null,
+              admin_action_date: null,
+              admin_action_by: null,
+            })
+            .eq("id", driver.id);
+          if (error) throw error;
+
+          const recipientId = driver.profileId || driver.id;
+          await supabase.from("notifications").insert({
+            recipient_id: recipientId,
+            type: "in_app",
+            title: "Restriction Lifted",
+            body: "Your driver account restriction has been lifted by the administrator. You may now go online and accept rides.",
+            notification_category: "account_status",
+            data: {
+              action: "driver_restriction_lifted",
+              date: new Date().toISOString(),
+            },
+          });
+        }
+      }
+
+      alert(activeDriverAction === "clear" ? "Driver restriction removed." : "Driver restricted successfully.");
       onRefreshData?.();
       onClose();
     } catch (err: any) {
@@ -593,19 +650,31 @@ export default function ViewUserModal({
                   </div>
                 )}
                 <div className="flex flex-wrap gap-2">
-                  <button onClick={() => setActiveDriverAction("suspend")} className="px-4 py-2 bg-rose-50 text-rose-600 border border-rose-100 rounded-xl text-xs font-bold hover:bg-rose-100 cursor-pointer">
-                    Suspend Driver
+                  <button onClick={() => setActiveDriverAction("restrict")} className="px-4 py-2 bg-rose-50 text-rose-600 border border-rose-100 rounded-xl text-xs font-bold hover:bg-rose-100 cursor-pointer">
+                    Restrict Driver
                   </button>
-                  <button onClick={() => onDeleteDriver(driver)} className="px-4 py-2 bg-rose-600 text-white border border-rose-600 rounded-xl text-xs font-bold hover:bg-rose-700 cursor-pointer">
-                    Remove Driver
+                  <button
+                    type="button"
+                    disabled={isDeletingUser}
+                    onClick={async () => {
+                      setIsDeletingUser(true);
+                      try {
+                        await onDeleteDriver(driver);
+                      } finally {
+                        setIsDeletingUser(false);
+                      }
+                    }}
+                    className="px-4 py-2 bg-rose-600 text-white border border-rose-600 rounded-xl text-xs font-bold hover:bg-rose-700 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {isDeletingUser ? "Deleting Driver..." : "Remove Driver"}
                   </button>
                 </div>
                 {activeDriverAction && (
                   <div className="bg-white border border-slate-200 rounded-xl p-3.5 flex flex-col gap-3">
-                    {activeDriverAction === "suspend" ? (
+                    {activeDriverAction === "restrict" ? (
                       <textarea
                         rows={2}
-                        placeholder="Reason for suspension"
+                        placeholder="Reason for restriction (e.g. reported violation, misconduct, temporary hold)"
                         value={driverActionReason}
                         onChange={(event) => setDriverActionReason(event.target.value)}
                         className="border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-[#000C7D] outline-hidden focus:border-blue-400 resize-none"
@@ -882,10 +951,18 @@ export default function ViewUserModal({
 
                 <button
                   type="button"
-                  onClick={() => onDeletePassenger(passenger)}
-                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs"
+                  disabled={isDeletingUser}
+                  onClick={async () => {
+                    setIsDeletingUser(true);
+                    try {
+                      await onDeletePassenger(passenger);
+                    } finally {
+                      setIsDeletingUser(false);
+                    }
+                  }}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  Delete Passenger
+                  {isDeletingUser ? "Deleting Passenger..." : "Delete Passenger"}
                 </button>
               </div>
             </>

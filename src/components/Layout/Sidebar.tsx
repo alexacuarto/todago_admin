@@ -153,7 +153,7 @@ export default function Sidebar({
             <button onClick={() => goToUsers("drivers")} className={getUsersSubClass("drivers")}>
               <span>Drivers</span>
               {pendingDriversCount > 0 && (
-                <span className="px-1.5 py-0.5 text-[9px] font-extrabold rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                <span className="px-1.5 py-0.5 text-[9px] font-extrabold rounded-full bg-blue-100 text-[#000C7D] border border-blue-200">
                   {pendingDriversCount}
                 </span>
               )}
@@ -161,7 +161,7 @@ export default function Sidebar({
             <button onClick={() => goToUsers("passengers")} className={getUsersSubClass("passengers")}>
               <span>Passengers</span>
               {pendingPassengersCount > 0 && (
-                <span className="px-1.5 py-0.5 text-[9px] font-extrabold rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                <span className="px-1.5 py-0.5 text-[9px] font-extrabold rounded-full bg-blue-100 text-[#000C7D] border border-blue-200">
                   {pendingPassengersCount}
                 </span>
               )}
@@ -169,7 +169,7 @@ export default function Sidebar({
             <button onClick={() => goToUsers("requests")} className={getUsersSubClass("requests")}>
               <span>Change Requests</span>
               {pendingChangeRequestsCount > 0 && (
-                <span className="px-1.5 py-0.5 text-[9px] font-extrabold rounded-full bg-rose-500 text-white shadow-xs">
+                <span className="px-1.5 py-0.5 text-[9px] font-extrabold rounded-full bg-[#000C7D] text-white shadow-xs">
                   {pendingChangeRequestsCount}
                 </span>
               )}

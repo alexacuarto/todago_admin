@@ -929,6 +929,30 @@ export default function App() {
           .eq('id', profileId);
       }
 
+      // Send in-app notification to passenger
+      try {
+        const { data: passData } = await supabase
+          .from('passengers')
+          .select('profile_id')
+          .eq('id', id)
+          .maybeSingle();
+        const profileId = passData?.profile_id || id;
+
+        await supabase.from("notifications").insert({
+          recipient_id: profileId,
+          type: "in_app",
+          title: "Restriction Lifted",
+          body: "Your booking restriction has been lifted by the administrator. You may now book rides again.",
+          notification_category: "account_status",
+          data: {
+            action: "passenger_restriction_lifted",
+            date: new Date().toISOString(),
+          },
+        });
+      } catch (notifErr) {
+        console.warn("Could not insert passenger notification:", notifErr);
+      }
+
       // Update local modal state immediately if currently viewing this passenger
       if (viewingUser && viewingUser.id === id && viewingUserType === "passenger") {
         setViewingUser(prev => prev ? {
@@ -976,6 +1000,31 @@ export default function App() {
 
       const options: Intl.DateTimeFormatOptions = { month: 'long', day: 'numeric', year: 'numeric' };
       const formattedDate = restrictionDate.toLocaleDateString('en-US', options);
+
+      // Send in-app notification to passenger
+      try {
+        const { data: passData } = await supabase
+          .from('passengers')
+          .select('profile_id')
+          .eq('id', id)
+          .maybeSingle();
+        const profileId = passData?.profile_id || id;
+
+        await supabase.from("notifications").insert({
+          recipient_id: profileId,
+          type: "in_app",
+          title: "Account Restricted",
+          body: `Your account has been restricted from booking for 31 days due to 3 ride cancellations. Restriction will expire on ${formattedDate}.`,
+          notification_category: "account_status",
+          data: {
+            action: "passenger_restricted",
+            restriction_until: restrictionDate.toISOString(),
+            days: 31,
+          },
+        });
+      } catch (notifErr) {
+        console.warn("Could not insert passenger notification:", notifErr);
+      }
 
       // Update local modal state immediately if currently viewing this passenger
       if (viewingUser && viewingUser.id === id && viewingUserType === "passenger") {
@@ -1102,64 +1151,118 @@ export default function App() {
   const handleDeleteDriver = async (driver: Driver) => {
     if (!window.confirm(`Delete ${driver.name} from the database? Related active assignments will be detached.`)) return;
 
-    await supabase.from("bookings").update({ driver_id: null }).eq("driver_id", driver.id);
-    await deleteRows("driver_locations", "driver_id", driver.id);
-    await deleteRows("driver_sessions", "driver_id", driver.id);
-    await deleteRows("vehicles", "driver_id", driver.id);
+    try {
+      console.log(`[Supabase Query] Deleting driver ID ${driver.id}...`);
+      // 1. Attempt server-side atomic deletion RPC
+      const { data, error: rpcError } = await supabase.rpc("admin_delete_driver", {
+        p_driver_id: driver.id,
+      });
 
-    const { error: driverError } = await supabase.from("drivers").delete().eq("id", driver.id);
-    if (driverError) {
-      console.error("[Supabase Error] Driver delete failed:", driverError);
-      alert(`Failed to delete driver: ${driverError.message}`);
-      return;
+      if (rpcError) {
+        console.warn("RPC admin_delete_driver unavailable, attempting multi-table cascading delete:", rpcError);
+        // Fallback: manually detach and cascade
+        await supabase.from("bookings").update({ driver_id: null }).eq("driver_id", driver.id);
+        await deleteRows("booking_discount_requests", "reviewed_by_driver_id", driver.id);
+        await deleteRows("driver_locations", "driver_id", driver.id);
+        await deleteRows("driver_sessions", "driver_id", driver.id);
+        await deleteRows("vehicles", "driver_id", driver.id);
+        await deleteRows("ratings", "driver_id", driver.id);
+        await deleteRows("reports", "driver_id", driver.id);
+        await deleteRows("driver_profile_change_requests", "driver_id", driver.id);
+
+        const { error: driverError } = await supabase.from("drivers").delete().eq("id", driver.id);
+        if (driverError) {
+          console.error("[Supabase Error] Driver delete failed:", driverError);
+          alert(`Failed to delete driver: ${driverError.message}`);
+          return;
+        }
+
+        if (driver.profileId) {
+          await deleteRows("notifications", "recipient_id", driver.profileId);
+          await deleteRows("reports", "reporter_id", driver.profileId);
+          await deleteRows("reports", "reporter_profile_id", driver.profileId);
+          await deleteRows("profiles", "id", driver.profileId);
+        }
+      } else if (data && data.success === false) {
+        alert(data.message || "Failed to delete driver.");
+        return;
+      }
+
+      // Immediately update local state so the driver vanishes instantly
+      setDrivers(prev => prev.filter(d => d.id !== driver.id));
+
+      setShowViewUserModal(false);
+      setViewingUser(null);
+      setViewingUserType(null);
+      alert(`Driver ${driver.name} has been successfully deleted.`);
+      fetchData(false);
+    } catch (err: any) {
+      console.error("[Supabase Error] Failed to delete driver:", err);
+      alert(`Failed to delete driver: ${err?.message || err}`);
     }
-
-    if (driver.profileId) {
-      await deleteRows("profiles", "id", driver.profileId);
-    }
-
-    setShowViewUserModal(false);
-    setViewingUser(null);
-    setViewingUserType(null);
-    alert("Driver deleted.");
-    fetchData();
   };
 
   const handleDeletePassenger = async (passenger: Passenger) => {
     if (!window.confirm(`Delete ${passenger.name} and their ride records from the database?`)) return;
 
-    const passengerRideIds = rideRequests
-      .filter(r => r.passengerId === passenger.id)
-      .map(r => r.id);
+    try {
+      console.log(`[Supabase Query] Deleting passenger ID ${passenger.id}...`);
+      // 1. Attempt server-side atomic deletion RPC
+      const { data, error: rpcError } = await supabase.rpc("admin_delete_passenger", {
+        p_passenger_id: passenger.id,
+      });
 
-    for (const rideId of passengerRideIds) {
-      await deleteRows("booking_discount_requests", "booking_id", rideId);
-      await deleteRows("booking_status_history", "booking_id", rideId);
-      await deleteRows("driver_locations", "booking_id", rideId);
-      await deleteRows("passenger_locations", "booking_id", rideId);
-      await deleteRows("ratings", "booking_id", rideId);
-      await deleteRows("notifications", "booking_id", rideId);
+      if (rpcError) {
+        console.warn("RPC admin_delete_passenger unavailable, attempting multi-table cascading delete:", rpcError);
+        const passengerRideIds = rideRequests
+          .filter(r => r.passengerId === passenger.id)
+          .map(r => r.id);
+
+        for (const rideId of passengerRideIds) {
+          await deleteRows("booking_discount_requests", "booking_id", rideId);
+          await deleteRows("booking_status_history", "booking_id", rideId);
+          await deleteRows("driver_locations", "booking_id", rideId);
+          await deleteRows("passenger_locations", "booking_id", rideId);
+          await deleteRows("ratings", "booking_id", rideId);
+          await deleteRows("notifications", "booking_id", rideId);
+          await deleteRows("reports", "booking_id", rideId);
+        }
+
+        await deleteRows("passenger_locations", "passenger_id", passenger.id);
+        await deleteRows("reports", "passenger_id", passenger.id);
+        await deleteRows("reports", "reporter_passenger_id", passenger.id);
+        await deleteRows("bookings", "passenger_id", passenger.id);
+
+        const { error: passengerError } = await supabase.from("passengers").delete().eq("id", passenger.id);
+        if (passengerError) {
+          console.error("[Supabase Error] Passenger delete failed:", passengerError);
+          alert(`Failed to delete passenger: ${passengerError.message}`);
+          return;
+        }
+
+        if (passenger.profileId) {
+          await deleteRows("notifications", "recipient_id", passenger.profileId);
+          await deleteRows("reports", "reporter_id", passenger.profileId);
+          await deleteRows("reports", "reporter_profile_id", passenger.profileId);
+          await deleteRows("profiles", "id", passenger.profileId);
+        }
+      } else if (data && data.success === false) {
+        alert(data.message || "Failed to delete passenger.");
+        return;
+      }
+
+      // Immediately update local state so the passenger vanishes instantly
+      setPassengers(prev => prev.filter(p => p.id !== passenger.id));
+
+      setShowViewUserModal(false);
+      setViewingUser(null);
+      setViewingUserType(null);
+      alert(`Passenger ${passenger.name} has been successfully deleted.`);
+      fetchData(false);
+    } catch (err: any) {
+      console.error("[Supabase Error] Failed to delete passenger:", err);
+      alert(`Failed to delete passenger: ${err?.message || err}`);
     }
-
-    await deleteRows("passenger_locations", "passenger_id", passenger.id);
-    await deleteRows("bookings", "passenger_id", passenger.id);
-
-    const { error: passengerError } = await supabase.from("passengers").delete().eq("id", passenger.id);
-    if (passengerError) {
-      console.error("[Supabase Error] Passenger delete failed:", passengerError);
-      alert(`Failed to delete passenger: ${passengerError.message}`);
-      return;
-    }
-
-    if (passenger.profileId) {
-      await deleteRows("profiles", "id", passenger.profileId);
-    }
-
-    setShowViewUserModal(false);
-    setViewingUser(null);
-    setViewingUserType(null);
-    alert("Passenger deleted.");
-    fetchData();
   };
 
   const handleAddRequest = async (e: React.FormEvent) => {

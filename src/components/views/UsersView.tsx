@@ -568,6 +568,11 @@ export default function UsersView({
                         <td className="py-4 pl-3">
                           <div className="flex items-center gap-2 flex-wrap">
                             <p className="text-[#000C7D] font-bold">{driver.name}</p>
+                            {driver.adminActionType && (
+                              <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-rose-100 text-rose-700 border border-rose-200">
+                                Restricted
+                              </span>
+                            )}
                             {hasPendingRequest && (
                               <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
                                 1 Update Request

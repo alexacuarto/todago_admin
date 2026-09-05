@@ -3,8 +3,14 @@ interface SidebarProps {
   setActiveTab: (tab: "dashboard" | "ride-requests" | "earnings" | "users" | "feedback" | "profile" | "create-driver" | "fare-settings") => void;
   mobileMenuOpen: boolean;
   setMobileMenuOpen: (open: boolean) => void;
-  usersSubTab: "drivers" | "passengers";
-  setUsersSubTab: (subTab: "drivers" | "passengers") => void;
+  usersSubTab: "drivers" | "passengers" | "requests";
+  setUsersSubTab: (subTab: "drivers" | "passengers" | "requests") => void;
+  pendingRequestsCount?: number;
+  openFeedbackCount?: number;
+  newUsersCount?: number;
+  pendingDriversCount?: number;
+  pendingPassengersCount?: number;
+  pendingChangeRequestsCount?: number;
 }
 
 type AdminNavTab = SidebarProps["activeTab"];
@@ -16,6 +22,12 @@ export default function Sidebar({
   setMobileMenuOpen,
   usersSubTab,
   setUsersSubTab,
+  pendingRequestsCount = 0,
+  openFeedbackCount = 0,
+  newUsersCount = 0,
+  pendingDriversCount = 0,
+  pendingPassengersCount = 0,
+  pendingChangeRequestsCount = 0,
 }: SidebarProps) {
   const getTabClass = (tab: AdminNavTab) => {
     const isActive = activeTab === tab;
@@ -30,14 +42,14 @@ export default function Sidebar({
     setMobileMenuOpen(false);
   };
 
-  const goToUsers = (subTab: "drivers" | "passengers") => {
+  const goToUsers = (subTab: "drivers" | "passengers" | "requests") => {
     setActiveTab("users");
     setUsersSubTab(subTab);
     setMobileMenuOpen(false);
   };
 
-  const getUsersSubClass = (subTab: "drivers" | "passengers") =>
-    `w-full text-left pl-14 pr-4 py-2 text-xs font-bold transition-colors cursor-pointer ${
+  const getUsersSubClass = (subTab: "drivers" | "passengers" | "requests") =>
+    `w-full text-left pl-14 pr-4 py-2 text-xs font-bold transition-colors cursor-pointer flex items-center justify-between ${
       activeTab === "users" && usersSubTab === subTab
         ? "text-[#000C7D] bg-white/70"
         : "text-slate-600 hover:text-[#000C7D] hover:bg-white/40"
@@ -81,7 +93,14 @@ export default function Sidebar({
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
               <circle cx="12" cy="10" r="3" />
             </svg>
-            <span>Ride Requests</span>
+            <span className="flex-1">Ride Requests</span>
+            {pendingRequestsCount > 0 && (
+              <span className={`px-2 py-0.5 text-[10px] font-extrabold rounded-full ${
+                activeTab === "ride-requests" ? "bg-rose-400 text-white" : "bg-rose-500 text-white shadow-xs"
+              }`}>
+                {pendingRequestsCount}
+              </span>
+            )}
           </button>
 
           <button onClick={() => goTo("earnings")} className={getTabClass("earnings")}>
@@ -104,7 +123,14 @@ export default function Sidebar({
               <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
               <path d="M8 9h8M8 13h5" />
             </svg>
-            <span>Feedback</span>
+            <span className="flex-1">Feedback</span>
+            {openFeedbackCount > 0 && (
+              <span className={`px-2 py-0.5 text-[10px] font-extrabold rounded-full ${
+                activeTab === "feedback" ? "bg-amber-400 text-slate-900" : "bg-amber-500 text-white shadow-xs"
+              }`}>
+                {openFeedbackCount}
+              </span>
+            )}
           </button>
 
           <button onClick={() => goToUsers("drivers")} className={getTabClass("users")}>
@@ -114,14 +140,39 @@ export default function Sidebar({
               <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
               <path d="M16 3.13a4 4 0 0 1 0 7.75" />
             </svg>
-            <span>Users Management</span>
+            <span className="flex-1">Users Management</span>
+            {newUsersCount > 0 && (
+              <span className={`px-2 py-0.5 text-[10px] font-extrabold rounded-full ${
+                activeTab === "users" ? "bg-sky-400 text-slate-900" : "bg-[#000C7D] text-white border border-[#000C7D]/20 shadow-xs"
+              }`}>
+                {newUsersCount}
+              </span>
+            )}
           </button>
           <div className="flex flex-col">
             <button onClick={() => goToUsers("drivers")} className={getUsersSubClass("drivers")}>
-              Drivers
+              <span>Drivers</span>
+              {pendingDriversCount > 0 && (
+                <span className="px-1.5 py-0.5 text-[9px] font-extrabold rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                  {pendingDriversCount}
+                </span>
+              )}
             </button>
             <button onClick={() => goToUsers("passengers")} className={getUsersSubClass("passengers")}>
-              Passengers
+              <span>Passengers</span>
+              {pendingPassengersCount > 0 && (
+                <span className="px-1.5 py-0.5 text-[9px] font-extrabold rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                  {pendingPassengersCount}
+                </span>
+              )}
+            </button>
+            <button onClick={() => goToUsers("requests")} className={getUsersSubClass("requests")}>
+              <span>Change Requests</span>
+              {pendingChangeRequestsCount > 0 && (
+                <span className="px-1.5 py-0.5 text-[9px] font-extrabold rounded-full bg-rose-500 text-white shadow-xs">
+                  {pendingChangeRequestsCount}
+                </span>
+              )}
             </button>
           </div>
         </nav>

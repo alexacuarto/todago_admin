@@ -13,6 +13,7 @@ export interface CreateDriverParams {
   licenseNumber?: string;
   licenseExpiryDate?: string;
   franchiseImage?: File | null;
+  franchiseBackImage?: File | null;
   franchiseNumber?: string;
   franchiseExpiryDate?: string;
 }
@@ -64,7 +65,7 @@ export async function createDriverAccount(
   const {
     fullName, email, password, contactNumber, plateNumber, todaAssociation,
     licenseFrontImage, licenseBackImage, licenseNumber, licenseExpiryDate,
-    franchiseImage, franchiseNumber, franchiseExpiryDate,
+    franchiseImage, franchiseBackImage, franchiseNumber, franchiseExpiryDate,
   } = params;
 
   console.log("createDriverAccount starting with params:", {
@@ -73,6 +74,7 @@ export async function createDriverAccount(
     hasLicenseBack: !!licenseBackImage,
     hasLicenseNumber: !!licenseNumber,
     hasFranchiseImage: !!franchiseImage,
+    hasFranchiseBackImage: !!franchiseBackImage,
   });
 
   const nameParts = fullName.trim().split(/\s+/);
@@ -221,9 +223,15 @@ export async function createDriverAccount(
       }
 
       if (franchiseImage) {
-        console.log("Uploading franchise image...");
-        const franchiseUrl = await uploadDriverDoc(userId, franchiseImage, 'franchise');
+        console.log("Uploading franchise permit / front image...");
+        const franchiseUrl = await uploadDriverDoc(userId, franchiseImage, 'franchise_front');
         driverUpdates.franchise_url = franchiseUrl;
+      }
+
+      if (franchiseBackImage) {
+        console.log("Uploading franchise back image...");
+        const franchiseBackUrl = await uploadDriverDoc(userId, franchiseBackImage, 'franchise_back');
+        driverUpdates.franchise_back_url = franchiseBackUrl;
       }
 
       if (licenseNumber) driverUpdates.license_number = licenseNumber;

@@ -326,9 +326,9 @@ export default function CreateDriverView({
                   <span className="text-xs font-bold text-[#000C7D] uppercase tracking-wider">Franchise Documents</span>
                 </div>
 
-                {/* Franchise Image */}
+                {/* Franchise Front / Permit Image */}
                 <div className="flex flex-col gap-1">
-                  <label className="text-[9px] text-slate-400 font-bold uppercase">Franchise Permit Image</label>
+                  <label className="text-[9px] text-slate-400 font-bold uppercase">Franchise Front / Permit Image</label>
                   <div className="border-2 border-dashed border-slate-200 rounded-xl p-3 flex items-center gap-3 bg-white hover:border-indigo-300 transition-all relative cursor-pointer">
                     <input
                       type="file"
@@ -348,11 +348,41 @@ export default function CreateDriverView({
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-bold text-[#000C7D] truncate">
-                        {formData.franchiseImageName || "Choose Franchise Permit"}
+                        {formData.franchiseImageName || "Choose Franchise Front / Permit"}
                       </p>
                       <p className="text-[9px] text-slate-400 font-semibold">JPG, PNG or PDF</p>
                     </div>
                     {formData.franchiseImageName && <span className="text-[9px] font-bold text-emerald-600">✓</span>}
+                  </div>
+                </div>
+
+                {/* Franchise Back Image */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] text-slate-400 font-bold uppercase">Franchise Back Image</label>
+                  <div className="border-2 border-dashed border-slate-200 rounded-xl p-3 flex items-center gap-3 bg-white hover:border-indigo-300 transition-all relative cursor-pointer">
+                    <input
+                      type="file"
+                      accept=".jpg,.png,.pdf"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) setFormData((prev: any) => ({ ...prev, franchiseBackImage: file, franchiseBackName: file.name }));
+                      }}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                    />
+                    <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-500 shrink-0">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                      </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-[#000C7D] truncate">
+                        {formData.franchiseBackName || "Choose Franchise Back Image"}
+                      </p>
+                      <p className="text-[9px] text-slate-400 font-semibold">JPG, PNG or PDF</p>
+                    </div>
+                    {formData.franchiseBackName && <span className="text-[9px] font-bold text-emerald-600">✓</span>}
                   </div>
                 </div>
 

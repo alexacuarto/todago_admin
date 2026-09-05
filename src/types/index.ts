@@ -28,6 +28,7 @@ export interface Driver {
   licenseBackUrl?: string | null;
   licenseExpiryDate?: string | null;
   franchiseUrl?: string | null;
+  franchiseBackUrl?: string | null;
   franchiseNumber?: string | null;
   franchiseExpiryDate?: string | null;
   documentStatus?: string;
@@ -67,8 +68,10 @@ export interface FeedbackReport {
   status: "OPEN" | "REVIEWING" | "RESOLVED" | "DISMISSED" | string;
   reporterProfileId?: string | null;
   reporterPassengerId?: string | null;
+  reporterRole?: "passenger" | "driver" | string;
   reporterName?: string;
   driverId?: string | null;
+  driverProfileId?: string | null;
   driverName?: string;
   bookingId?: string | null;
   route?: string;

@@ -1,5 +1,6 @@
 import React from "react";
 import { RideRequest } from "../../types";
+import { exportToExcel } from "../../lib/exportUtils";
 
 interface RideRequestsViewProps {
   filteredRequests: RideRequest[];
@@ -31,16 +32,60 @@ export default function RideRequestsView({
   setShowViewRequestModal,
 }: RideRequestsViewProps) {
   const [page, setPage] = React.useState(1);
-  const pageCount = Math.max(1, Math.ceil(filteredRequests.length / pageSize));
-  const displayedRequests = filteredRequests.slice((page - 1) * pageSize, page * pageSize);
+  const [sortOrder, setSortOrder] = React.useState<"latest" | "oldest">("latest");
+
+  // Always default to latest ride requests first (descending), or oldest if selected
+  const sortedRequests = React.useMemo(() => {
+    return [...filteredRequests].sort((a, b) => {
+      const timeA = a.requestedAt ? new Date(a.requestedAt).getTime() : 0;
+      const timeB = b.requestedAt ? new Date(b.requestedAt).getTime() : 0;
+      return sortOrder === "latest" ? timeB - timeA : timeA - timeB;
+    });
+  }, [filteredRequests, sortOrder]);
+
+  const pageCount = Math.max(1, Math.ceil(sortedRequests.length / pageSize));
+  const displayedRequests = sortedRequests.slice((page - 1) * pageSize, page * pageSize);
 
   React.useEffect(() => {
     setPage(1);
-  }, [statusFilter, requestSearch]);
+  }, [statusFilter, requestSearch, sortOrder]);
 
   React.useEffect(() => {
     if (page > pageCount) setPage(pageCount);
   }, [page, pageCount]);
+
+  const handleExportExcel = () => {
+    const headers = [
+      "Request ID",
+      "Passenger",
+      "Driver",
+      "TODA",
+      "Pickup Address",
+      "Dropoff Address",
+      "Fare (PHP)",
+      "Status",
+      "Time",
+      "Requested At",
+      "Cancelled By",
+      "Cancel Reason",
+    ];
+    const rows = sortedRequests.map((r) => [
+      r.id,
+      r.passenger,
+      r.driver,
+      r.toda || "Unassigned",
+      r.location,
+      r.destination,
+      `₱${r.fare.toLocaleString()}`,
+      r.status,
+      r.time,
+      r.requestedAt || "",
+      r.cancelled_by || "",
+      r.cancel_reason || "",
+    ]);
+    const dateStr = new Date().toISOString().split("T")[0];
+    exportToExcel(`todago_ride_requests_${dateStr}`, headers, rows);
+  };
 
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto">
@@ -51,13 +96,13 @@ export default function RideRequestsView({
             <p className="text-xs text-slate-400 font-semibold mt-1">{filteredRequests.length} records from Supabase</p>
           </div>
 
-          <div className="w-full lg:w-auto flex flex-col sm:flex-row gap-3">
+          <div className="w-full lg:w-auto flex flex-wrap sm:flex-nowrap items-center gap-3">
             <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200 overflow-x-auto">
               {["All", "Ongoing", "Pending", "Completed", "Cancelled"].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setStatusFilter(tab)}
-                  className={`px-4 py-2 rounded-md text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                  className={`px-3.5 py-1.5 rounded-md text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
                     statusFilter === tab
                       ? "bg-[#000C7D] text-white shadow-sm"
                       : "text-slate-600 hover:text-[#000C7D]"
@@ -68,7 +113,23 @@ export default function RideRequestsView({
               ))}
             </div>
 
-            <div className="w-full sm:w-64 relative">
+            <div className="relative min-w-[145px]">
+              <select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as "latest" | "oldest")}
+                className="w-full pl-3 pr-8 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-[#000C7D] cursor-pointer appearance-none outline-hidden focus:border-blue-500"
+              >
+                <option value="latest">Sort: Latest First</option>
+                <option value="oldest">Sort: Oldest First</option>
+              </select>
+              <span className="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-slate-400">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </span>
+            </div>
+
+            <div className="w-full sm:w-56 relative">
               <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <circle cx="11" cy="11" r="8" />
@@ -83,6 +144,19 @@ export default function RideRequestsView({
                 className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-xs font-semibold outline-hidden focus:border-[#000C7D] transition-all text-[#000C7D]"
               />
             </div>
+
+            <button
+              onClick={handleExportExcel}
+              title="Download Excel spreadsheet of filtered ride requests"
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs hover:shadow-sm transition-all cursor-pointer whitespace-nowrap"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              Export Excel
+            </button>
           </div>
         </div>
 
@@ -126,7 +200,7 @@ export default function RideRequestsView({
                   </td>
                 </tr>
               ))}
-              {filteredRequests.length === 0 && (
+              {sortedRequests.length === 0 && (
                 <tr>
                   <td colSpan={6} className="py-16 text-center text-slate-400 font-medium">
                     No requests found matching your query.
@@ -137,7 +211,7 @@ export default function RideRequestsView({
           </table>
         </div>
 
-        {filteredRequests.length > pageSize && (
+        {sortedRequests.length > pageSize && (
           <div className="flex items-center justify-between gap-3 pt-4 border-t border-slate-100">
             <p className="text-xs font-semibold text-slate-400">
               Page {page} of {pageCount}

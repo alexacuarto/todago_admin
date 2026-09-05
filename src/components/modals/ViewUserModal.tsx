@@ -9,11 +9,14 @@ interface ViewUserModalProps {
   viewingUserType: "driver" | "passenger" | null;
   onDeactivatePassengerToggle: (id: string) => void;
   onResetCanceledTrips: (id: string) => void;
+  onLiftPassengerRestriction?: (id: string) => Promise<void> | void;
+  onRestrictPassenger?: (id: string) => Promise<void> | void;
   onDeleteDriver: (driver: Driver) => void;
   onDeletePassenger: (passenger: Passenger) => void;
   onRefreshData?: () => void;
   rideRequests?: RideRequest[];
   driverChangeRequests?: DriverProfileChangeRequest[];
+  onReviewChangeRequest?: (requestId: string, status: "APPROVED" | "REJECTED", reason?: string) => Promise<void> | void;
 }
 
 const statusBadge = (status: string) => {
@@ -78,14 +81,17 @@ export default function ViewUserModal({
   viewingUserType,
   onDeactivatePassengerToggle,
   onResetCanceledTrips,
+  onLiftPassengerRestriction,
+  onRestrictPassenger,
   onDeleteDriver,
   onDeletePassenger,
   onRefreshData,
   rideRequests = [],
   driverChangeRequests = [],
+  onReviewChangeRequest,
 }: ViewUserModalProps) {
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
-  const [zoomType, setZoomType] = useState<"front" | "back" | "franchise" | "discount" | null>(null);
+  const [zoomType, setZoomType] = useState<"front" | "back" | "franchise" | "franchise_back" | "discount" | null>(null);
   const [loadingSignedUrl, setLoadingSignedUrl] = useState(false);
   const [discountReviewReason, setDiscountReviewReason] = useState("");
   const [isReviewingDiscount, setIsReviewingDiscount] = useState(false);
@@ -172,11 +178,12 @@ export default function ViewUserModal({
     ? driverChangeRequests.filter((request) => request.driverId === driver.id)
     : [];
 
-  const handleZoomClick = async (type: "front" | "back" | "franchise" | "discount") => {
+  const handleZoomClick = async (type: "front" | "back" | "franchise" | "franchise_back" | "discount") => {
     const url =
       type === "front" ? driver?.licenseFrontUrl || driver?.licensePhotoUrl || "" :
       type === "back" ? driver?.licenseBackUrl || "" :
       type === "franchise" ? driver?.franchiseUrl || "" :
+      type === "franchise_back" ? driver?.franchiseBackUrl || "" :
       passenger?.discountDocumentUrl || "";
 
     if (!url) return;
@@ -381,12 +388,16 @@ export default function ViewUserModal({
     }
     setReviewingRequestId(requestId);
     try {
-      const { error } = await supabase.rpc("review_driver_profile_change_request", {
-        p_request_id: requestId,
-        p_status: status,
-        p_reason: status === "REJECTED" ? changeRequestReason.trim() : null,
-      });
-      if (error) throw error;
+      if (onReviewChangeRequest) {
+        await onReviewChangeRequest(requestId, status, changeRequestReason.trim());
+      } else {
+        const { error } = await supabase.rpc("review_driver_profile_change_request", {
+          p_request_id: requestId,
+          p_status: status,
+          p_reason: status === "REJECTED" ? changeRequestReason.trim() : null,
+        });
+        if (error) throw error;
+      }
       setChangeRequestReason("");
       await onRefreshData?.();
     } catch (err: any) {
@@ -488,7 +499,10 @@ export default function ViewUserModal({
                     <span className="text-xs font-bold text-[#000C7D] uppercase">Franchise / Permit</span>
                     <Field label="Franchise Number" value={driver.franchiseNumber || "N/A"} />
                     <Field label="Expiry Date" value={driver.franchiseExpiryDate || "N/A"} />
-                    {driver.franchiseUrl && <button type="button" onClick={() => handleZoomClick("franchise")} className="self-start px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 text-[10px] font-bold rounded-lg cursor-pointer">Permit Image</button>}
+                    <div className="flex gap-2 mt-1">
+                      {driver.franchiseUrl && <button type="button" onClick={() => handleZoomClick("franchise")} className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 text-[10px] font-bold rounded-lg cursor-pointer">Front / Permit</button>}
+                      {driver.franchiseBackUrl && <button type="button" onClick={() => handleZoomClick("franchise_back")} className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 text-[10px] font-bold rounded-lg cursor-pointer">Back Image</button>}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -611,23 +625,106 @@ export default function ViewUserModal({
             </>
           )}
 
-          {passenger && (
-            <>
-              <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm border border-slate-100 rounded-2xl p-4 bg-slate-50/50">
-                <Field label="Passenger Name" value={passenger.name} />
-                <Field label="Contact Number" value={passenger.contact} />
-                <Field label="Email" value={passenger.email || "N/A"} />
-                <Field label="Joined Date" value={passenger.joinedDate} />
-                <Field label="Type" value={passenger.accountPassengerType || "Regular"} />
-                <Field label="Total Rides Taken" value={`${passenger.ridesTaken} Rides`} />
-                <Field label="Canceled Trips" value={`${passenger.canceledTrips} Cancelled`} />
-                <Field label="Warning Status" value={passenger.warningStatus ? "Active Warning" : "No Warning"} />
-                <div className="col-span-2">
+          {passenger && (() => {
+            const isPassengerRestricted = Boolean(
+              passenger.bookingRestrictionUntil && new Date(passenger.bookingRestrictionUntil) > new Date()
+            );
+            const restrictionDaysRemaining = isPassengerRestricted && passenger.bookingRestrictionUntil
+              ? Math.max(1, Math.ceil((new Date(passenger.bookingRestrictionUntil).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+              : 0;
+
+            return (
+              <>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm border border-slate-100 rounded-2xl p-4 bg-slate-50/50">
+                  <Field label="Passenger Name" value={passenger.name} />
+                  <Field label="Contact Number" value={passenger.contact} />
+                  <Field label="Email" value={passenger.email || "N/A"} />
+                  <Field label="Joined Date" value={passenger.joinedDate} />
+                  <Field label="Type" value={passenger.accountPassengerType || "Regular"} />
+                  <Field label="Total Rides Taken" value={`${passenger.ridesTaken} Rides`} />
                   <Field
-                    label="Booking Restriction Until"
-                    value={passenger.bookingRestrictionUntil ? new Date(passenger.bookingRestrictionUntil).toLocaleString() : "No Restriction"}
+                    label="Canceled Trips (Max 3)"
+                    value={
+                      <div className="flex items-center gap-2">
+                        <span className={passenger.canceledTrips >= 3 ? "text-rose-600 font-extrabold" : passenger.canceledTrips >= 2 ? "text-amber-600 font-bold" : "text-slate-700"}>
+                          {passenger.canceledTrips} / 3 Cancelled
+                        </span>
+                        {passenger.canceledTrips >= 3 && (
+                          <span className="px-2 py-0.5 bg-rose-100 text-rose-700 rounded-md text-[10px] font-bold">
+                            Restricted
+                          </span>
+                        )}
+                        {passenger.canceledTrips === 2 && (
+                          <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-md text-[10px] font-bold">
+                            Warning
+                          </span>
+                        )}
+                      </div>
+                    }
                   />
-                </div>
+                  <Field
+                    label="Warning Status"
+                    value={
+                      passenger.warningStatus ? (
+                        <span className="text-amber-600 font-bold">Active Warning</span>
+                      ) : (
+                        <span className="text-slate-500 font-normal">No Warning</span>
+                      )
+                    }
+                  />
+                  <div className="col-span-2">
+                    <Field
+                      label="Booking Restriction Until"
+                      value={
+                        passenger.bookingRestrictionUntil ? (
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={isPassengerRestricted ? "text-rose-600 font-bold" : "text-slate-600 font-medium"}>
+                              {new Date(passenger.bookingRestrictionUntil).toLocaleString()}
+                            </span>
+                            {isPassengerRestricted && (
+                              <span className="px-2 py-0.5 bg-rose-100 text-rose-700 rounded-md text-[10px] font-extrabold">
+                                {restrictionDaysRemaining} days remaining
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-emerald-600 font-semibold">No Restriction</span>
+                        )
+                      }
+                    />
+                  </div>
+                  {isPassengerRestricted && (
+                    <div className="col-span-2 bg-rose-50 border border-rose-200 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                      <div>
+                        <p className="text-xs font-bold text-rose-800 uppercase tracking-wide flex items-center gap-1.5">
+                          <span className="inline-block w-2 h-2 rounded-full bg-rose-600 animate-pulse" />
+                          Account Restricted (3-Cancellation Policy)
+                        </p>
+                        <p className="text-xs text-rose-600 font-medium mt-1">
+                          Booking is restricted for 31 days due to 3 cancellations. Restriction will expire on{" "}
+                          <span className="font-bold">
+                            {new Date(passenger.bookingRestrictionUntil!).toLocaleDateString(undefined, {
+                              month: "long",
+                              day: "numeric",
+                              year: "numeric",
+                            })}
+                          </span>{" "}
+                          ({restrictionDaysRemaining} days left).
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onLiftPassengerRestriction
+                            ? onLiftPassengerRestriction(passenger.id)
+                            : onResetCanceledTrips(passenger.id)
+                        }
+                        className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer whitespace-nowrap self-start sm:self-auto"
+                      >
+                        Lift Restriction Immediately
+                      </button>
+                    </div>
+                  )}
                 {passenger.discountDocumentUrl && (
                   <div className="col-span-2 flex flex-col gap-3 border-t border-slate-100 pt-4">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -741,20 +838,59 @@ export default function ViewUserModal({
               </div>
 
               <div className="flex gap-2 items-center flex-wrap">
-                <button onClick={() => onDeactivatePassengerToggle(passenger.id)} className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs ${passenger.status === "Active" ? "bg-rose-50 text-rose-600 hover:bg-rose-100" : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"}`}>
+                <button
+                  type="button"
+                  onClick={() => onDeactivatePassengerToggle(passenger.id)}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs ${
+                    passenger.status === "Active"
+                      ? "bg-rose-50 text-rose-600 hover:bg-rose-100"
+                      : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                  }`}
+                >
                   {passenger.status === "Active" ? "Deactivate Passenger" : "Activate Passenger"}
                 </button>
-                {passenger.canceledTrips > 0 && (
-                  <button onClick={() => onResetCanceledTrips(passenger.id)} className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer">
-                    Reset & Reactivate
+
+                {(isPassengerRestricted || passenger.canceledTrips > 0) && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onLiftPassengerRestriction
+                        ? onLiftPassengerRestriction(passenger.id)
+                        : onResetCanceledTrips(passenger.id)
+                    }
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs"
+                  >
+                    Lift Restriction Immediately
                   </button>
                 )}
-                <button onClick={() => onDeletePassenger(passenger)} className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer">
+
+                {!isPassengerRestricted && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm(`Restrict ${passenger.name} from booking for 31 days?`)) {
+                        if (onRestrictPassenger) {
+                          onRestrictPassenger(passenger.id);
+                        }
+                      }
+                    }}
+                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs"
+                  >
+                    Restrict Passenger (31 Days)
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => onDeletePassenger(passenger)}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs"
+                >
                   Delete Passenger
                 </button>
               </div>
             </>
-          )}
+          );
+        })()}
 
           <div className="border-t border-slate-100 pt-4 flex items-center justify-end">
             <button onClick={onClose} className="px-6 py-2.5 bg-[#000C7D] hover:bg-blue-800 text-white rounded-xl font-bold text-sm transition-colors cursor-pointer shadow-xs hover:shadow">
@@ -791,7 +927,15 @@ export default function ViewUserModal({
               <img src={signedUrl} alt="Zoomed Document" className="max-h-[70vh] max-w-full object-contain rounded-lg" />
             )}
             <div className="mt-3 text-center text-[#000C7D] font-extrabold text-sm uppercase">
-              {zoomType === "front" ? "License Front Copy" : zoomType === "back" ? "License Back Copy" : zoomType === "discount" ? "Passenger Discount ID" : "Franchise Permit Copy"}
+              {zoomType === "front"
+                ? "License Front Copy"
+                : zoomType === "back"
+                ? "License Back Copy"
+                : zoomType === "franchise_back"
+                ? "Franchise Back Copy"
+                : zoomType === "discount"
+                ? "Passenger Discount ID"
+                : "Franchise Permit Copy"}
             </div>
           </div>
         </div>

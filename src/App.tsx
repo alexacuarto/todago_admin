@@ -300,8 +300,12 @@ export default function App() {
             resolvedStatus = `Restricted until ${dateStr}`;
           } else if (warningStatus) {
             resolvedStatus = "Warning";
+          } else if (pd?.discount_document_status === "PENDING") {
+            resolvedStatus = "For Approval";
+          } else if (pd?.discount_document_status === "REJECTED" || !p.is_active) {
+            resolvedStatus = "Inactive";
           } else {
-            resolvedStatus = p.is_active ? "Active" : "Inactive";
+            resolvedStatus = "Active";
           }
           resolvedJoinedDate = p.created_at ? p.created_at.split("T")[0] : resolvedJoinedDate;
         }

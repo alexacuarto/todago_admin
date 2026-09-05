@@ -104,6 +104,7 @@ export default function ViewUserModal({
   const [reviewingRequestId, setReviewingRequestId] = useState<string | null>(null);
   const [changeRequestReason, setChangeRequestReason] = useState("");
   const [ridePage, setRidePage] = useState(1);
+  const [passengerIdPreviewUrl, setPassengerIdPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (viewingUser && viewingUserType === "driver") {
@@ -118,6 +119,35 @@ export default function ViewUserModal({
       setFranchiseFile(null);
       setActiveDriverAction(null);
       setDriverActionReason("");
+      setPassengerIdPreviewUrl(null);
+    } else if (viewingUser && viewingUserType === "passenger") {
+      const p = viewingUser as Passenger;
+      if (p.discountDocumentUrl) {
+        let path = p.discountDocumentUrl;
+        if (path.includes("/discount-ids/")) {
+          path = path.split("/discount-ids/").pop() || path;
+        } else if (path.startsWith("http://") || path.startsWith("https://")) {
+          try {
+            const u = new URL(path);
+            const parts = u.pathname.split("/discount-ids/");
+            if (parts.length > 1) path = parts[1];
+          } catch (_) {}
+        }
+        supabase.storage.from("discount-ids").createSignedUrl(decodeURIComponent(path), 600)
+          .then(({ data, error }) => {
+            if (!error && data?.signedUrl) {
+              setPassengerIdPreviewUrl(data.signedUrl);
+            } else {
+              const pub = supabase.storage.from("discount-ids").getPublicUrl(decodeURIComponent(path));
+              setPassengerIdPreviewUrl(pub.data.publicUrl || p.discountDocumentUrl || null);
+            }
+          })
+          .catch(() => {
+            setPassengerIdPreviewUrl(p.discountDocumentUrl || null);
+          });
+      } else {
+        setPassengerIdPreviewUrl(null);
+      }
     }
     setDiscountReviewReason("");
     setRidePage(1);
@@ -151,15 +181,33 @@ export default function ViewUserModal({
     setLoadingSignedUrl(true);
 
     try {
-      let path = url;
-      if (url.includes("/discount-ids/")) path = url.split("/discount-ids/").pop() || url;
-      else if (url.includes("/driver-documents/")) path = url.split("/driver-documents/").pop() || url;
-      else if (url.includes("/licenses/")) path = url.split("/licenses/").pop() || url;
-      else path = url.split("/").pop() || url;
+      const bucketName =
+        type === "discount"
+          ? "discount-ids"
+          : url.includes("/licenses/")
+          ? "licenses"
+          : "driver-documents";
 
-      const bucketName = type === "discount" ? "discount-ids" : url.includes("/licenses/") ? "licenses" : "driver-documents";
-      const { data, error } = await supabase.storage.from(bucketName).createSignedUrl(decodeURIComponent(path), 300);
-      setSignedUrl(error ? url : data?.signedUrl || url);
+      let path = url;
+      if (url.includes(`/${bucketName}/`)) {
+        path = url.split(`/${bucketName}/`).pop() || url;
+      } else if (url.startsWith("http://") || url.startsWith("https://")) {
+        try {
+          const u = new URL(url);
+          const parts = u.pathname.split(`/${bucketName}/`);
+          if (parts.length > 1) {
+            path = parts[1];
+          }
+        } catch (_) {}
+      }
+
+      const { data, error } = await supabase.storage.from(bucketName).createSignedUrl(decodeURIComponent(path), 600);
+      if (!error && data?.signedUrl) {
+        setSignedUrl(data.signedUrl);
+      } else {
+        const pub = supabase.storage.from(bucketName).getPublicUrl(decodeURIComponent(path));
+        setSignedUrl(pub.data.publicUrl || url);
+      }
     } catch (err) {
       console.error("Failed to generate signed URL:", err);
       setSignedUrl(url);
@@ -229,9 +277,26 @@ export default function ViewUserModal({
         p_status: status,
         p_reason: status === "REJECTED" ? discountReviewReason.trim() : null,
       });
-      if (error) throw error;
-      alert(status === "VERIFIED" ? "Passenger discount ID approved." : "Passenger discount ID rejected.");
+      if (error) {
+        console.warn("RPC failed, falling back to direct table update:", error.message);
+        const { error: pError } = await supabase
+          .from("passengers")
+          .update({
+            discount_document_status: status,
+            discount_document_reason: status === "REJECTED" ? discountReviewReason.trim() : null,
+            discount_verified: status === "VERIFIED",
+            discount_verified_at: status === "VERIFIED" ? new Date().toISOString() : null,
+          })
+          .eq("id", passenger.id);
+        if (pError) throw pError;
+
+        if (status === "VERIFIED") {
+          await supabase.from("profiles").update({ is_active: true }).eq("id", passenger.id);
+        }
+      }
+      alert(status === "VERIFIED" ? "Passenger ID approved and account activated." : "Passenger ID rejected.");
       onRefreshData?.();
+      onClose();
     } catch (err: any) {
       console.error("Discount review failed:", err);
       alert(err.message || "Failed to review discount ID.");
@@ -516,22 +581,62 @@ export default function ViewUserModal({
                   />
                 </div>
                 {passenger.discountDocumentUrl && (
-                  <div className="col-span-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-slate-100 pt-4">
-                    <div>
-                      <p className="font-bold text-[#000C7D]">{passenger.accountPassengerType || "Regular"}</p>
-                      <p className="text-xs text-slate-500 font-semibold">{passenger.discountDocumentStatus || "NOT_REQUIRED"}</p>
+                  <div className="col-span-2 flex flex-col gap-3 border-t border-slate-100 pt-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div>
+                        <p className="font-bold text-[#000C7D]">{passenger.accountPassengerType || "Regular"} ID Document</p>
+                        <p className="text-xs text-slate-500 font-semibold">Status: {passenger.discountDocumentStatus || "NOT_REQUIRED"}</p>
+                      </div>
+                      <button onClick={() => handleZoomClick("discount")} className="self-start sm:self-auto px-3 py-1.5 bg-white border border-blue-100 text-[#000C7D] rounded-lg text-xs font-bold hover:bg-blue-50 transition-all cursor-pointer">
+                        View Full Size
+                      </button>
                     </div>
-                    <button onClick={() => handleZoomClick("discount")} className="px-4 py-2 bg-white border border-blue-100 text-[#000C7D] rounded-lg text-xs font-bold hover:bg-blue-50 transition-all cursor-pointer">
-                      View Uploaded ID
-                    </button>
+
+                    <div
+                      onClick={() => handleZoomClick("discount")}
+                      className="relative w-full max-w-xs h-40 bg-slate-100 rounded-xl overflow-hidden border border-slate-200 cursor-pointer group shadow-sm"
+                    >
+                      {passengerIdPreviewUrl ? (
+                        <img
+                          src={passengerIdPreviewUrl}
+                          alt="Uploaded ID Preview"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center h-full text-slate-400 p-4 text-center">
+                          <span className="text-xs font-semibold">Loading ID image preview...</span>
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold">
+                        Click to enlarge
+                      </div>
+                    </div>
                   </div>
                 )}
                 {passenger.discountDocumentStatus === "PENDING" && (
                   <div className="col-span-2 flex flex-col gap-3">
-                    <textarea value={discountReviewReason} onChange={(event) => setDiscountReviewReason(event.target.value)} rows={2} placeholder="Rejection reason, required only when rejecting." className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 resize-none" />
+                    <textarea
+                      value={discountReviewReason}
+                      onChange={(event) => setDiscountReviewReason(event.target.value)}
+                      rows={2}
+                      placeholder="Rejection reason, required only when rejecting."
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 resize-none"
+                    />
                     <div className="flex flex-wrap gap-2">
-                      <button onClick={() => handleReviewDiscount("VERIFIED")} disabled={isReviewingDiscount} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold disabled:opacity-60 cursor-pointer">Approve ID</button>
-                      <button onClick={() => handleReviewDiscount("REJECTED")} disabled={isReviewingDiscount} className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold disabled:opacity-60 cursor-pointer">Reject ID</button>
+                      <button
+                        onClick={() => handleReviewDiscount("VERIFIED")}
+                        disabled={isReviewingDiscount}
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold disabled:opacity-60 cursor-pointer shadow-sm"
+                      >
+                        {isReviewingDiscount ? "Processing..." : "Approve ID & Activate"}
+                      </button>
+                      <button
+                        onClick={() => handleReviewDiscount("REJECTED")}
+                        disabled={isReviewingDiscount}
+                        className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold disabled:opacity-60 cursor-pointer shadow-sm"
+                      >
+                        {isReviewingDiscount ? "Processing..." : "Reject ID"}
+                      </button>
                     </div>
                   </div>
                 )}

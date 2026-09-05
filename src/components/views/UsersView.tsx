@@ -230,6 +230,7 @@ export default function UsersView({
                 <tbody className="text-sm font-semibold divide-y divide-slate-50">
                   {displayedPassengers.map((passenger) => {
                     let statusClass = "bg-emerald-50 text-emerald-600 border border-emerald-100";
+                    if (passenger.status === "For Approval") statusClass = "bg-amber-50 text-amber-700 border border-amber-200 font-bold";
                     if (passenger.status === "Warning") statusClass = "bg-amber-50 text-amber-600 border border-amber-100";
                     if (passenger.status.startsWith("Restricted")) statusClass = "bg-rose-50 text-rose-600 border border-rose-100";
                     if (passenger.status === "Inactive") statusClass = "bg-slate-50 text-slate-600 border border-slate-100";

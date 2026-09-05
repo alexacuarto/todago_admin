@@ -7,7 +7,7 @@ interface ViewUserModalProps {
   onClose: () => void;
   viewingUser: Driver | Passenger | null;
   viewingUserType: "driver" | "passenger" | null;
-  onDeactivatePassengerToggle: (id: string) => void;
+  onDeactivatePassengerToggle?: (id: string) => void;
   onResetCanceledTrips: (id: string) => void;
   onLiftPassengerRestriction?: (id: string) => Promise<void> | void;
   onRestrictPassenger?: (id: string) => Promise<void> | void;
@@ -79,7 +79,6 @@ export default function ViewUserModal({
   onClose,
   viewingUser,
   viewingUserType,
-  onDeactivatePassengerToggle,
   onResetCanceledTrips,
   onLiftPassengerRestriction,
   onRestrictPassenger,
@@ -644,15 +643,26 @@ export default function ViewUserModal({
                   <div className="bg-rose-50 border border-rose-200 rounded-xl p-3">
                     <p className="text-xs text-rose-800 font-bold uppercase">Restricted: {driver.adminActionType}</p>
                     <p className="text-xs text-rose-600 font-semibold mt-1">Reason: {driver.adminActionReason || "No reason specified"}</p>
-                    <button onClick={() => setActiveDriverAction("clear")} className="mt-3 px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold cursor-pointer">
-                      Remove Restriction
-                    </button>
                   </div>
                 )}
                 <div className="flex flex-wrap gap-2">
-                  <button onClick={() => setActiveDriverAction("restrict")} className="px-4 py-2 bg-rose-50 text-rose-600 border border-rose-100 rounded-xl text-xs font-bold hover:bg-rose-100 cursor-pointer">
-                    Restrict Driver
-                  </button>
+                  {driver.adminActionType ? (
+                    <button
+                      type="button"
+                      onClick={() => setActiveDriverAction("clear")}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs"
+                    >
+                      Lift Restriction
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setActiveDriverAction("restrict")}
+                      className="px-4 py-2 bg-rose-50 text-rose-600 border border-rose-100 rounded-xl text-xs font-bold hover:bg-rose-100 cursor-pointer"
+                    >
+                      Restrict Driver
+                    </button>
+                  )}
                   <button
                     type="button"
                     disabled={isDeletingUser}
@@ -680,7 +690,9 @@ export default function ViewUserModal({
                         className="border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-[#000C7D] outline-hidden focus:border-blue-400 resize-none"
                       />
                     ) : (
-                      <p className="text-xs text-slate-500 font-semibold">Confirm clearing this driver's restriction.</p>
+                      <p className="text-xs text-slate-600 font-semibold">
+                        Confirm lifting this driver's restriction. The driver will be able to go online and accept rides again.
+                      </p>
                     )}
                     <div className="flex justify-end gap-2">
                       <button type="button" onClick={() => setActiveDriverAction(null)} className="px-3.5 py-1.5 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-50 cursor-pointer">Cancel</button>
@@ -907,18 +919,6 @@ export default function ViewUserModal({
               </div>
 
               <div className="flex gap-2 items-center flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => onDeactivatePassengerToggle(passenger.id)}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs ${
-                    passenger.status === "Active"
-                      ? "bg-rose-50 text-rose-600 hover:bg-rose-100"
-                      : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
-                  }`}
-                >
-                  {passenger.status === "Active" ? "Deactivate Passenger" : "Activate Passenger"}
-                </button>
-
                 {(isPassengerRestricted || passenger.canceledTrips > 0) && (
                   <button
                     type="button"

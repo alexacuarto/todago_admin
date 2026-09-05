@@ -15,31 +15,80 @@ export default function EarningsView({
   earningsTodaFilter,
   setEarningsTodaFilter,
 }: EarningsViewProps) {
-  const todaOptions = Array.from(new Set(drivers.map((driver) => driver.toda).filter(Boolean))).sort();
+  const CANONICAL_TODAS = [
+    "LHITC-TODA",
+    "BYPASS ILAYANG BAGUIO-TODA",
+    "CHOT-TODA"
+  ];
+
+  const todaOptions = Array.from(
+    new Set([
+      ...CANONICAL_TODAS,
+      ...drivers.map((driver) => driver.toda).filter(Boolean)
+    ])
+  ).filter((t) => t !== "Not provided" && t !== "Unassigned").sort();
+
   const completedRequests = rideRequests.filter((request) => request.status === "Completed");
   const visibleRequests = earningsTodaFilter === "All"
     ? completedRequests
-    : completedRequests.filter((request) => request.toda === earningsTodaFilter);
+    : completedRequests.filter((request) => {
+        const resolvedDriver = drivers.find(
+          (d) => d.id === request.driverId || d.profileId === request.driverId || (request.driver && d.name === request.driver)
+        );
+        const toda = (request.toda && request.toda !== "Not provided" && request.toda !== "Unassigned")
+          ? request.toda
+          : resolvedDriver?.toda && resolvedDriver.toda !== "Not provided"
+            ? resolvedDriver.toda
+            : "LHITC-TODA";
+        return toda === earningsTodaFilter;
+      });
 
   const total = visibleRequests.reduce((sum, request) => sum + (request.fare || 0), 0);
   const totalRides = visibleRequests.length;
 
+  const baseTodaTotals: Record<string, { toda: string; rides: number; total: number }> = {
+    "LHITC-TODA": { toda: "LHITC-TODA", rides: 0, total: 0 },
+    "BYPASS ILAYANG BAGUIO-TODA": { toda: "BYPASS ILAYANG BAGUIO-TODA", rides: 0, total: 0 },
+    "CHOT-TODA": { toda: "CHOT-TODA", rides: 0, total: 0 },
+  };
+
   const todaTotals = Object.values(
     completedRequests.reduce<Record<string, { toda: string; rides: number; total: number }>>((groups, request) => {
-      const toda = request.toda || "Not provided";
+      const resolvedDriver = drivers.find(
+        (d) => d.id === request.driverId || d.profileId === request.driverId || (request.driver && d.name === request.driver)
+      );
+      const toda = (request.toda && request.toda !== "Not provided" && request.toda !== "Unassigned")
+        ? request.toda
+        : resolvedDriver?.toda && resolvedDriver.toda !== "Not provided"
+          ? resolvedDriver.toda
+          : "LHITC-TODA";
+
       groups[toda] ??= { toda, rides: 0, total: 0 };
       groups[toda].rides += 1;
       groups[toda].total += request.fare || 0;
       return groups;
-    }, {})
-  ).sort((a, b) => b.total - a.total);
+    }, baseTodaTotals)
+  ).filter((g) => g.toda !== "Not provided" && g.toda !== "Unassigned")
+   .sort((a, b) => b.total - a.total);
 
   const driverRows = Object.values(
     visibleRequests.reduce<Record<string, { driver: string; toda: string; rides: number; total: number }>>((groups, request) => {
-      const key = request.driverId || request.driver || "unassigned";
+      const resolvedDriver = drivers.find(
+        (d) => d.id === request.driverId || d.profileId === request.driverId || (request.driver && d.name === request.driver)
+      );
+      const driverName = (request.driver && request.driver !== "Not provided" && request.driver !== "Unassigned")
+        ? request.driver
+        : resolvedDriver?.name || "Assigned Driver";
+      const toda = (request.toda && request.toda !== "Not provided" && request.toda !== "Unassigned")
+        ? request.toda
+        : resolvedDriver?.toda && resolvedDriver.toda !== "Not provided"
+          ? resolvedDriver.toda
+          : "LHITC-TODA";
+
+      const key = request.driverId || driverName;
       groups[key] ??= {
-        driver: request.driver || "Not provided",
-        toda: request.toda || "Not provided",
+        driver: driverName,
+        toda,
         rides: 0,
         total: 0,
       };

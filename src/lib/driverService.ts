@@ -194,6 +194,15 @@ export async function createDriverAccount(
       return { success: false, error: 'User ID was not generated or retrieved.' };
     }
 
+    const finalToda = todaAssociation?.trim() || 'LHITC-TODA';
+
+    // 4. Guarantee toda_association is set directly on drivers table
+    console.log("Ensuring toda_association is saved on drivers table:", finalToda);
+    await supabase
+      .from('drivers')
+      .update({ toda_association: finalToda })
+      .eq('profile_id', userId);
+
     // 5. Upload document files if provided and update driver record
     const driverUpdates: Record<string, string | null> = {};
 
@@ -244,5 +253,30 @@ export async function createDriverAccount(
     console.error("Unexpected JavaScript exception in createDriverAccount:", err);
     return { success: false, error: err.message || JSON.stringify(err) || String(err) };
   }
+}
 
+/**
+ * Updates a driver's assigned TODA Association in Supabase.
+ */
+export async function updateDriverTodaAssociation(
+  driverId: string,
+  todaAssociation: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const cleanToda = todaAssociation.trim();
+    if (!['LHITC-TODA', 'BYPASS ILAYANG BAGUIO-TODA', 'CHOT-TODA'].includes(cleanToda)) {
+      return { success: false, error: 'Invalid TODA association.' };
+    }
+
+    const { error } = await supabase
+      .from('drivers')
+      .update({ toda_association: cleanToda, updated_at: new Date().toISOString() })
+      .eq('id', driverId);
+
+    if (error) throw error;
+    return { success: true };
+  } catch (err: any) {
+    console.error('Error updating driver TODA association:', err);
+    return { success: false, error: err.message || String(err) };
+  }
 }

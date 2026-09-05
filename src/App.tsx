@@ -341,7 +341,9 @@ export default function App() {
         const driverBookings = bookings.filter(b => b.driver_id === d.id && (b.status === "completed" || b.status === "paymentSent"));
         const tripsCount = driverBookings.length;
 
-        const toda = d.toda_association || "Not provided";
+        const toda = (d.toda_association && d.toda_association.trim() && d.toda_association !== "Not provided")
+          ? d.toda_association.trim()
+          : "LHITC-TODA";
 
         // Compute activityStatus via single source of truth utility
         let lastCompletedTripDate: string | null = null;
@@ -430,13 +432,17 @@ export default function App() {
         passengerProfile = passengerProfile || {};
         const passengerName = `${passengerProfile.first_name || ""} ${passengerProfile.last_name || ""}`.trim() || passengerProfile.phone_number || passengerProfile.email || "Unknown Passenger";
 
-        const driverObj = driversData.find((d: any) => d.id === b.driver_id);
+        const driverObj = driversData.find((d: any) => d.id === b.driver_id || d.profile_id === b.driver_id);
         const driverProfile: any = driverObj ? (profiles || []).find((p: any) => p.id === driverObj.profile_id) || {} : {};
-        const driverName = driverObj ? `${driverProfile.first_name || ""} ${driverProfile.last_name || ""}`.trim() : "Not provided";
+        const driverName = driverObj
+          ? `${driverProfile.first_name || ""} ${driverProfile.last_name || ""}`.trim() || "Assigned Driver"
+          : "Unassigned";
 
-        let toda = "Not provided";
+        let toda = "Unassigned";
         if (driverObj) {
-          toda = driverObj.toda_association || "Not provided";
+          toda = (driverObj.toda_association && driverObj.toda_association.trim() && driverObj.toda_association !== "Not provided")
+            ? driverObj.toda_association.trim()
+            : "LHITC-TODA";
         }
 
         let uiStatus: RideRequest["status"] = "Pending";

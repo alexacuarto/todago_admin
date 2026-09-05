@@ -105,6 +105,8 @@ export default function ViewUserModal({
   const [changeRequestReason, setChangeRequestReason] = useState("");
   const [ridePage, setRidePage] = useState(1);
   const [passengerIdPreviewUrl, setPassengerIdPreviewUrl] = useState<string | null>(null);
+  const [selectedToda, setSelectedToda] = useState("");
+  const [isUpdatingToda, setIsUpdatingToda] = useState(false);
 
   useEffect(() => {
     if (viewingUser && viewingUserType === "driver") {
@@ -114,6 +116,7 @@ export default function ViewUserModal({
       setFranchiseNo(driver.franchiseNumber || "");
       setFranchiseExpiry(driver.franchiseExpiryDate || "");
       setFranchisePlateNo(driver.plateNumber || "");
+      setSelectedToda(driver.toda || "LHITC-TODA");
       setLicenseFrontFile(null);
       setLicenseBackFile(null);
       setFranchiseFile(null);
@@ -222,6 +225,28 @@ export default function ViewUserModal({
     const { error } = await supabase.storage.from("driver-documents").upload(fileName, file, { upsert: true });
     if (error) throw new Error(`Failed to upload ${label}: ${error.message}`);
     return supabase.storage.from("driver-documents").getPublicUrl(fileName).data.publicUrl;
+  };
+
+  const handleUpdateToda = async (newToda?: string) => {
+    if (!driver) return;
+    const todaToSave = newToda || selectedToda;
+    if (!todaToSave) return;
+    setIsUpdatingToda(true);
+    try {
+      const { error } = await supabase
+        .from('drivers')
+        .update({ toda_association: todaToSave, updated_at: new Date().toISOString() })
+        .eq('id', driver.id);
+
+      if (error) throw error;
+      alert(`Driver TODA association updated to ${todaToSave}`);
+      onRefreshData?.();
+    } catch (err: any) {
+      console.error("Failed to update TODA association:", err);
+      alert(`Failed to update TODA: ${err.message || err}`);
+    } finally {
+      setIsUpdatingToda(false);
+    }
   };
 
   const handleSaveDocuments = async (event: React.FormEvent) => {
@@ -396,8 +421,31 @@ export default function ViewUserModal({
                 <Field label="Driver Name" value={driver.name} />
                 <Field label="Phone Number" value={driver.phone} />
                 <Field label="Email" value={driver.email || "N/A"} />
-                <Field label="TODA Association" value={driver.toda} />
                 <Field label="Plate Number" value={<span className="font-mono">{driver.plateNumber || "N/A"}</span>} />
+                <div className="flex flex-col gap-1 col-span-2 sm:col-span-1">
+                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">TODA Association</label>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <select
+                      value={selectedToda || driver.toda || "LHITC-TODA"}
+                      onChange={(e) => setSelectedToda(e.target.value)}
+                      className="border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold bg-white text-[#000C7D] outline-hidden focus:border-blue-500 cursor-pointer flex-1"
+                    >
+                      <option value="LHITC-TODA">LHITC-TODA</option>
+                      <option value="BYPASS ILAYANG BAGUIO-TODA">BYPASS ILAYANG BAGUIO-TODA</option>
+                      <option value="CHOT-TODA">CHOT-TODA</option>
+                    </select>
+                    {selectedToda && selectedToda !== driver.toda && (
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateToda()}
+                        disabled={isUpdatingToda}
+                        className="px-2.5 py-1 bg-[#000C7D] hover:bg-blue-900 text-white rounded-lg text-[10px] font-bold transition-all cursor-pointer shrink-0 disabled:opacity-50"
+                      >
+                        {isUpdatingToda ? "..." : "Save"}
+                      </button>
+                    )}
+                  </div>
+                </div>
                 <Field
                   label="Document Status"
                   value={<span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${statusBadge(driver.documentStatus || "PENDING")}`}>{driver.documentStatus || "PENDING"}</span>}

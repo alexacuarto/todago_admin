@@ -32,13 +32,26 @@ export default function DashboardView({
     rideRequests
       .filter((request) => request.status === "Completed")
       .reduce<Record<string, { toda: string; rides: number; total: number }>>((groups, request) => {
-        const toda = request.toda || "Not provided";
+        const resolvedDriver = drivers.find(
+          (d) => d.id === request.driverId || d.profileId === request.driverId || (request.driver && d.name === request.driver)
+        );
+        const toda = (request.toda && request.toda !== "Not provided" && request.toda !== "Unassigned")
+          ? request.toda
+          : resolvedDriver?.toda && resolvedDriver.toda !== "Not provided"
+            ? resolvedDriver.toda
+            : "LHITC-TODA";
+
         groups[toda] ??= { toda, rides: 0, total: 0 };
         groups[toda].rides += 1;
         groups[toda].total += request.fare || 0;
         return groups;
-      }, {})
-  ).sort((a, b) => b.total - a.total);
+      }, {
+        "LHITC-TODA": { toda: "LHITC-TODA", rides: 0, total: 0 },
+        "BYPASS ILAYANG BAGUIO-TODA": { toda: "BYPASS ILAYANG BAGUIO-TODA", rides: 0, total: 0 },
+        "CHOT-TODA": { toda: "CHOT-TODA", rides: 0, total: 0 },
+      })
+  ).filter((g) => g.toda !== "Not provided" && g.toda !== "Unassigned")
+   .sort((a, b) => b.total - a.total);
 
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto">

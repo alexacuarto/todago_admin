@@ -1,7 +1,7 @@
 import React from "react";
 import { Driver, DriverProfileChangeRequest, Passenger } from "../../types";
 import { getActivityBadgeClasses } from "../../lib/driverActivity";
-import { exportToExcel } from "../../lib/exportUtils";
+import { exportToExcel, formatMinutes } from "../../lib/exportUtils";
 
 interface UsersViewProps {
   filteredDrivers: Driver[];
@@ -269,6 +269,7 @@ export default function UsersView({
         "Document Status",
         "Activity Status",
         "Online Status",
+        "Total Online Time",
         "Completed Trips",
         "Date Joined",
       ];
@@ -285,6 +286,7 @@ export default function UsersView({
         d.documentStatus || "PENDING",
         d.activityStatus,
         d.isOnline ? "Online" : "Offline",
+        formatMinutes((d.totalOnlineMinutes || 0) + (d.isOnline ? (d.liveOnlineMinutes || 0) : 0)),
         d.trips,
         d.joinedDate,
       ]);

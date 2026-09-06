@@ -34,3 +34,22 @@ export function exportToExcel(
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
+
+export function formatMinutes(minutes: number): string {
+  const safeMinutes = Math.max(0, Math.floor(minutes || 0));
+  const days = Math.floor(safeMinutes / 1440);
+  const remainingMins = safeMinutes % 1440;
+  const hours = Math.floor(remainingMins / 60);
+  const mins = remainingMins % 60;
+
+  if (days > 0) {
+    const dayLabel = days === 1 ? "1 day" : `${days} days`;
+    if (hours === 0 && mins === 0) return dayLabel;
+    if (hours === 0) return `${dayLabel} ${mins}m`;
+    if (mins === 0) return `${dayLabel} ${hours}h`;
+    return `${dayLabel} ${hours}h ${mins}m`;
+  }
+  if (hours === 0) return `${mins} min`;
+  if (mins === 0) return `${hours}h`;
+  return `${hours}h ${mins}m`;
+}

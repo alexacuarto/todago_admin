@@ -16,6 +16,7 @@ export interface Driver {
   trips: number;
   joinedDate: string;
   email: string;
+  address?: string;
   plateNumber: string;
   isOnline: boolean;
   licensePhotoUrl?: string | null;
@@ -219,6 +220,7 @@ export interface DriverEditFormData {
   toda: string;
   status: "Active" | "Inactive";
   email: string;
+  address?: string;
   password: string;
   plateNumber: string;
   isVerified: boolean;

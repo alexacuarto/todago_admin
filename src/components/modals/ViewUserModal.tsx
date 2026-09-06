@@ -34,9 +34,20 @@ const Field = ({ label, value }: { label: string; value: React.ReactNode }) => (
 
 const formatMinutes = (minutes: number) => {
   const safeMinutes = Math.max(0, Math.floor(minutes || 0));
-  const hours = Math.floor(safeMinutes / 60);
-  const mins = safeMinutes % 60;
+  const days = Math.floor(safeMinutes / 1440);
+  const remainingMins = safeMinutes % 1440;
+  const hours = Math.floor(remainingMins / 60);
+  const mins = remainingMins % 60;
+
+  if (days > 0) {
+    const dayLabel = days === 1 ? "1 day" : `${days} days`;
+    if (hours === 0 && mins === 0) return dayLabel;
+    if (hours === 0) return `${dayLabel} ${mins}m`;
+    if (mins === 0) return `${dayLabel} ${hours}h`;
+    return `${dayLabel} ${hours}h ${mins}m`;
+  }
   if (hours === 0) return `${mins} min`;
+  if (mins === 0) return `${hours}h`;
   return `${hours}h ${mins}m`;
 };
 
@@ -170,13 +181,26 @@ export default function ViewUserModal({
   const ridePageCount = Math.max(1, Math.ceil(passengerRideHistory.length / 3));
   const visibleRideHistory = passengerRideHistory.slice((ridePage - 1) * 3, ridePage * 3);
 
-  if (!isOpen || !viewingUser) return null;
-
   const driver = viewingUserType === "driver" ? viewingUser as Driver : null;
   const passenger = viewingUserType === "passenger" ? viewingUser as Passenger : null;
   const visibleDriverChangeRequests = driver
     ? driverChangeRequests.filter((request) => request.driverId === driver.id)
     : [];
+
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    if (!isOpen || viewingUserType !== "driver") return;
+    const interval = setInterval(() => setNow(Date.now()), 10000);
+    return () => clearInterval(interval);
+  }, [isOpen, viewingUserType]);
+
+  const liveOnlineMins = driver && driver.isOnline && driver.lastOnlineAt
+    ? Math.max(0, Math.floor((now - new Date(driver.lastOnlineAt).getTime()) / 60000))
+    : (driver?.liveOnlineMinutes || 0);
+
+  const totalOnlineMins = (driver?.totalOnlineMinutes || 0) + (driver?.isOnline ? liveOnlineMins : 0);
+
+  if (!isOpen || !viewingUser) return null;
 
   const handleZoomClick = async (type: "front" | "back" | "franchise" | "franchise_back" | "discount") => {
     const url =
@@ -488,6 +512,7 @@ export default function ViewUserModal({
                 <Field label="Driver Name" value={driver.name} />
                 <Field label="Phone Number" value={driver.phone} />
                 <Field label="Email" value={driver.email || "N/A"} />
+                <Field label="Address" value={driver.address || "N/A"} />
                 <Field label="Plate Number" value={<span className="font-mono">{driver.plateNumber || "N/A"}</span>} />
                 <div className="flex flex-col gap-1 col-span-2 sm:col-span-1">
                   <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">TODA Association</label>
@@ -527,11 +552,11 @@ export default function ViewUserModal({
                 />
                 <Field
                   label="Total Online Time"
-                  value={formatMinutes((driver.totalOnlineMinutes || 0) + (driver.liveOnlineMinutes || 0))}
+                  value={formatMinutes(totalOnlineMins)}
                 />
                 <Field
                   label="Current Session"
-                  value={driver.isOnline ? formatMinutes(driver.liveOnlineMinutes || 0) : "Not active"}
+                  value={driver.isOnline ? formatMinutes(liveOnlineMins) : "Not active"}
                 />
                 <Field
                   label="Last Completed Ride"

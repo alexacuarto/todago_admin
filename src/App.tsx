@@ -107,6 +107,7 @@ export default function App() {
     toda: "",
     status: "Active" as "Active" | "Inactive",
     email: "",
+    address: "",
     plateNumber: "",
     licenseExpiryDate: "",
     franchiseNumber: "",
@@ -386,6 +387,7 @@ export default function App() {
           trips: tripsCount,
           joinedDate: d.created_at ? d.created_at.split("T")[0] : new Date().toISOString().split("T")[0],
           email: profile.email || "",
+          address: profile.address || "",
           plateNumber: vehicle.plate_number || "No Plate",
           isOnline: !!d.is_online,
           licensePhotoUrl: d.license_photo_url || null,
@@ -817,7 +819,10 @@ export default function App() {
       .update({
         first_name: firstName,
         last_name: lastName,
-        phone_number: editFormData.phone
+        phone_number: editFormData.phone,
+        email: editFormData.email || null,
+        address: editFormData.address || null,
+        updated_at: new Date().toISOString()
       })
       .eq('id', profileId);
 

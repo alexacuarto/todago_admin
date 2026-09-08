@@ -96,20 +96,11 @@ export default function FareSettingsView() {
           }
         }
       } else {
-        // Fallback: try localStorage cache
-        const cachedOneWay = localStorage.getItem("toda_go_fare_oneway");
-        const cachedRoundTrip = localStorage.getItem("toda_go_fare_roundtrip");
-        if (cachedOneWay) setOneWay(JSON.parse(cachedOneWay));
-        if (cachedRoundTrip) setRoundTrip(JSON.parse(cachedRoundTrip));
+        throw new Error("No active fare settings found in Supabase.");
       }
     } catch (err: any) {
       console.error("Error fetching fare settings:", err);
       setFetchError(err.message || "Failed to load fare settings");
-      // Fallback to localStorage on error
-      const cachedOneWay = localStorage.getItem("toda_go_fare_oneway");
-      const cachedRoundTrip = localStorage.getItem("toda_go_fare_roundtrip");
-      if (cachedOneWay) setOneWay(JSON.parse(cachedOneWay));
-      if (cachedRoundTrip) setRoundTrip(JSON.parse(cachedRoundTrip));
     } finally {
       setIsLoadingData(false);
     }
@@ -204,7 +195,7 @@ export default function FareSettingsView() {
       {/* Error banner */}
       {fetchError && (
         <div className="mb-2 p-4 bg-rose-100 border border-rose-200 text-rose-800 rounded-2xl text-sm font-semibold flex items-center justify-between">
-          <span>⚠️ {fetchError} — Showing cached values.</span>
+          <span>⚠️ {fetchError} — Database values could not be loaded.</span>
           <button onClick={fetchFareSettings} className="px-4 py-1.5 bg-rose-200 hover:bg-rose-300 rounded-lg text-xs font-bold transition-all cursor-pointer">
             Retry
           </button>

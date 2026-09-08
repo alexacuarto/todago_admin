@@ -30,9 +30,11 @@ export default function App() {
   // Authentication & Navigation State
   const [isVerifyingRole, setIsVerifyingRole] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+  const [, setIsAuthorized] = useState<boolean | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
-  const [isLoadingData, setIsLoadingData] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<string>("");
   const [errorState, setErrorState] = useState<string | null>(null);
 
   const [loginEmail, setLoginEmail] = useState("");
@@ -92,6 +94,8 @@ export default function App() {
     licenseExpiryDate: "",
     franchiseImage: null as File | null,
     franchiseImageName: "",
+    franchiseBackImage: null as File | null,
+    franchiseBackName: "",
     franchiseNumber: "",
     franchiseExpiryDate: "",
   });
@@ -103,6 +107,7 @@ export default function App() {
     toda: "",
     status: "Active" as "Active" | "Inactive",
     email: "",
+    address: "",
     plateNumber: "",
     licenseExpiryDate: "",
     franchiseNumber: "",
@@ -124,12 +129,16 @@ export default function App() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [earningsTodaFilter, setEarningsTodaFilter] = useState("All");
   const [userTodaFilter, setUserTodaFilter] = useState("All");
-  const [usersSubTab, setUsersSubTab] = useState<"drivers" | "passengers">("drivers");
+  const [usersSubTab, setUsersSubTab] = useState<"drivers" | "passengers" | "requests">("drivers");
 
 
   // Load live data from Supabase
-  const fetchData = async () => {
-    setIsLoadingData(true);
+  const fetchData = async (isInitial = false) => {
+    if (isInitial) {
+      setIsInitialLoading(true);
+    } else {
+      setIsRefreshing(true);
+    }
     setErrorState(null);
     try {
       console.log("[Supabase Query] Fetching profiles...");
@@ -300,8 +309,12 @@ export default function App() {
             resolvedStatus = `Restricted until ${dateStr}`;
           } else if (warningStatus) {
             resolvedStatus = "Warning";
+          } else if (pd?.discount_document_status === "PENDING") {
+            resolvedStatus = "For Approval";
+          } else if (pd?.discount_document_status === "REJECTED" || !p.is_active) {
+            resolvedStatus = "Inactive";
           } else {
-            resolvedStatus = p.is_active ? "Active" : "Inactive";
+            resolvedStatus = "Active";
           }
           resolvedJoinedDate = p.created_at ? p.created_at.split("T")[0] : resolvedJoinedDate;
         }
@@ -337,7 +350,9 @@ export default function App() {
         const driverBookings = bookings.filter(b => b.driver_id === d.id && (b.status === "completed" || b.status === "paymentSent"));
         const tripsCount = driverBookings.length;
 
-        const toda = d.toda_association || "Not provided";
+        const toda = (d.toda_association && d.toda_association.trim() && d.toda_association !== "Not provided")
+          ? d.toda_association.trim()
+          : "LHITC-TODA";
 
         // Compute activityStatus via single source of truth utility
         let lastCompletedTripDate: string | null = null;
@@ -372,6 +387,7 @@ export default function App() {
           trips: tripsCount,
           joinedDate: d.created_at ? d.created_at.split("T")[0] : new Date().toISOString().split("T")[0],
           email: profile.email || "",
+          address: profile.address || "",
           plateNumber: vehicle.plate_number || "No Plate",
           isOnline: !!d.is_online,
           licensePhotoUrl: d.license_photo_url || null,
@@ -381,6 +397,7 @@ export default function App() {
           licenseBackUrl: d.license_back_url || null,
           licenseExpiryDate: d.license_expiry_date || null,
           franchiseUrl: d.franchise_url || null,
+          franchiseBackUrl: d.franchise_back_url || null,
           franchiseNumber: d.franchise_number || null,
           franchiseExpiryDate: d.franchise_expiry_date || null,
           documentStatus: d.document_status || "PENDING",
@@ -426,13 +443,17 @@ export default function App() {
         passengerProfile = passengerProfile || {};
         const passengerName = `${passengerProfile.first_name || ""} ${passengerProfile.last_name || ""}`.trim() || passengerProfile.phone_number || passengerProfile.email || "Unknown Passenger";
 
-        const driverObj = driversData.find((d: any) => d.id === b.driver_id);
+        const driverObj = driversData.find((d: any) => d.id === b.driver_id || d.profile_id === b.driver_id);
         const driverProfile: any = driverObj ? (profiles || []).find((p: any) => p.id === driverObj.profile_id) || {} : {};
-        const driverName = driverObj ? `${driverProfile.first_name || ""} ${driverProfile.last_name || ""}`.trim() : "Not provided";
+        const driverName = driverObj
+          ? `${driverProfile.first_name || ""} ${driverProfile.last_name || ""}`.trim() || "Assigned Driver"
+          : "Unassigned";
 
-        let toda = "Not provided";
+        let toda = "Unassigned";
         if (driverObj) {
-          toda = driverObj.toda_association || "Not provided";
+          toda = (driverObj.toda_association && driverObj.toda_association.trim() && driverObj.toda_association !== "Not provided")
+            ? driverObj.toda_association.trim()
+            : "LHITC-TODA";
         }
 
         let uiStatus: RideRequest["status"] = "Pending";
@@ -493,10 +514,12 @@ export default function App() {
 
       const mappedReports: FeedbackReport[] = (reportRows || []).map((row: any) => {
         const reporterProfile = (profiles || []).find((p: any) => p.id === row.reporter_profile_id) || {};
-        const reporterName = `${reporterProfile.first_name || ""} ${reporterProfile.last_name || ""}`.trim() || reporterProfile.email || "Unknown Passenger";
+        const reporterName = `${reporterProfile.first_name || ""} ${reporterProfile.last_name || ""}`.trim() || reporterProfile.email || "Unknown User";
+        const reporterRole = reporterProfile.role || (row.reporter_passenger_id ? "passenger" : "user");
         const driverRow = row.driver_id ? driversData.find((d: any) => d.id === row.driver_id) : null;
         const driverProfile = driverRow ? (profiles || []).find((p: any) => p.id === driverRow.profile_id) || {} : {};
         const driverName = driverRow ? `${driverProfile.first_name || ""} ${driverProfile.last_name || ""}`.trim() || "Unnamed Driver" : undefined;
+        const driverProfileId = driverRow ? driverRow.profile_id : null;
         const booking = row.booking_id ? bookings.find((b: any) => b.id === row.booking_id) : null;
         return {
           id: row.id,
@@ -507,8 +530,10 @@ export default function App() {
           status: row.status || "OPEN",
           reporterProfileId: row.reporter_profile_id || row.generated_by || null,
           reporterPassengerId: row.reporter_passenger_id || null,
+          reporterRole,
           reporterName,
           driverId: row.driver_id || null,
+          driverProfileId,
           driverName,
           bookingId: row.booking_id || null,
           route: booking ? `${booking.pickup_address || "Pickup"} -> ${booking.dropoff_address || "Dropoff"}` : undefined,
@@ -526,8 +551,10 @@ export default function App() {
     } catch (err: any) {
       console.error("[Supabase Error] Error fetching live data:", err);
       setErrorState(err.message || "Failed to load database records.");
+      setLastRefreshedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
     } finally {
-      setIsLoadingData(false);
+      setIsInitialLoading(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -624,7 +651,7 @@ export default function App() {
         });
         setIsAuthorized(true);
         setIsLoggedIn(true);
-        fetchData();
+        fetchData(true);
       } else {
         await supabase.auth.signOut();
         setIsAuthorized(false);
@@ -655,106 +682,8 @@ export default function App() {
     };
   }, []);
 
-  // Realtime update subscriptions for active admin data.
-  useEffect(() => {
-    if (isLoggedIn && isAuthorized) {
-      console.log("[Supabase Realtime] Subscribing to admin data changes...");
-
-      const bookingsSubscription = supabase
-        .channel("bookings-channel")
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "bookings" },
-          () => {
-            console.log("[Supabase Realtime] Booking change detected. Refetching...");
-            fetchData();
-          }
-        )
-        .subscribe();
-
-      const driversSubscription = supabase
-        .channel("drivers-channel")
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "drivers" },
-          () => {
-            console.log("[Supabase Realtime] Driver change detected (online status / record). Refetching...");
-            fetchData();
-          }
-        )
-        .subscribe();
-
-      const profilesSubscription = supabase
-        .channel("profiles-channel")
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "profiles" },
-          () => {
-            console.log("[Supabase Realtime] Profile change detected. Refetching...");
-            fetchData();
-          }
-        )
-        .subscribe();
-
-      const vehiclesSubscription = supabase
-        .channel("vehicles-channel")
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "vehicles" },
-          () => {
-            console.log("[Supabase Realtime] Vehicle change detected. Refetching...");
-            fetchData();
-          }
-        )
-        .subscribe();
-
-      const passengersSubscription = supabase
-        .channel("passengers-channel")
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "passengers" },
-          () => {
-            console.log("[Supabase Realtime] Passenger record change detected. Refetching...");
-            fetchData();
-          }
-        )
-        .subscribe();
-
-      const reportsSubscription = supabase
-        .channel("reports-channel")
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "reports" },
-          () => {
-            console.log("[Supabase Realtime] Feedback report change detected. Refetching...");
-            fetchData();
-          }
-        )
-        .subscribe();
-
-      const driverRequestsSubscription = supabase
-        .channel("driver-change-requests-channel")
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "driver_profile_change_requests" },
-          () => {
-            console.log("[Supabase Realtime] Driver change request detected. Refetching...");
-            fetchData();
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(bookingsSubscription);
-        supabase.removeChannel(driversSubscription);
-        supabase.removeChannel(profilesSubscription);
-        supabase.removeChannel(vehiclesSubscription);
-        supabase.removeChannel(passengersSubscription);
-        supabase.removeChannel(reportsSubscription);
-        supabase.removeChannel(driverRequestsSubscription);
-      };
-    }
-  }, [isLoggedIn, isAuthorized]);
+  // Note: Auto-realtime listeners were removed per user request so the dashboard remains
+  // completely static and only reloads when the admin explicitly clicks "Refresh Data".
 
   // Derived calculations
   const onlineDriversCount = drivers.filter(d => d.isOnline).length;
@@ -814,6 +743,7 @@ export default function App() {
         licenseNumber: formData.licenseNumber || undefined,
         licenseExpiryDate: formData.licenseExpiryDate || undefined,
         franchiseImage: formData.franchiseImage,
+        franchiseBackImage: formData.franchiseBackImage,
         franchiseNumber: formData.franchiseNumber || undefined,
         franchiseExpiryDate: formData.franchiseExpiryDate || undefined,
       });
@@ -842,6 +772,8 @@ export default function App() {
         licenseExpiryDate: "",
         franchiseImage: null,
         franchiseImageName: "",
+        franchiseBackImage: null,
+        franchiseBackName: "",
         franchiseNumber: "",
         franchiseExpiryDate: "",
       });
@@ -887,7 +819,10 @@ export default function App() {
       .update({
         first_name: firstName,
         last_name: lastName,
-        phone_number: editFormData.phone
+        phone_number: editFormData.phone,
+        email: editFormData.email || null,
+        address: editFormData.address || null,
+        updated_at: new Date().toISOString()
       })
       .eq('id', profileId);
 
@@ -963,42 +898,228 @@ export default function App() {
     fetchData();
   };
 
-  const handleResetCanceledTrips = async (id: string) => {
-    console.log("[Supabase Query] Deleting cancelled bookings to reset count...");
-    const { error } = await supabase
-      .from('bookings')
-      .delete()
-      .eq('passenger_id', id)
-      .eq('status', 'cancelled');
+  const handleLiftPassengerRestriction = async (id: string) => {
+    console.log("[Supabase Query] Lifting passenger restriction immediately for ID:", id);
+    try {
+      // 1. Attempt stored procedure RPC first
+      const { error: rpcError } = await supabase.rpc('admin_lift_passenger_restriction', {
+        p_passenger_id: id
+      });
 
-    if (error) {
-      console.error("[Supabase Error] Failed to reset cancellations:", error);
-      alert(`Failed to reset cancellations: ${error.message}`);
-    } else {
-      const { data: passData } = await supabase
-        .from('passengers')
-        .select('profile_id')
-        .eq('id', id)
-        .maybeSingle();
-      const profileId = passData ? passData.profile_id : id;
+      if (rpcError) {
+        console.warn("RPC admin_lift_passenger_restriction not available, falling back to direct table update:", rpcError);
+        const { error: updateError } = await supabase
+          .from('passengers')
+          .update({
+            cancel_count: 0,
+            last_cancel_date: null,
+            booking_restriction_until: null,
+            warning_status: false,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', id);
 
-      await supabase
-        .from('passengers')
-        .update({
-          cancel_count: 0,
-          last_cancel_date: null,
-          booking_restriction_until: null,
-          warning_status: false
-        })
-        .eq('id', id);
+        if (updateError) throw updateError;
 
-      await supabase
-        .from('profiles')
-        .update({ is_active: true })
-        .eq('id', profileId);
+        const { data: passData } = await supabase
+          .from('passengers')
+          .select('profile_id')
+          .eq('id', id)
+          .maybeSingle();
+        const profileId = passData?.profile_id || id;
 
-      alert("Cancellations reset and passenger reactivated!");
-      fetchData();
+        await supabase
+          .from('profiles')
+          .update({ is_active: true })
+          .eq('id', profileId);
+      }
+
+      // Send in-app notification to passenger
+      try {
+        const { data: passData } = await supabase
+          .from('passengers')
+          .select('profile_id')
+          .eq('id', id)
+          .maybeSingle();
+        const profileId = passData?.profile_id || id;
+
+        await supabase.from("notifications").insert({
+          recipient_id: profileId,
+          type: "in_app",
+          title: "Restriction Lifted",
+          body: "Your booking restriction has been lifted by the administrator. You may now book rides again.",
+          notification_category: "account_status",
+          data: {
+            action: "passenger_restriction_lifted",
+            date: new Date().toISOString(),
+          },
+        });
+      } catch (notifErr) {
+        console.warn("Could not insert passenger notification:", notifErr);
+      }
+
+      // Update local modal state immediately if currently viewing this passenger
+      if (viewingUser && viewingUser.id === id && viewingUserType === "passenger") {
+        setViewingUser(prev => prev ? {
+          ...prev,
+          bookingRestrictionUntil: null,
+          canceledTrips: 0,
+          warningStatus: false,
+          status: "Active"
+        } as Passenger : null);
+      }
+
+      alert("Passenger restriction lifted and cancellation count reset!");
+      fetchData(false);
+    } catch (err: any) {
+      console.error("[Supabase Error] Failed to lift passenger restriction:", err);
+      alert(`Failed to lift passenger restriction: ${err?.message || err}`);
+    }
+  };
+
+  const handleRestrictPassenger = async (id: string, days = 31) => {
+    console.log(`[Supabase Query] Restricting passenger ID ${id} for ${days} days...`);
+    try {
+      const restrictionDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+
+      // 1. Attempt stored procedure RPC first
+      const { error: rpcError } = await supabase.rpc('admin_restrict_passenger', {
+        p_passenger_id: id,
+        p_days: days
+      });
+
+      if (rpcError) {
+        console.warn("RPC admin_restrict_passenger not available, falling back to direct table update:", rpcError);
+        const { error: updateError } = await supabase
+          .from('passengers')
+          .update({
+            cancel_count: 3,
+            booking_restriction_until: restrictionDate.toISOString(),
+            warning_status: true,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', id);
+
+        if (updateError) throw updateError;
+      }
+
+      const options: Intl.DateTimeFormatOptions = { month: 'long', day: 'numeric', year: 'numeric' };
+      const formattedDate = restrictionDate.toLocaleDateString('en-US', options);
+
+      // Send in-app notification to passenger
+      try {
+        const { data: passData } = await supabase
+          .from('passengers')
+          .select('profile_id')
+          .eq('id', id)
+          .maybeSingle();
+        const profileId = passData?.profile_id || id;
+
+        await supabase.from("notifications").insert({
+          recipient_id: profileId,
+          type: "in_app",
+          title: "Account Restricted",
+          body: `Your account has been restricted from booking for 31 days due to 3 ride cancellations. Restriction will expire on ${formattedDate}.`,
+          notification_category: "account_status",
+          data: {
+            action: "passenger_restricted",
+            restriction_until: restrictionDate.toISOString(),
+            days: 31,
+          },
+        });
+      } catch (notifErr) {
+        console.warn("Could not insert passenger notification:", notifErr);
+      }
+
+      // Update local modal state immediately if currently viewing this passenger
+      if (viewingUser && viewingUser.id === id && viewingUserType === "passenger") {
+        setViewingUser(prev => prev ? {
+          ...prev,
+          bookingRestrictionUntil: restrictionDate.toISOString(),
+          canceledTrips: Math.max(3, (prev as Passenger).canceledTrips || 0),
+          warningStatus: true,
+          status: `Restricted until ${formattedDate}`
+        } as Passenger : null);
+      }
+
+      alert(`Passenger restricted from booking for 31 days (until ${formattedDate}).`);
+      fetchData(false);
+    } catch (err: any) {
+      console.error("[Supabase Error] Failed to restrict passenger:", err);
+      alert(`Failed to restrict passenger: ${err?.message || err}`);
+    }
+  };
+
+  const handleResetCanceledTrips = handleLiftPassengerRestriction;
+
+  const handleReviewDriverChangeRequest = async (
+    requestId: string,
+    status: "APPROVED" | "REJECTED",
+    reason?: string
+  ) => {
+    console.log(`[Supabase Query] Reviewing driver change request ${requestId} with status: ${status}...`);
+    try {
+      // 1. Attempt RPC first
+      const { error: rpcError } = await supabase.rpc("review_driver_profile_change_request", {
+        p_request_id: requestId,
+        p_status: status,
+        p_reason: status === "REJECTED" ? reason?.trim() || null : null,
+      });
+
+      if (rpcError) {
+        console.warn("RPC review_driver_profile_change_request error, falling back to direct table update:", rpcError);
+        const targetReq = driverChangeRequests.find((r) => r.id === requestId);
+        if (!targetReq) throw new Error("Change request not found.");
+
+        if (status === "APPROVED") {
+          const field = targetReq.fieldName;
+          const val = targetReq.requestedValue;
+          const driverId = targetReq.driverId;
+          const profileId = targetReq.profileId;
+
+          if (field === "full_name") {
+            const parts = val.trim().split(/\s+/);
+            const first = parts[0] || "";
+            const last = parts.slice(1).join(" ") || "";
+            await supabase.from("profiles").update({ first_name: first, last_name: last, updated_at: new Date().toISOString() }).eq("id", profileId);
+          } else if (["first_name", "last_name", "phone_number", "email", "address"].includes(field)) {
+            await supabase.from("profiles").update({ [field]: val, updated_at: new Date().toISOString() }).eq("id", profileId);
+          } else if (["license_number", "toda_association", "license_expiry_date", "franchise_number", "franchise_expiry_date", "license_front_url", "license_back_url", "franchise_url", "franchise_back_url"].includes(field)) {
+            await supabase.from("drivers").update({ [field]: val, updated_at: new Date().toISOString() }).eq("id", driverId);
+          } else if (field === "toda") {
+            await supabase.from("drivers").update({ toda_association: val, updated_at: new Date().toISOString() }).eq("id", driverId);
+          } else if (field === "plate_number" || field === "plate") {
+            await supabase.from("vehicles").update({ plate_number: val, updated_at: new Date().toISOString() }).eq("driver_id", driverId);
+          }
+        }
+
+        await supabase
+          .from("driver_profile_change_requests")
+          .update({
+            status,
+            rejection_reason: status === "REJECTED" ? reason?.trim() || null : null,
+            reviewed_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", requestId);
+
+        const readableField = targetReq.fieldName.replace(/_/g, " ");
+        await supabase.from("notifications").insert({
+          recipient_id: targetReq.profileId,
+          title: status === "APPROVED" ? "Profile update approved" : "Profile update rejected",
+          body: status === "APPROVED"
+            ? `Your ${readableField} update request was approved.`
+            : `Your ${readableField} update request was rejected.${reason ? ` Reason: ${reason}` : ""}`,
+          notification_category: "driver_profile_change_request",
+          data: { request_id: requestId, field_name: targetReq.fieldName, status },
+        });
+      }
+
+      alert(status === "APPROVED" ? "Driver modification request approved! Details updated in database." : "Driver modification request rejected.");
+      await fetchData(false);
+    } catch (err: any) {
+      console.error("[Supabase Error] Failed to review change request:", err);
+      alert(`Failed to review change request: ${err?.message || err}`);
     }
   };
 
@@ -1035,64 +1156,118 @@ export default function App() {
   const handleDeleteDriver = async (driver: Driver) => {
     if (!window.confirm(`Delete ${driver.name} from the database? Related active assignments will be detached.`)) return;
 
-    await supabase.from("bookings").update({ driver_id: null }).eq("driver_id", driver.id);
-    await deleteRows("driver_locations", "driver_id", driver.id);
-    await deleteRows("driver_sessions", "driver_id", driver.id);
-    await deleteRows("vehicles", "driver_id", driver.id);
+    try {
+      console.log(`[Supabase Query] Deleting driver ID ${driver.id}...`);
+      // 1. Attempt server-side atomic deletion RPC
+      const { data, error: rpcError } = await supabase.rpc("admin_delete_driver", {
+        p_driver_id: driver.id,
+      });
 
-    const { error: driverError } = await supabase.from("drivers").delete().eq("id", driver.id);
-    if (driverError) {
-      console.error("[Supabase Error] Driver delete failed:", driverError);
-      alert(`Failed to delete driver: ${driverError.message}`);
-      return;
+      if (rpcError) {
+        console.warn("RPC admin_delete_driver unavailable, attempting multi-table cascading delete:", rpcError);
+        // Fallback: manually detach and cascade
+        await supabase.from("bookings").update({ driver_id: null }).eq("driver_id", driver.id);
+        await deleteRows("booking_discount_requests", "reviewed_by_driver_id", driver.id);
+        await deleteRows("driver_locations", "driver_id", driver.id);
+        await deleteRows("driver_sessions", "driver_id", driver.id);
+        await deleteRows("vehicles", "driver_id", driver.id);
+        await deleteRows("ratings", "driver_id", driver.id);
+        await deleteRows("reports", "driver_id", driver.id);
+        await deleteRows("driver_profile_change_requests", "driver_id", driver.id);
+
+        const { error: driverError } = await supabase.from("drivers").delete().eq("id", driver.id);
+        if (driverError) {
+          console.error("[Supabase Error] Driver delete failed:", driverError);
+          alert(`Failed to delete driver: ${driverError.message}`);
+          return;
+        }
+
+        if (driver.profileId) {
+          await deleteRows("notifications", "recipient_id", driver.profileId);
+          await deleteRows("reports", "reporter_id", driver.profileId);
+          await deleteRows("reports", "reporter_profile_id", driver.profileId);
+          await deleteRows("profiles", "id", driver.profileId);
+        }
+      } else if (data && data.success === false) {
+        alert(data.message || "Failed to delete driver.");
+        return;
+      }
+
+      // Immediately update local state so the driver vanishes instantly
+      setDrivers(prev => prev.filter(d => d.id !== driver.id));
+
+      setShowViewUserModal(false);
+      setViewingUser(null);
+      setViewingUserType(null);
+      alert(`Driver ${driver.name} has been successfully deleted.`);
+      fetchData(false);
+    } catch (err: any) {
+      console.error("[Supabase Error] Failed to delete driver:", err);
+      alert(`Failed to delete driver: ${err?.message || err}`);
     }
-
-    if (driver.profileId) {
-      await deleteRows("profiles", "id", driver.profileId);
-    }
-
-    setShowViewUserModal(false);
-    setViewingUser(null);
-    setViewingUserType(null);
-    alert("Driver deleted.");
-    fetchData();
   };
 
   const handleDeletePassenger = async (passenger: Passenger) => {
     if (!window.confirm(`Delete ${passenger.name} and their ride records from the database?`)) return;
 
-    const passengerRideIds = rideRequests
-      .filter(r => r.passengerId === passenger.id)
-      .map(r => r.id);
+    try {
+      console.log(`[Supabase Query] Deleting passenger ID ${passenger.id}...`);
+      // 1. Attempt server-side atomic deletion RPC
+      const { data, error: rpcError } = await supabase.rpc("admin_delete_passenger", {
+        p_passenger_id: passenger.id,
+      });
 
-    for (const rideId of passengerRideIds) {
-      await deleteRows("booking_discount_requests", "booking_id", rideId);
-      await deleteRows("booking_status_history", "booking_id", rideId);
-      await deleteRows("driver_locations", "booking_id", rideId);
-      await deleteRows("passenger_locations", "booking_id", rideId);
-      await deleteRows("ratings", "booking_id", rideId);
-      await deleteRows("notifications", "booking_id", rideId);
+      if (rpcError) {
+        console.warn("RPC admin_delete_passenger unavailable, attempting multi-table cascading delete:", rpcError);
+        const passengerRideIds = rideRequests
+          .filter(r => r.passengerId === passenger.id)
+          .map(r => r.id);
+
+        for (const rideId of passengerRideIds) {
+          await deleteRows("booking_discount_requests", "booking_id", rideId);
+          await deleteRows("booking_status_history", "booking_id", rideId);
+          await deleteRows("driver_locations", "booking_id", rideId);
+          await deleteRows("passenger_locations", "booking_id", rideId);
+          await deleteRows("ratings", "booking_id", rideId);
+          await deleteRows("notifications", "booking_id", rideId);
+          await deleteRows("reports", "booking_id", rideId);
+        }
+
+        await deleteRows("passenger_locations", "passenger_id", passenger.id);
+        await deleteRows("reports", "passenger_id", passenger.id);
+        await deleteRows("reports", "reporter_passenger_id", passenger.id);
+        await deleteRows("bookings", "passenger_id", passenger.id);
+
+        const { error: passengerError } = await supabase.from("passengers").delete().eq("id", passenger.id);
+        if (passengerError) {
+          console.error("[Supabase Error] Passenger delete failed:", passengerError);
+          alert(`Failed to delete passenger: ${passengerError.message}`);
+          return;
+        }
+
+        if (passenger.profileId) {
+          await deleteRows("notifications", "recipient_id", passenger.profileId);
+          await deleteRows("reports", "reporter_id", passenger.profileId);
+          await deleteRows("reports", "reporter_profile_id", passenger.profileId);
+          await deleteRows("profiles", "id", passenger.profileId);
+        }
+      } else if (data && data.success === false) {
+        alert(data.message || "Failed to delete passenger.");
+        return;
+      }
+
+      // Immediately update local state so the passenger vanishes instantly
+      setPassengers(prev => prev.filter(p => p.id !== passenger.id));
+
+      setShowViewUserModal(false);
+      setViewingUser(null);
+      setViewingUserType(null);
+      alert(`Passenger ${passenger.name} has been successfully deleted.`);
+      fetchData(false);
+    } catch (err: any) {
+      console.error("[Supabase Error] Failed to delete passenger:", err);
+      alert(`Failed to delete passenger: ${err?.message || err}`);
     }
-
-    await deleteRows("passenger_locations", "passenger_id", passenger.id);
-    await deleteRows("bookings", "passenger_id", passenger.id);
-
-    const { error: passengerError } = await supabase.from("passengers").delete().eq("id", passenger.id);
-    if (passengerError) {
-      console.error("[Supabase Error] Passenger delete failed:", passengerError);
-      alert(`Failed to delete passenger: ${passengerError.message}`);
-      return;
-    }
-
-    if (passenger.profileId) {
-      await deleteRows("profiles", "id", passenger.profileId);
-    }
-
-    setShowViewUserModal(false);
-    setViewingUser(null);
-    setViewingUserType(null);
-    alert("Passenger deleted.");
-    fetchData();
   };
 
   const handleAddRequest = async (e: React.FormEvent) => {
@@ -1186,6 +1361,31 @@ export default function App() {
     });
   }, [rideRequests, requestSearch, statusFilter]);
 
+  // Notification badge counts for Sidebar
+  const pendingRequestsCount = useMemo(() => {
+    return rideRequests.filter((r) => r.status === "Pending").length;
+  }, [rideRequests]);
+
+  const openFeedbackCount = useMemo(() => {
+    return feedbackReports.filter((r) => r.status === "OPEN").length;
+  }, [feedbackReports]);
+
+  const pendingDriversCount = useMemo(() => {
+    return drivers.filter((d) => d.documentStatus === "PENDING").length;
+  }, [drivers]);
+
+  const pendingPassengersCount = useMemo(() => {
+    return passengers.filter(
+      (p) => p.discountDocumentStatus === "PENDING" || p.status === "For Approval"
+    ).length;
+  }, [passengers]);
+
+  const pendingChangeRequestsCount = useMemo(() => {
+    return driverChangeRequests.filter((r) => r.status === "PENDING").length;
+  }, [driverChangeRequests]);
+
+  const newUsersCount = pendingDriversCount + pendingPassengersCount + pendingChangeRequestsCount;
+
   // Loading screen
   if (!sessionChecked || isVerifyingRole) {
     return (
@@ -1223,6 +1423,9 @@ export default function App() {
         setActiveTab={setActiveTab}
         mobileMenuOpen={mobileMenuOpen}
         setMobileMenuOpen={setMobileMenuOpen}
+        onRefresh={() => fetchData(false)}
+        isRefreshing={isRefreshing}
+        lastRefreshedAt={lastRefreshedAt}
       />
 
       <div className="flex-1 min-h-0 flex relative overflow-hidden">
@@ -1234,6 +1437,12 @@ export default function App() {
           setMobileMenuOpen={setMobileMenuOpen}
           usersSubTab={usersSubTab}
           setUsersSubTab={setUsersSubTab}
+          pendingRequestsCount={pendingRequestsCount}
+          openFeedbackCount={openFeedbackCount}
+          newUsersCount={newUsersCount}
+          pendingDriversCount={pendingDriversCount}
+          pendingPassengersCount={pendingPassengersCount}
+          pendingChangeRequestsCount={pendingChangeRequestsCount}
         />
 
         {/* MAIN PANEL CONTENT VIEW */}
@@ -1241,11 +1450,11 @@ export default function App() {
           {errorState && (
             <div className="mb-6 p-4 bg-rose-100 border border-rose-200 text-rose-800 rounded-2xl text-sm font-semibold flex items-center justify-between">
               <span>⚠️ Error: {errorState}</span>
-              <button onClick={fetchData} className="px-4 py-1.5 bg-rose-200 hover:bg-rose-300 rounded-lg text-xs font-bold transition-all">Retry</button>
+              <button onClick={() => fetchData(false)} className="px-4 py-1.5 bg-rose-200 hover:bg-rose-300 rounded-lg text-xs font-bold transition-all">Retry</button>
             </div>
           )}
 
-          {isLoadingData ? (
+          {isInitialLoading ? (
             <div className="flex flex-col items-center justify-center p-12 text-slate-400">
               <div className="animate-spin rounded-full h-8 w-8 border-3 border-indigo-600 border-t-transparent mb-3"></div>
               <p className="text-xs font-bold uppercase tracking-wider">Syncing Supabase Database...</p>
@@ -1289,19 +1498,23 @@ export default function App() {
                 <UsersView
                   filteredDrivers={filteredDrivers}
                   filteredPassengers={filteredPassengers}
+                  driverChangeRequests={driverChangeRequests}
+                  drivers={drivers}
                   driverSearch={driverSearch}
                   setDriverSearch={setDriverSearch}
                   userTodaFilter={userTodaFilter}
                   setUserTodaFilter={setUserTodaFilter}
                   usersSubTab={usersSubTab}
+                  setUsersSubTab={setUsersSubTab}
                   setViewingUser={setViewingUser}
                   setViewingUserType={setViewingUserType}
                   setShowViewUserModal={setShowViewUserModal}
+                  onReviewChangeRequest={handleReviewDriverChangeRequest}
                 />
               )}
 
               {activeTab === "feedback" && (
-                <FeedbackView reports={feedbackReports} onRefresh={fetchData} />
+                <FeedbackView reports={feedbackReports} onRefresh={() => fetchData(false)} />
               )}
 
               {activeTab === "profile" && (
@@ -1376,11 +1589,14 @@ export default function App() {
         viewingUserType={viewingUserType}
         onDeactivatePassengerToggle={handleDeactivatePassengerToggle}
         onResetCanceledTrips={handleResetCanceledTrips}
+        onLiftPassengerRestriction={handleLiftPassengerRestriction}
+        onRestrictPassenger={handleRestrictPassenger}
         onDeleteDriver={handleDeleteDriver}
         onDeletePassenger={handleDeletePassenger}
-        onRefreshData={fetchData}
+        onRefreshData={() => fetchData(false)}
         rideRequests={rideRequests}
         driverChangeRequests={driverChangeRequests}
+        onReviewChangeRequest={handleReviewDriverChangeRequest}
       />
 
       <StatBreakdownModal

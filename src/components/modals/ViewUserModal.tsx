@@ -7,13 +7,16 @@ interface ViewUserModalProps {
   onClose: () => void;
   viewingUser: Driver | Passenger | null;
   viewingUserType: "driver" | "passenger" | null;
-  onDeactivatePassengerToggle: (id: string) => void;
+  onDeactivatePassengerToggle?: (id: string) => void;
   onResetCanceledTrips: (id: string) => void;
+  onLiftPassengerRestriction?: (id: string) => Promise<void> | void;
+  onRestrictPassenger?: (id: string) => Promise<void> | void;
   onDeleteDriver: (driver: Driver) => void;
   onDeletePassenger: (passenger: Passenger) => void;
   onRefreshData?: () => void;
   rideRequests?: RideRequest[];
   driverChangeRequests?: DriverProfileChangeRequest[];
+  onReviewChangeRequest?: (requestId: string, status: "APPROVED" | "REJECTED", reason?: string) => Promise<void> | void;
 }
 
 const statusBadge = (status: string) => {
@@ -31,9 +34,20 @@ const Field = ({ label, value }: { label: string; value: React.ReactNode }) => (
 
 const formatMinutes = (minutes: number) => {
   const safeMinutes = Math.max(0, Math.floor(minutes || 0));
-  const hours = Math.floor(safeMinutes / 60);
-  const mins = safeMinutes % 60;
+  const days = Math.floor(safeMinutes / 1440);
+  const remainingMins = safeMinutes % 1440;
+  const hours = Math.floor(remainingMins / 60);
+  const mins = remainingMins % 60;
+
+  if (days > 0) {
+    const dayLabel = days === 1 ? "1 day" : `${days} days`;
+    if (hours === 0 && mins === 0) return dayLabel;
+    if (hours === 0) return `${dayLabel} ${mins}m`;
+    if (mins === 0) return `${dayLabel} ${hours}h`;
+    return `${dayLabel} ${hours}h ${mins}m`;
+  }
   if (hours === 0) return `${mins} min`;
+  if (mins === 0) return `${hours}h`;
   return `${hours}h ${mins}m`;
 };
 
@@ -76,16 +90,18 @@ export default function ViewUserModal({
   onClose,
   viewingUser,
   viewingUserType,
-  onDeactivatePassengerToggle,
   onResetCanceledTrips,
+  onLiftPassengerRestriction,
+  onRestrictPassenger,
   onDeleteDriver,
   onDeletePassenger,
   onRefreshData,
   rideRequests = [],
   driverChangeRequests = [],
+  onReviewChangeRequest,
 }: ViewUserModalProps) {
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
-  const [zoomType, setZoomType] = useState<"front" | "back" | "franchise" | "discount" | null>(null);
+  const [zoomType, setZoomType] = useState<"front" | "back" | "franchise" | "franchise_back" | "discount" | null>(null);
   const [loadingSignedUrl, setLoadingSignedUrl] = useState(false);
   const [discountReviewReason, setDiscountReviewReason] = useState("");
   const [isReviewingDiscount, setIsReviewingDiscount] = useState(false);
@@ -98,12 +114,16 @@ export default function ViewUserModal({
   const [franchiseFile, setFranchiseFile] = useState<File | null>(null);
   const [franchisePlateNo, setFranchisePlateNo] = useState("");
   const [isSavingDocs, setIsSavingDocs] = useState(false);
-  const [activeDriverAction, setActiveDriverAction] = useState<"suspend" | "clear" | null>(null);
+  const [activeDriverAction, setActiveDriverAction] = useState<"restrict" | "clear" | null>(null);
   const [driverActionReason, setDriverActionReason] = useState("");
   const [isExecutingDriverAction, setIsExecutingDriverAction] = useState(false);
   const [reviewingRequestId, setReviewingRequestId] = useState<string | null>(null);
   const [changeRequestReason, setChangeRequestReason] = useState("");
   const [ridePage, setRidePage] = useState(1);
+  const [passengerIdPreviewUrl, setPassengerIdPreviewUrl] = useState<string | null>(null);
+  const [selectedToda, setSelectedToda] = useState("");
+  const [isUpdatingToda, setIsUpdatingToda] = useState(false);
+  const [isDeletingUser, setIsDeletingUser] = useState(false);
 
   useEffect(() => {
     if (viewingUser && viewingUserType === "driver") {
@@ -113,11 +133,41 @@ export default function ViewUserModal({
       setFranchiseNo(driver.franchiseNumber || "");
       setFranchiseExpiry(driver.franchiseExpiryDate || "");
       setFranchisePlateNo(driver.plateNumber || "");
+      setSelectedToda(driver.toda || "LHITC-TODA");
       setLicenseFrontFile(null);
       setLicenseBackFile(null);
       setFranchiseFile(null);
       setActiveDriverAction(null);
       setDriverActionReason("");
+      setPassengerIdPreviewUrl(null);
+    } else if (viewingUser && viewingUserType === "passenger") {
+      const p = viewingUser as Passenger;
+      if (p.discountDocumentUrl) {
+        let path = p.discountDocumentUrl;
+        if (path.includes("/discount-ids/")) {
+          path = path.split("/discount-ids/").pop() || path;
+        } else if (path.startsWith("http://") || path.startsWith("https://")) {
+          try {
+            const u = new URL(path);
+            const parts = u.pathname.split("/discount-ids/");
+            if (parts.length > 1) path = parts[1];
+          } catch (_) {}
+        }
+        supabase.storage.from("discount-ids").createSignedUrl(decodeURIComponent(path), 600)
+          .then(({ data, error }) => {
+            if (!error && data?.signedUrl) {
+              setPassengerIdPreviewUrl(data.signedUrl);
+            } else {
+              const pub = supabase.storage.from("discount-ids").getPublicUrl(decodeURIComponent(path));
+              setPassengerIdPreviewUrl(pub.data.publicUrl || p.discountDocumentUrl || null);
+            }
+          })
+          .catch(() => {
+            setPassengerIdPreviewUrl(p.discountDocumentUrl || null);
+          });
+      } else {
+        setPassengerIdPreviewUrl(null);
+      }
     }
     setDiscountReviewReason("");
     setRidePage(1);
@@ -131,19 +181,33 @@ export default function ViewUserModal({
   const ridePageCount = Math.max(1, Math.ceil(passengerRideHistory.length / 3));
   const visibleRideHistory = passengerRideHistory.slice((ridePage - 1) * 3, ridePage * 3);
 
-  if (!isOpen || !viewingUser) return null;
-
   const driver = viewingUserType === "driver" ? viewingUser as Driver : null;
   const passenger = viewingUserType === "passenger" ? viewingUser as Passenger : null;
   const visibleDriverChangeRequests = driver
     ? driverChangeRequests.filter((request) => request.driverId === driver.id)
     : [];
 
-  const handleZoomClick = async (type: "front" | "back" | "franchise" | "discount") => {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    if (!isOpen || viewingUserType !== "driver") return;
+    const interval = setInterval(() => setNow(Date.now()), 10000);
+    return () => clearInterval(interval);
+  }, [isOpen, viewingUserType]);
+
+  const liveOnlineMins = driver && driver.isOnline && driver.lastOnlineAt
+    ? Math.max(0, Math.floor((now - new Date(driver.lastOnlineAt).getTime()) / 60000))
+    : (driver?.liveOnlineMinutes || 0);
+
+  const totalOnlineMins = (driver?.totalOnlineMinutes || 0) + (driver?.isOnline ? liveOnlineMins : 0);
+
+  if (!isOpen || !viewingUser) return null;
+
+  const handleZoomClick = async (type: "front" | "back" | "franchise" | "franchise_back" | "discount") => {
     const url =
       type === "front" ? driver?.licenseFrontUrl || driver?.licensePhotoUrl || "" :
       type === "back" ? driver?.licenseBackUrl || "" :
       type === "franchise" ? driver?.franchiseUrl || "" :
+      type === "franchise_back" ? driver?.franchiseBackUrl || "" :
       passenger?.discountDocumentUrl || "";
 
     if (!url) return;
@@ -151,15 +215,33 @@ export default function ViewUserModal({
     setLoadingSignedUrl(true);
 
     try {
-      let path = url;
-      if (url.includes("/discount-ids/")) path = url.split("/discount-ids/").pop() || url;
-      else if (url.includes("/driver-documents/")) path = url.split("/driver-documents/").pop() || url;
-      else if (url.includes("/licenses/")) path = url.split("/licenses/").pop() || url;
-      else path = url.split("/").pop() || url;
+      const bucketName =
+        type === "discount"
+          ? "discount-ids"
+          : url.includes("/licenses/")
+          ? "licenses"
+          : "driver-documents";
 
-      const bucketName = type === "discount" ? "discount-ids" : url.includes("/licenses/") ? "licenses" : "driver-documents";
-      const { data, error } = await supabase.storage.from(bucketName).createSignedUrl(decodeURIComponent(path), 300);
-      setSignedUrl(error ? url : data?.signedUrl || url);
+      let path = url;
+      if (url.includes(`/${bucketName}/`)) {
+        path = url.split(`/${bucketName}/`).pop() || url;
+      } else if (url.startsWith("http://") || url.startsWith("https://")) {
+        try {
+          const u = new URL(url);
+          const parts = u.pathname.split(`/${bucketName}/`);
+          if (parts.length > 1) {
+            path = parts[1];
+          }
+        } catch (_) {}
+      }
+
+      const { data, error } = await supabase.storage.from(bucketName).createSignedUrl(decodeURIComponent(path), 600);
+      if (!error && data?.signedUrl) {
+        setSignedUrl(data.signedUrl);
+      } else {
+        const pub = supabase.storage.from(bucketName).getPublicUrl(decodeURIComponent(path));
+        setSignedUrl(pub.data.publicUrl || url);
+      }
     } catch (err) {
       console.error("Failed to generate signed URL:", err);
       setSignedUrl(url);
@@ -174,6 +256,28 @@ export default function ViewUserModal({
     const { error } = await supabase.storage.from("driver-documents").upload(fileName, file, { upsert: true });
     if (error) throw new Error(`Failed to upload ${label}: ${error.message}`);
     return supabase.storage.from("driver-documents").getPublicUrl(fileName).data.publicUrl;
+  };
+
+  const handleUpdateToda = async (newToda?: string) => {
+    if (!driver) return;
+    const todaToSave = newToda || selectedToda;
+    if (!todaToSave) return;
+    setIsUpdatingToda(true);
+    try {
+      const { error } = await supabase
+        .from('drivers')
+        .update({ toda_association: todaToSave, updated_at: new Date().toISOString() })
+        .eq('id', driver.id);
+
+      if (error) throw error;
+      alert(`Driver TODA association updated to ${todaToSave}`);
+      onRefreshData?.();
+    } catch (err: any) {
+      console.error("Failed to update TODA association:", err);
+      alert(`Failed to update TODA: ${err.message || err}`);
+    } finally {
+      setIsUpdatingToda(false);
+    }
   };
 
   const handleSaveDocuments = async (event: React.FormEvent) => {
@@ -229,9 +333,26 @@ export default function ViewUserModal({
         p_status: status,
         p_reason: status === "REJECTED" ? discountReviewReason.trim() : null,
       });
-      if (error) throw error;
-      alert(status === "VERIFIED" ? "Passenger discount ID approved." : "Passenger discount ID rejected.");
+      if (error) {
+        console.warn("RPC failed, falling back to direct table update:", error.message);
+        const { error: pError } = await supabase
+          .from("passengers")
+          .update({
+            discount_document_status: status,
+            discount_document_reason: status === "REJECTED" ? discountReviewReason.trim() : null,
+            discount_verified: status === "VERIFIED",
+            discount_verified_at: status === "VERIFIED" ? new Date().toISOString() : null,
+          })
+          .eq("id", passenger.id);
+        if (pError) throw pError;
+
+        if (status === "VERIFIED") {
+          await supabase.from("profiles").update({ is_active: true }).eq("id", passenger.id);
+        }
+      }
+      alert(status === "VERIFIED" ? "Passenger ID approved and account activated." : "Passenger ID rejected.");
       onRefreshData?.();
+      onClose();
     } catch (err: any) {
       console.error("Discount review failed:", err);
       alert(err.message || "Failed to review discount ID.");
@@ -242,25 +363,81 @@ export default function ViewUserModal({
 
   const handleDriverAction = async () => {
     if (!driver || !activeDriverAction) return;
-    if (activeDriverAction === "suspend" && !driverActionReason.trim()) {
-      alert("Please enter a suspension reason.");
+    if (activeDriverAction === "restrict" && !driverActionReason.trim()) {
+      alert("Please enter a restriction reason.");
       return;
     }
 
     setIsExecutingDriverAction(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const update = activeDriverAction === "clear"
-        ? { admin_action_type: null, admin_action_reason: null, admin_action_date: null, admin_action_by: null }
-        : {
-            admin_action_type: "suspended",
-            admin_action_reason: driverActionReason.trim(),
-            admin_action_date: new Date().toISOString(),
-            admin_action_by: session?.user?.id || null,
-          };
-      const { error } = await supabase.from("drivers").update(update).eq("id", driver.id);
-      if (error) throw error;
-      alert(activeDriverAction === "clear" ? "Driver restriction removed." : "Driver suspended.");
+
+      if (activeDriverAction === "restrict") {
+        const { error: rpcError } = await supabase.rpc("admin_restrict_driver", {
+          p_driver_id: driver.id,
+          p_reason: driverActionReason.trim(),
+        });
+        if (rpcError) {
+          console.warn("RPC admin_restrict_driver unavailable, falling back to direct table update:", rpcError);
+          const { error } = await supabase
+            .from("drivers")
+            .update({
+              admin_action_type: "restricted",
+              admin_action_reason: driverActionReason.trim(),
+              admin_action_date: new Date().toISOString(),
+              admin_action_by: session?.user?.id || null,
+              is_online: false,
+            })
+            .eq("id", driver.id);
+          if (error) throw error;
+
+          const recipientId = driver.profileId || driver.id;
+          await supabase.from("notifications").insert({
+            recipient_id: recipientId,
+            type: "in_app",
+            title: "Account Restricted",
+            body: `Your driver account has been restricted by the administrator. Reason: ${driverActionReason.trim()}`,
+            notification_category: "account_status",
+            data: {
+              action: "driver_restricted",
+              reason: driverActionReason.trim(),
+              date: new Date().toISOString(),
+            },
+          });
+        }
+      } else {
+        const { error: rpcError } = await supabase.rpc("admin_lift_driver_restriction", {
+          p_driver_id: driver.id,
+        });
+        if (rpcError) {
+          console.warn("RPC admin_lift_driver_restriction unavailable, falling back to direct table update:", rpcError);
+          const { error } = await supabase
+            .from("drivers")
+            .update({
+              admin_action_type: null,
+              admin_action_reason: null,
+              admin_action_date: null,
+              admin_action_by: null,
+            })
+            .eq("id", driver.id);
+          if (error) throw error;
+
+          const recipientId = driver.profileId || driver.id;
+          await supabase.from("notifications").insert({
+            recipient_id: recipientId,
+            type: "in_app",
+            title: "Restriction Lifted",
+            body: "Your driver account restriction has been lifted by the administrator. You may now go online and accept rides.",
+            notification_category: "account_status",
+            data: {
+              action: "driver_restriction_lifted",
+              date: new Date().toISOString(),
+            },
+          });
+        }
+      }
+
+      alert(activeDriverAction === "clear" ? "Driver restriction removed." : "Driver restricted successfully.");
       onRefreshData?.();
       onClose();
     } catch (err: any) {
@@ -291,12 +468,16 @@ export default function ViewUserModal({
     }
     setReviewingRequestId(requestId);
     try {
-      const { error } = await supabase.rpc("review_driver_profile_change_request", {
-        p_request_id: requestId,
-        p_status: status,
-        p_reason: status === "REJECTED" ? changeRequestReason.trim() : null,
-      });
-      if (error) throw error;
+      if (onReviewChangeRequest) {
+        await onReviewChangeRequest(requestId, status, changeRequestReason.trim());
+      } else {
+        const { error } = await supabase.rpc("review_driver_profile_change_request", {
+          p_request_id: requestId,
+          p_status: status,
+          p_reason: status === "REJECTED" ? changeRequestReason.trim() : null,
+        });
+        if (error) throw error;
+      }
       setChangeRequestReason("");
       await onRefreshData?.();
     } catch (err: any) {
@@ -331,8 +512,32 @@ export default function ViewUserModal({
                 <Field label="Driver Name" value={driver.name} />
                 <Field label="Phone Number" value={driver.phone} />
                 <Field label="Email" value={driver.email || "N/A"} />
-                <Field label="TODA Association" value={driver.toda} />
+                <Field label="Address" value={driver.address || "N/A"} />
                 <Field label="Plate Number" value={<span className="font-mono">{driver.plateNumber || "N/A"}</span>} />
+                <div className="flex flex-col gap-1 col-span-2 sm:col-span-1">
+                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">TODA Association</label>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <select
+                      value={selectedToda || driver.toda || "LHITC-TODA"}
+                      onChange={(e) => setSelectedToda(e.target.value)}
+                      className="border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold bg-white text-[#000C7D] outline-hidden focus:border-blue-500 cursor-pointer flex-1"
+                    >
+                      <option value="LHITC-TODA">LHITC-TODA</option>
+                      <option value="BYPASS ILAYANG BAGUIO-TODA">BYPASS ILAYANG BAGUIO-TODA</option>
+                      <option value="CHOT-TODA">CHOT-TODA</option>
+                    </select>
+                    {selectedToda && selectedToda !== driver.toda && (
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateToda()}
+                        disabled={isUpdatingToda}
+                        className="px-2.5 py-1 bg-[#000C7D] hover:bg-blue-900 text-white rounded-lg text-[10px] font-bold transition-all cursor-pointer shrink-0 disabled:opacity-50"
+                      >
+                        {isUpdatingToda ? "..." : "Save"}
+                      </button>
+                    )}
+                  </div>
+                </div>
                 <Field
                   label="Document Status"
                   value={<span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${statusBadge(driver.documentStatus || "PENDING")}`}>{driver.documentStatus || "PENDING"}</span>}
@@ -347,11 +552,11 @@ export default function ViewUserModal({
                 />
                 <Field
                   label="Total Online Time"
-                  value={formatMinutes((driver.totalOnlineMinutes || 0) + (driver.liveOnlineMinutes || 0))}
+                  value={formatMinutes(totalOnlineMins)}
                 />
                 <Field
                   label="Current Session"
-                  value={driver.isOnline ? formatMinutes(driver.liveOnlineMinutes || 0) : "Not active"}
+                  value={driver.isOnline ? formatMinutes(liveOnlineMins) : "Not active"}
                 />
                 <Field
                   label="Last Completed Ride"
@@ -375,7 +580,10 @@ export default function ViewUserModal({
                     <span className="text-xs font-bold text-[#000C7D] uppercase">Franchise / Permit</span>
                     <Field label="Franchise Number" value={driver.franchiseNumber || "N/A"} />
                     <Field label="Expiry Date" value={driver.franchiseExpiryDate || "N/A"} />
-                    {driver.franchiseUrl && <button type="button" onClick={() => handleZoomClick("franchise")} className="self-start px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 text-[10px] font-bold rounded-lg cursor-pointer">Permit Image</button>}
+                    <div className="flex gap-2 mt-1">
+                      {driver.franchiseUrl && <button type="button" onClick={() => handleZoomClick("franchise")} className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 text-[10px] font-bold rounded-lg cursor-pointer">Front / Permit</button>}
+                      {driver.franchiseBackUrl && <button type="button" onClick={() => handleZoomClick("franchise_back")} className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 text-[10px] font-bold rounded-lg cursor-pointer">Back Image</button>}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -460,31 +668,56 @@ export default function ViewUserModal({
                   <div className="bg-rose-50 border border-rose-200 rounded-xl p-3">
                     <p className="text-xs text-rose-800 font-bold uppercase">Restricted: {driver.adminActionType}</p>
                     <p className="text-xs text-rose-600 font-semibold mt-1">Reason: {driver.adminActionReason || "No reason specified"}</p>
-                    <button onClick={() => setActiveDriverAction("clear")} className="mt-3 px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold cursor-pointer">
-                      Remove Restriction
-                    </button>
                   </div>
                 )}
                 <div className="flex flex-wrap gap-2">
-                  <button onClick={() => setActiveDriverAction("suspend")} className="px-4 py-2 bg-rose-50 text-rose-600 border border-rose-100 rounded-xl text-xs font-bold hover:bg-rose-100 cursor-pointer">
-                    Suspend Driver
-                  </button>
-                  <button onClick={() => onDeleteDriver(driver)} className="px-4 py-2 bg-rose-600 text-white border border-rose-600 rounded-xl text-xs font-bold hover:bg-rose-700 cursor-pointer">
-                    Remove Driver
+                  {driver.adminActionType ? (
+                    <button
+                      type="button"
+                      onClick={() => setActiveDriverAction("clear")}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs"
+                    >
+                      Lift Restriction
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setActiveDriverAction("restrict")}
+                      className="px-4 py-2 bg-rose-50 text-rose-600 border border-rose-100 rounded-xl text-xs font-bold hover:bg-rose-100 cursor-pointer"
+                    >
+                      Restrict Driver
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    disabled={isDeletingUser}
+                    onClick={async () => {
+                      setIsDeletingUser(true);
+                      try {
+                        await onDeleteDriver(driver);
+                      } finally {
+                        setIsDeletingUser(false);
+                      }
+                    }}
+                    className="px-4 py-2 bg-rose-600 text-white border border-rose-600 rounded-xl text-xs font-bold hover:bg-rose-700 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {isDeletingUser ? "Deleting Driver..." : "Remove Driver"}
                   </button>
                 </div>
                 {activeDriverAction && (
                   <div className="bg-white border border-slate-200 rounded-xl p-3.5 flex flex-col gap-3">
-                    {activeDriverAction === "suspend" ? (
+                    {activeDriverAction === "restrict" ? (
                       <textarea
                         rows={2}
-                        placeholder="Reason for suspension"
+                        placeholder="Reason for restriction (e.g. reported violation, misconduct, temporary hold)"
                         value={driverActionReason}
                         onChange={(event) => setDriverActionReason(event.target.value)}
                         className="border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-[#000C7D] outline-hidden focus:border-blue-400 resize-none"
                       />
                     ) : (
-                      <p className="text-xs text-slate-500 font-semibold">Confirm clearing this driver's restriction.</p>
+                      <p className="text-xs text-slate-600 font-semibold">
+                        Confirm lifting this driver's restriction. The driver will be able to go online and accept rides again.
+                      </p>
                     )}
                     <div className="flex justify-end gap-2">
                       <button type="button" onClick={() => setActiveDriverAction(null)} className="px-3.5 py-1.5 border border-slate-200 rounded-lg text-xs font-bold text-slate-500 hover:bg-slate-50 cursor-pointer">Cancel</button>
@@ -498,40 +731,163 @@ export default function ViewUserModal({
             </>
           )}
 
-          {passenger && (
-            <>
-              <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm border border-slate-100 rounded-2xl p-4 bg-slate-50/50">
-                <Field label="Passenger Name" value={passenger.name} />
-                <Field label="Contact Number" value={passenger.contact} />
-                <Field label="Email" value={passenger.email || "N/A"} />
-                <Field label="Joined Date" value={passenger.joinedDate} />
-                <Field label="Type" value={passenger.accountPassengerType || "Regular"} />
-                <Field label="Total Rides Taken" value={`${passenger.ridesTaken} Rides`} />
-                <Field label="Canceled Trips" value={`${passenger.canceledTrips} Cancelled`} />
-                <Field label="Warning Status" value={passenger.warningStatus ? "Active Warning" : "No Warning"} />
-                <div className="col-span-2">
+          {passenger && (() => {
+            const isPassengerRestricted = Boolean(
+              passenger.bookingRestrictionUntil && new Date(passenger.bookingRestrictionUntil) > new Date()
+            );
+            const restrictionDaysRemaining = isPassengerRestricted && passenger.bookingRestrictionUntil
+              ? Math.max(1, Math.ceil((new Date(passenger.bookingRestrictionUntil).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+              : 0;
+
+            return (
+              <>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm border border-slate-100 rounded-2xl p-4 bg-slate-50/50">
+                  <Field label="Passenger Name" value={passenger.name} />
+                  <Field label="Contact Number" value={passenger.contact} />
+                  <Field label="Email" value={passenger.email || "N/A"} />
+                  <Field label="Joined Date" value={passenger.joinedDate} />
+                  <Field label="Type" value={passenger.accountPassengerType || "Regular"} />
+                  <Field label="Total Rides Taken" value={`${passenger.ridesTaken} Rides`} />
                   <Field
-                    label="Booking Restriction Until"
-                    value={passenger.bookingRestrictionUntil ? new Date(passenger.bookingRestrictionUntil).toLocaleString() : "No Restriction"}
+                    label="Canceled Trips (Max 3)"
+                    value={
+                      <div className="flex items-center gap-2">
+                        <span className={passenger.canceledTrips >= 3 ? "text-rose-600 font-extrabold" : passenger.canceledTrips >= 2 ? "text-amber-600 font-bold" : "text-slate-700"}>
+                          {passenger.canceledTrips} / 3 Cancelled
+                        </span>
+                        {passenger.canceledTrips >= 3 && (
+                          <span className="px-2 py-0.5 bg-rose-100 text-rose-700 rounded-md text-[10px] font-bold">
+                            Restricted
+                          </span>
+                        )}
+                        {passenger.canceledTrips === 2 && (
+                          <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-md text-[10px] font-bold">
+                            Warning
+                          </span>
+                        )}
+                      </div>
+                    }
                   />
-                </div>
-                {passenger.discountDocumentUrl && (
-                  <div className="col-span-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-slate-100 pt-4">
-                    <div>
-                      <p className="font-bold text-[#000C7D]">{passenger.accountPassengerType || "Regular"}</p>
-                      <p className="text-xs text-slate-500 font-semibold">{passenger.discountDocumentStatus || "NOT_REQUIRED"}</p>
+                  <Field
+                    label="Warning Status"
+                    value={
+                      passenger.warningStatus ? (
+                        <span className="text-amber-600 font-bold">Active Warning</span>
+                      ) : (
+                        <span className="text-slate-500 font-normal">No Warning</span>
+                      )
+                    }
+                  />
+                  <div className="col-span-2">
+                    <Field
+                      label="Booking Restriction Until"
+                      value={
+                        passenger.bookingRestrictionUntil ? (
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={isPassengerRestricted ? "text-rose-600 font-bold" : "text-slate-600 font-medium"}>
+                              {new Date(passenger.bookingRestrictionUntil).toLocaleString()}
+                            </span>
+                            {isPassengerRestricted && (
+                              <span className="px-2 py-0.5 bg-rose-100 text-rose-700 rounded-md text-[10px] font-extrabold">
+                                {restrictionDaysRemaining} days remaining
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-emerald-600 font-semibold">No Restriction</span>
+                        )
+                      }
+                    />
+                  </div>
+                  {isPassengerRestricted && (
+                    <div className="col-span-2 bg-rose-50 border border-rose-200 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                      <div>
+                        <p className="text-xs font-bold text-rose-800 uppercase tracking-wide flex items-center gap-1.5">
+                          <span className="inline-block w-2 h-2 rounded-full bg-rose-600 animate-pulse" />
+                          Account Restricted (3-Cancellation Policy)
+                        </p>
+                        <p className="text-xs text-rose-600 font-medium mt-1">
+                          Booking is restricted for 31 days due to 3 cancellations. Restriction will expire on{" "}
+                          <span className="font-bold">
+                            {new Date(passenger.bookingRestrictionUntil!).toLocaleDateString(undefined, {
+                              month: "long",
+                              day: "numeric",
+                              year: "numeric",
+                            })}
+                          </span>{" "}
+                          ({restrictionDaysRemaining} days left).
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onLiftPassengerRestriction
+                            ? onLiftPassengerRestriction(passenger.id)
+                            : onResetCanceledTrips(passenger.id)
+                        }
+                        className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer whitespace-nowrap self-start sm:self-auto"
+                      >
+                        Lift Restriction Immediately
+                      </button>
                     </div>
-                    <button onClick={() => handleZoomClick("discount")} className="px-4 py-2 bg-white border border-blue-100 text-[#000C7D] rounded-lg text-xs font-bold hover:bg-blue-50 transition-all cursor-pointer">
-                      View Uploaded ID
-                    </button>
+                  )}
+                {passenger.discountDocumentUrl && (
+                  <div className="col-span-2 flex flex-col gap-3 border-t border-slate-100 pt-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div>
+                        <p className="font-bold text-[#000C7D]">{passenger.accountPassengerType || "Regular"} ID Document</p>
+                        <p className="text-xs text-slate-500 font-semibold">Status: {passenger.discountDocumentStatus || "NOT_REQUIRED"}</p>
+                      </div>
+                      <button onClick={() => handleZoomClick("discount")} className="self-start sm:self-auto px-3 py-1.5 bg-white border border-blue-100 text-[#000C7D] rounded-lg text-xs font-bold hover:bg-blue-50 transition-all cursor-pointer">
+                        View Full Size
+                      </button>
+                    </div>
+
+                    <div
+                      onClick={() => handleZoomClick("discount")}
+                      className="relative w-full max-w-xs h-40 bg-slate-100 rounded-xl overflow-hidden border border-slate-200 cursor-pointer group shadow-sm"
+                    >
+                      {passengerIdPreviewUrl ? (
+                        <img
+                          src={passengerIdPreviewUrl}
+                          alt="Uploaded ID Preview"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center h-full text-slate-400 p-4 text-center">
+                          <span className="text-xs font-semibold">Loading ID image preview...</span>
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold">
+                        Click to enlarge
+                      </div>
+                    </div>
                   </div>
                 )}
                 {passenger.discountDocumentStatus === "PENDING" && (
                   <div className="col-span-2 flex flex-col gap-3">
-                    <textarea value={discountReviewReason} onChange={(event) => setDiscountReviewReason(event.target.value)} rows={2} placeholder="Rejection reason, required only when rejecting." className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 resize-none" />
+                    <textarea
+                      value={discountReviewReason}
+                      onChange={(event) => setDiscountReviewReason(event.target.value)}
+                      rows={2}
+                      placeholder="Rejection reason, required only when rejecting."
+                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 resize-none"
+                    />
                     <div className="flex flex-wrap gap-2">
-                      <button onClick={() => handleReviewDiscount("VERIFIED")} disabled={isReviewingDiscount} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold disabled:opacity-60 cursor-pointer">Approve ID</button>
-                      <button onClick={() => handleReviewDiscount("REJECTED")} disabled={isReviewingDiscount} className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold disabled:opacity-60 cursor-pointer">Reject ID</button>
+                      <button
+                        onClick={() => handleReviewDiscount("VERIFIED")}
+                        disabled={isReviewingDiscount}
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold disabled:opacity-60 cursor-pointer shadow-sm"
+                      >
+                        {isReviewingDiscount ? "Processing..." : "Approve ID & Activate"}
+                      </button>
+                      <button
+                        onClick={() => handleReviewDiscount("REJECTED")}
+                        disabled={isReviewingDiscount}
+                        className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold disabled:opacity-60 cursor-pointer shadow-sm"
+                      >
+                        {isReviewingDiscount ? "Processing..." : "Reject ID"}
+                      </button>
                     </div>
                   </div>
                 )}
@@ -588,20 +944,55 @@ export default function ViewUserModal({
               </div>
 
               <div className="flex gap-2 items-center flex-wrap">
-                <button onClick={() => onDeactivatePassengerToggle(passenger.id)} className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs ${passenger.status === "Active" ? "bg-rose-50 text-rose-600 hover:bg-rose-100" : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"}`}>
-                  {passenger.status === "Active" ? "Deactivate Passenger" : "Activate Passenger"}
-                </button>
-                {passenger.canceledTrips > 0 && (
-                  <button onClick={() => onResetCanceledTrips(passenger.id)} className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer">
-                    Reset & Reactivate
+                {(isPassengerRestricted || passenger.canceledTrips > 0) && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onLiftPassengerRestriction
+                        ? onLiftPassengerRestriction(passenger.id)
+                        : onResetCanceledTrips(passenger.id)
+                    }
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs"
+                  >
+                    Lift Restriction Immediately
                   </button>
                 )}
-                <button onClick={() => onDeletePassenger(passenger)} className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer">
-                  Delete Passenger
+
+                {!isPassengerRestricted && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm(`Restrict ${passenger.name} from booking for 31 days?`)) {
+                        if (onRestrictPassenger) {
+                          onRestrictPassenger(passenger.id);
+                        }
+                      }
+                    }}
+                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs"
+                  >
+                    Restrict Passenger (31 Days)
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  disabled={isDeletingUser}
+                  onClick={async () => {
+                    setIsDeletingUser(true);
+                    try {
+                      await onDeletePassenger(passenger);
+                    } finally {
+                      setIsDeletingUser(false);
+                    }
+                  }}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {isDeletingUser ? "Deleting Passenger..." : "Delete Passenger"}
                 </button>
               </div>
             </>
-          )}
+          );
+        })()}
 
           <div className="border-t border-slate-100 pt-4 flex items-center justify-end">
             <button onClick={onClose} className="px-6 py-2.5 bg-[#000C7D] hover:bg-blue-800 text-white rounded-xl font-bold text-sm transition-colors cursor-pointer shadow-xs hover:shadow">
@@ -638,7 +1029,15 @@ export default function ViewUserModal({
               <img src={signedUrl} alt="Zoomed Document" className="max-h-[70vh] max-w-full object-contain rounded-lg" />
             )}
             <div className="mt-3 text-center text-[#000C7D] font-extrabold text-sm uppercase">
-              {zoomType === "front" ? "License Front Copy" : zoomType === "back" ? "License Back Copy" : zoomType === "discount" ? "Passenger Discount ID" : "Franchise Permit Copy"}
+              {zoomType === "front"
+                ? "License Front Copy"
+                : zoomType === "back"
+                ? "License Back Copy"
+                : zoomType === "franchise_back"
+                ? "Franchise Back Copy"
+                : zoomType === "discount"
+                ? "Passenger Discount ID"
+                : "Franchise Permit Copy"}
             </div>
           </div>
         </div>

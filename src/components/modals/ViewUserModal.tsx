@@ -339,23 +339,26 @@ export default function ViewUserModal({
           .from("passengers")
           .update({
             discount_document_status: status,
-            discount_document_reason: status === "REJECTED" ? discountReviewReason.trim() : null,
-            discount_verified: status === "VERIFIED",
-            discount_verified_at: status === "VERIFIED" ? new Date().toISOString() : null,
+            discount_document_rejection_reason: status === "REJECTED" ? discountReviewReason.trim() : null,
+            discount_document_reviewed_at: new Date().toISOString(),
+            discount_eligible: false,
           })
           .eq("id", passenger.id);
         if (pError) throw pError;
 
-        if (status === "VERIFIED") {
-          await supabase.from("profiles").update({ is_active: true }).eq("id", passenger.id);
+        if (passenger.profileId) {
+          await supabase
+            .from("profiles")
+            .update({ is_active: status === "VERIFIED", updated_at: new Date().toISOString() })
+            .eq("id", passenger.profileId);
         }
       }
       alert(status === "VERIFIED" ? "Passenger ID approved and account activated." : "Passenger ID rejected.");
       onRefreshData?.();
       onClose();
     } catch (err: any) {
-      console.error("Discount review failed:", err);
-      alert(err.message || "Failed to review discount ID.");
+      console.error("ID verification review failed:", err);
+      alert(err.message || "Failed to review passenger ID.");
     } finally {
       setIsReviewingDiscount(false);
     }
@@ -746,7 +749,7 @@ export default function ViewUserModal({
                   <Field label="Contact Number" value={passenger.contact} />
                   <Field label="Email" value={passenger.email || "N/A"} />
                   <Field label="Joined Date" value={passenger.joinedDate} />
-                  <Field label="Type" value={passenger.accountPassengerType || "Regular"} />
+                  <Field label="ID Verification" value={passenger.discountDocumentStatus || "NOT_REQUIRED"} />
                   <Field label="Total Rides Taken" value={`${passenger.ridesTaken} Rides`} />
                   <Field
                     label="Canceled Trips (Max 3)"
@@ -835,7 +838,7 @@ export default function ViewUserModal({
                   <div className="col-span-2 flex flex-col gap-3 border-t border-slate-100 pt-4">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                       <div>
-                        <p className="font-bold text-[#000C7D]">{passenger.accountPassengerType || "Regular"} ID Document</p>
+                        <p className="font-bold text-[#000C7D]">Account Verification ID</p>
                         <p className="text-xs text-slate-500 font-semibold">Status: {passenger.discountDocumentStatus || "NOT_REQUIRED"}</p>
                       </div>
                       <button onClick={() => handleZoomClick("discount")} className="self-start sm:self-auto px-3 py-1.5 bg-white border border-blue-100 text-[#000C7D] rounded-lg text-xs font-bold hover:bg-blue-50 transition-all cursor-pointer">
@@ -1036,7 +1039,7 @@ export default function ViewUserModal({
                 : zoomType === "franchise_back"
                 ? "Franchise Back Copy"
                 : zoomType === "discount"
-                ? "Passenger Discount ID"
+                ? "Passenger Verification ID"
                 : "Franchise Permit Copy"}
             </div>
           </div>

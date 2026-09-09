@@ -242,10 +242,20 @@ export async function createDriverAccount(
       // Apply all document updates in one query
       if (Object.keys(driverUpdates).length > 0) {
         console.log("Updating driver record with document data...", driverUpdates);
-        const { error: updateError } = await supabase
+        let { error: updateError } = await supabase
           .from('drivers')
           .update(driverUpdates)
           .eq('profile_id', userId);
+
+        if (updateError && (updateError.message?.includes("franchise_back_url") || String(updateError).includes("franchise_back_url"))) {
+          console.warn("Retrying driver document update without franchise_back_url...");
+          delete driverUpdates.franchise_back_url;
+          const retry = await supabase
+            .from('drivers')
+            .update(driverUpdates)
+            .eq('profile_id', userId);
+          updateError = retry.error;
+        }
 
         if (updateError) throw updateError;
       }

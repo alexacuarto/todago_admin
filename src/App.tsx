@@ -191,7 +191,7 @@ export default function App() {
       console.log("[Supabase Response] Vehicles fetched:", vehiclesData?.length);
 
       console.log("[Supabase Query] Fetching drivers with profiles and vehicles...");
-      const driversData = await fetchAllRows("drivers", `
+      const driversColumns = `
           id,
           status,
           license_number,
@@ -218,7 +218,20 @@ export default function App() {
           admin_action_date,
           admin_action_by,
           document_issue_reason
-        `);
+        `;
+
+      let driversData: any[] = [];
+      try {
+        driversData = await fetchAllRows("drivers", driversColumns);
+      } catch (err: any) {
+        if (err?.message?.includes("franchise_back_url") || String(err).includes("franchise_back_url")) {
+          console.warn("[Supabase Warning] franchise_back_url not found on drivers table; falling back to schema without franchise_back_url.");
+          const driversColumnsFallback = driversColumns.replace(/franchise_back_url,?\s*/g, "");
+          driversData = await fetchAllRows("drivers", driversColumnsFallback);
+        } else {
+          throw err;
+        }
+      }
       console.log("[Supabase Response] Drivers fetched:", driversData.length);
 
       console.log("[Supabase Query] Fetching bookings...");

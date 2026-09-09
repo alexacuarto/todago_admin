@@ -18,6 +18,7 @@ const statusClass = (status: RideRequest["status"]) => {
   if (status === "Completed") return "bg-emerald-50 text-emerald-600 border border-emerald-100";
   if (status === "In Transit") return "bg-blue-50 text-blue-600 border border-blue-100";
   if (status === "Pending") return "bg-amber-100 text-amber-600 border border-amber-200";
+  if (status === "Awaiting Payment" || status === "Payment Confirmation") return "bg-amber-50 text-amber-800 border border-amber-200";
   if (status === "Scheduled") return "bg-indigo-50 text-indigo-600 border border-indigo-100";
   return "bg-rose-50 text-rose-600 border border-rose-100";
 };

@@ -91,6 +91,8 @@ export interface Passenger {
   status: string;
   joinedDate: string;
   ridesTaken: number;
+  passengerCancelledTrips?: number;
+  driverCancelledTrips?: number;
   warningStatus?: boolean;
   bookingRestrictionUntil?: string | null;
   lastCancelDate?: string | null;
@@ -113,14 +115,18 @@ export interface RideRequest {
   driverId: string;
   location: string;
   destination: string;
+  returnLocation?: string | null;
   pickupLatitude?: number | null;
   pickupLongitude?: number | null;
   dropoffLatitude?: number | null;
   dropoffLongitude?: number | null;
-  status: "Pending" | "In Transit" | "Scheduled" | "Completed" | "Cancelled";
+  returnLatitude?: number | null;
+  returnLongitude?: number | null;
+  status: "Pending" | "In Transit" | "Awaiting Payment" | "Payment Confirmation" | "Scheduled" | "Completed" | "Cancelled";
   fare: number;
   time: string;
   requestedAt?: string;
+  tripType?: string | null;
   toda: string;
   cancelled_by?: string | null;
   cancelled_at?: string | null;

@@ -300,6 +300,8 @@ export default function UsersView({
         "Account Status",
         "Rides Taken",
         "Cancelled Trips",
+        "Passenger Cancellations (Policy)",
+        "Driver Cancellations",
         "Date Joined",
       ];
       const rows = sortedPassengers.map((p) => [
@@ -310,6 +312,8 @@ export default function UsersView({
         p.status,
         p.ridesTaken,
         p.canceledTrips,
+        p.passengerCancelledTrips || 0,
+        p.driverCancelledTrips || 0,
         p.joinedDate,
       ]);
       exportToExcel(`todago_passengers_${dateStr}`, headers, rows);
@@ -637,7 +641,7 @@ export default function UsersView({
                     <th className="pb-3 pl-3">Name</th>
                     <th className="pb-3 px-3">Contact</th>
                     <th className="pb-3 px-3">ID Verification</th>
-                    <th className="pb-3 px-3">Cancellations</th>
+                    <th className="pb-3 px-3">Cancelled Trips</th>
                     <th className="pb-3 px-3">Account Status</th>
                     <th className="pb-3 text-center pr-3">Details</th>
                   </tr>

@@ -124,8 +124,11 @@ export default function ViewUserModal({
   const [selectedToda, setSelectedToda] = useState("");
   const [isUpdatingToda, setIsUpdatingToda] = useState(false);
   const [isDeletingUser, setIsDeletingUser] = useState(false);
+  const passengerDocumentUrl = viewingUserType === 'passenger' ? (viewingUser as Passenger | null)?.discountDocumentUrl : null;
 
   useEffect(() => {
+    let active = true;
+    setPassengerIdPreviewUrl(null);
     if (viewingUser && viewingUserType === "driver") {
       const driver = viewingUser as Driver;
       setLicenseNo(driver.license || "");
@@ -155,6 +158,7 @@ export default function ViewUserModal({
         }
         supabase.storage.from("discount-ids").createSignedUrl(decodeURIComponent(path), 600)
           .then(({ data, error }) => {
+            if (!active) return;
             if (!error && data?.signedUrl) {
               setPassengerIdPreviewUrl(data.signedUrl);
             } else {
@@ -163,7 +167,7 @@ export default function ViewUserModal({
             }
           })
           .catch(() => {
-            setPassengerIdPreviewUrl(p.discountDocumentUrl || null);
+            if (active) setPassengerIdPreviewUrl(p.discountDocumentUrl || null);
           });
       } else {
         setPassengerIdPreviewUrl(null);
@@ -171,7 +175,9 @@ export default function ViewUserModal({
     }
     setDiscountReviewReason("");
     setRidePage(1);
-  }, [viewingUser, viewingUserType, isOpen]);
+    return () => { active = false; };
+    // Preserve unsaved form inputs when background synchronization replaces the row object.
+  }, [viewingUser?.id, viewingUserType, isOpen, passengerDocumentUrl]);
 
   const passengerRideHistory = useMemo(() => {
     if (!viewingUser || viewingUserType !== "passenger") return [];
@@ -738,6 +744,8 @@ export default function ViewUserModal({
             const isPassengerRestricted = Boolean(
               passenger.bookingRestrictionUntil && new Date(passenger.bookingRestrictionUntil) > new Date()
             );
+            const passengerPolicyCancellations = passenger.passengerCancelledTrips ?? passenger.canceledTrips;
+            const driverCancellations = passenger.driverCancelledTrips ?? 0;
             const restrictionDaysRemaining = isPassengerRestricted && passenger.bookingRestrictionUntil
               ? Math.max(1, Math.ceil((new Date(passenger.bookingRestrictionUntil).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
               : 0;
@@ -751,19 +759,20 @@ export default function ViewUserModal({
                   <Field label="Joined Date" value={passenger.joinedDate} />
                   <Field label="ID Verification" value={passenger.discountDocumentStatus || "NOT_REQUIRED"} />
                   <Field label="Total Rides Taken" value={`${passenger.ridesTaken} Rides`} />
+                  <Field label="Cancelled Trip History" value={`${passenger.canceledTrips} Cancelled`} />
                   <Field
-                    label="Canceled Trips (Max 3)"
+                    label="Passenger Cancellations (Max 3)"
                     value={
                       <div className="flex items-center gap-2">
-                        <span className={passenger.canceledTrips >= 3 ? "text-rose-600 font-extrabold" : passenger.canceledTrips >= 2 ? "text-amber-600 font-bold" : "text-slate-700"}>
-                          {passenger.canceledTrips} / 3 Cancelled
+                        <span className={passengerPolicyCancellations >= 3 ? "text-rose-600 font-extrabold" : passengerPolicyCancellations >= 2 ? "text-amber-600 font-bold" : "text-slate-700"}>
+                          {passengerPolicyCancellations} / 3 Cancelled
                         </span>
-                        {passenger.canceledTrips >= 3 && (
+                        {isPassengerRestricted && (
                           <span className="px-2 py-0.5 bg-rose-100 text-rose-700 rounded-md text-[10px] font-bold">
                             Restricted
                           </span>
                         )}
-                        {passenger.canceledTrips === 2 && (
+                        {passengerPolicyCancellations === 2 && (
                           <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-md text-[10px] font-bold">
                             Warning
                           </span>
@@ -771,6 +780,7 @@ export default function ViewUserModal({
                       </div>
                     }
                   />
+                  <Field label="Driver Cancellations" value={`${driverCancellations} Cancelled`} />
                   <Field
                     label="Warning Status"
                     value={
@@ -947,7 +957,7 @@ export default function ViewUserModal({
               </div>
 
               <div className="flex gap-2 items-center flex-wrap">
-                {(isPassengerRestricted || passenger.canceledTrips > 0) && (
+                {(isPassengerRestricted || passengerPolicyCancellations > 0) && (
                   <button
                     type="button"
                     onClick={() =>

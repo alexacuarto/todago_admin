@@ -115,19 +115,14 @@ export default function DashboardView({
           ? request.toda
           : resolvedDriver?.toda && resolvedDriver.toda !== "Not provided"
             ? resolvedDriver.toda
-            : "LHITC-TODA";
+            : "Not provided";
 
         groups[toda] ??= { toda, rides: 0, total: 0 };
         groups[toda].rides += 1;
         groups[toda].total += request.fare || 0;
         return groups;
-      }, {
-        "LHITC-TODA": { toda: "LHITC-TODA", rides: 0, total: 0 },
-        "BYPASS ILAYANG BAGUIO-TODA": { toda: "BYPASS ILAYANG BAGUIO-TODA", rides: 0, total: 0 },
-        "CHOT-TODA": { toda: "CHOT-TODA", rides: 0, total: 0 },
-      })
-  ).filter((g) => g.toda !== "Not provided" && g.toda !== "Unassigned")
-    .sort((a, b) => b.total - a.total);
+      }, {})
+  ).sort((a, b) => b.total - a.total);
 
   const [hoveredToda, setHoveredToda] = useState<string | null>(null);
 

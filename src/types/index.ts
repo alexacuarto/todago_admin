@@ -144,7 +144,20 @@ export interface RideRequest {
   provisionalDiscountedFare?: number | null;
   finalFare?: number | null;
   discountReviewStatus?: string | null;
+  stops?: BookingStop[];
+  totalStops?: number;
+  currentStopIndex?: number;
   bookingDiscountRequests?: BookingDiscountRequest[];
+}
+
+export interface BookingStop {
+  stop_number: number;
+  address: string;
+  sub_address?: string;
+  latitude: number;
+  longitude: number;
+  arrived_at?: string | null;
+  status?: string;
 }
 
 export interface BookingDiscountRequest {

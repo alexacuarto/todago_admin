@@ -3,7 +3,7 @@ import { fetchAllRows } from "./lib/databaseRows";
 import { createDriverAccount } from "./lib/driverService";
 import { getDriverActivityStatus } from "./lib/driverActivity";
 import { supabase } from "./lib/supabase";
-import { Driver, DriverProfileChangeRequest, FeedbackReport, Passenger, RideRequest } from "./types";
+import { BookingStop, Driver, DriverProfileChangeRequest, FeedbackReport, Passenger, RideRequest } from "./types";
 
 // Layout components
 import Header from "./components/Layout/Header";
@@ -241,6 +241,9 @@ export default function App() {
           driver_id,
           status,
           trip_type,
+          stops,
+          total_stops,
+          current_stop_index,
           pickup_address,
           dropoff_address,
           return_address,
@@ -498,6 +501,55 @@ export default function App() {
           uiStatus = "Cancelled";
         }
 
+        let rawStops: any[] = [];
+        if (Array.isArray(b.stops)) {
+          rawStops = b.stops;
+        } else if (typeof b.stops === "string" && b.stops.trim()) {
+          try {
+            let decoded = JSON.parse(b.stops);
+            if (typeof decoded === "string") {
+              try {
+                decoded = JSON.parse(decoded);
+              } catch (_) {}
+            }
+            if (Array.isArray(decoded)) {
+              rawStops = decoded;
+            } else if (decoded && typeof decoded === "object") {
+              if (Array.isArray(decoded.stops)) {
+                rawStops = decoded.stops;
+              } else {
+                rawStops = Object.values(decoded);
+              }
+            }
+          } catch (e) {
+            console.warn("Failed to parse stops JSON for booking", b.id, e);
+          }
+        } else if (b.stops && typeof b.stops === "object") {
+          if (Array.isArray(b.stops.stops)) {
+            rawStops = b.stops.stops;
+          } else {
+            rawStops = Object.values(b.stops);
+          }
+        }
+
+        const parsedStops: BookingStop[] = rawStops
+          .filter((stop: any) => stop && typeof stop === "object")
+          .map((stop: any, idx: number) => ({
+            stop_number: Number(stop.stop_number ?? stop.stopNumber ?? idx + 1),
+            address: String(stop.address || stop.name || stop.location || stop.dropoff_address || `Stop ${idx + 1}`),
+            sub_address: stop.sub_address || stop.subAddress ? String(stop.sub_address || stop.subAddress) : "",
+            latitude: Number(stop.latitude ?? stop.lat ?? 0),
+            longitude: Number(stop.longitude ?? stop.lng ?? stop.long ?? 0),
+            arrived_at: stop.arrived_at || stop.arrivedAt || null,
+            status: stop.status || "pending",
+          }));
+
+        const resolvedTotalStops = Math.max(
+          Number(b.total_stops || 0),
+          parsedStops.length,
+          1
+        );
+
         return {
           id: b.id,
           passenger: passengerName,
@@ -520,6 +572,9 @@ export default function App() {
           finalFare: b.final_fare != null ? Number(b.final_fare) : null,
           discountReviewStatus: b.discount_review_status || null,
           tripType: b.trip_type || null,
+          stops: parsedStops,
+          totalStops: resolvedTotalStops,
+          currentStopIndex: b.current_stop_index != null ? Number(b.current_stop_index) : 0,
           bookingDiscountRequests: Array.isArray(b.booking_discount_requests)
             ? b.booking_discount_requests.map((request: any) => ({
                 id: request.id,
@@ -1361,7 +1416,8 @@ export default function App() {
       const matchSearch = r.passenger.toLowerCase().includes(requestSearch.toLowerCase()) ||
         r.driver.toLowerCase().includes(requestSearch.toLowerCase()) ||
         r.location.toLowerCase().includes(requestSearch.toLowerCase()) ||
-        r.destination.toLowerCase().includes(requestSearch.toLowerCase());
+        r.destination.toLowerCase().includes(requestSearch.toLowerCase()) ||
+        (r.stops && r.stops.some(s => s.address?.toLowerCase().includes(requestSearch.toLowerCase())));
       let matchStatus = false;
       if (statusFilter === "All") {
         matchStatus = true;

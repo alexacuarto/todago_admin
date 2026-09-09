@@ -191,7 +191,7 @@ export default function DashboardView({
                   <th className="pb-3 pl-3">Passenger</th>
                   <th className="pb-3 px-3">Driver</th>
                   <th className="pb-3 px-3">Location</th>
-                  <th className="pb-3 text-right pr-3">Status</th>
+                  <th className="pb-3 px-3">Status</th>
                 </tr>
               </thead>
               <tbody className="text-sm font-semibold divide-y divide-slate-50">
@@ -200,10 +200,14 @@ export default function DashboardView({
                     <td className="py-3.5 pl-3 text-slate-700">{request.passenger}</td>
                     <td className="py-3.5 px-3 text-slate-600">{request.driver}</td>
                     <td className="py-3.5 px-3 text-slate-600 min-w-[220px]">
-                      <p className="font-bold">{request.location}</p>
-                      <p className="text-xs text-slate-400">{request.destination}</p>
+                      <p className="font-bold text-slate-800 mb-0.5">{request.location}</p>
+                      <p className="text-xs text-slate-400">
+                        {request.stops && request.stops.length > 0
+                          ? `${request.totalStops || request.stops.length} stops (${request.stops[0].address.split(',')[0]}...)`
+                          : request.destination}
+                      </p>
                     </td>
-                    <td className="py-3.5 text-right pr-3">
+                    <td className="py-3.5 px-3">
                       <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${statusClass(request.status)}`}>
                         {request.status}
                       </span>
@@ -243,7 +247,7 @@ export default function DashboardView({
                   <tr className="border-b border-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider">
                     <th className="pb-3 pl-3">Driver</th>
                     <th className="pb-3 px-3">TODA</th>
-                    <th className="pb-3 text-right pr-3">Status</th>
+                    <th className="pb-3 px-3">Status</th>
                   </tr>
                 </thead>
                 <tbody className="text-sm font-semibold divide-y divide-slate-50">
@@ -253,7 +257,7 @@ export default function DashboardView({
                       <td className="py-3.5 px-3 text-slate-600 max-w-[180px] truncate" title={driver.toda}>
                         {driver.toda}
                       </td>
-                      <td className="py-3.5 pr-3 text-right">
+                      <td className="py-3.5 px-3">
                         <span
                           className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                             driver.status === "Active"

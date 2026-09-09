@@ -124,8 +124,11 @@ export default function ViewUserModal({
   const [selectedToda, setSelectedToda] = useState("");
   const [isUpdatingToda, setIsUpdatingToda] = useState(false);
   const [isDeletingUser, setIsDeletingUser] = useState(false);
+  const passengerDocumentUrl = viewingUserType === 'passenger' ? (viewingUser as Passenger | null)?.discountDocumentUrl : null;
 
   useEffect(() => {
+    let active = true;
+    setPassengerIdPreviewUrl(null);
     if (viewingUser && viewingUserType === "driver") {
       const driver = viewingUser as Driver;
       setLicenseNo(driver.license || "");
@@ -155,6 +158,7 @@ export default function ViewUserModal({
         }
         supabase.storage.from("discount-ids").createSignedUrl(decodeURIComponent(path), 600)
           .then(({ data, error }) => {
+            if (!active) return;
             if (!error && data?.signedUrl) {
               setPassengerIdPreviewUrl(data.signedUrl);
             } else {
@@ -163,7 +167,7 @@ export default function ViewUserModal({
             }
           })
           .catch(() => {
-            setPassengerIdPreviewUrl(p.discountDocumentUrl || null);
+            if (active) setPassengerIdPreviewUrl(p.discountDocumentUrl || null);
           });
       } else {
         setPassengerIdPreviewUrl(null);
@@ -171,7 +175,9 @@ export default function ViewUserModal({
     }
     setDiscountReviewReason("");
     setRidePage(1);
-  }, [viewingUser, viewingUserType, isOpen]);
+    return () => { active = false; };
+    // Preserve unsaved form inputs when background synchronization replaces the row object.
+  }, [viewingUser?.id, viewingUserType, isOpen, passengerDocumentUrl]);
 
   const passengerRideHistory = useMemo(() => {
     if (!viewingUser || viewingUserType !== "passenger") return [];
@@ -339,23 +345,26 @@ export default function ViewUserModal({
           .from("passengers")
           .update({
             discount_document_status: status,
-            discount_document_reason: status === "REJECTED" ? discountReviewReason.trim() : null,
-            discount_verified: status === "VERIFIED",
-            discount_verified_at: status === "VERIFIED" ? new Date().toISOString() : null,
+            discount_document_rejection_reason: status === "REJECTED" ? discountReviewReason.trim() : null,
+            discount_document_reviewed_at: new Date().toISOString(),
+            discount_eligible: false,
           })
           .eq("id", passenger.id);
         if (pError) throw pError;
 
-        if (status === "VERIFIED") {
-          await supabase.from("profiles").update({ is_active: true }).eq("id", passenger.id);
+        if (passenger.profileId) {
+          await supabase
+            .from("profiles")
+            .update({ is_active: status === "VERIFIED", updated_at: new Date().toISOString() })
+            .eq("id", passenger.profileId);
         }
       }
       alert(status === "VERIFIED" ? "Passenger ID approved and account activated." : "Passenger ID rejected.");
       onRefreshData?.();
       onClose();
     } catch (err: any) {
-      console.error("Discount review failed:", err);
-      alert(err.message || "Failed to review discount ID.");
+      console.error("ID verification review failed:", err);
+      alert(err.message || "Failed to review passenger ID.");
     } finally {
       setIsReviewingDiscount(false);
     }
@@ -735,6 +744,8 @@ export default function ViewUserModal({
             const isPassengerRestricted = Boolean(
               passenger.bookingRestrictionUntil && new Date(passenger.bookingRestrictionUntil) > new Date()
             );
+            const passengerPolicyCancellations = passenger.passengerCancelledTrips ?? passenger.canceledTrips;
+            const driverCancellations = passenger.driverCancelledTrips ?? 0;
             const restrictionDaysRemaining = isPassengerRestricted && passenger.bookingRestrictionUntil
               ? Math.max(1, Math.ceil((new Date(passenger.bookingRestrictionUntil).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
               : 0;
@@ -746,21 +757,22 @@ export default function ViewUserModal({
                   <Field label="Contact Number" value={passenger.contact} />
                   <Field label="Email" value={passenger.email || "N/A"} />
                   <Field label="Joined Date" value={passenger.joinedDate} />
-                  <Field label="Type" value={passenger.accountPassengerType || "Regular"} />
+                  <Field label="ID Verification" value={passenger.discountDocumentStatus || "NOT_REQUIRED"} />
                   <Field label="Total Rides Taken" value={`${passenger.ridesTaken} Rides`} />
+                  <Field label="Cancelled Trip History" value={`${passenger.canceledTrips} Cancelled`} />
                   <Field
-                    label="Canceled Trips (Max 3)"
+                    label="Passenger Cancellations (Max 3)"
                     value={
                       <div className="flex items-center gap-2">
-                        <span className={passenger.canceledTrips >= 3 ? "text-rose-600 font-extrabold" : passenger.canceledTrips >= 2 ? "text-amber-600 font-bold" : "text-slate-700"}>
-                          {passenger.canceledTrips} / 3 Cancelled
+                        <span className={passengerPolicyCancellations >= 3 ? "text-rose-600 font-extrabold" : passengerPolicyCancellations >= 2 ? "text-amber-600 font-bold" : "text-slate-700"}>
+                          {passengerPolicyCancellations} / 3 Cancelled
                         </span>
-                        {passenger.canceledTrips >= 3 && (
+                        {isPassengerRestricted && (
                           <span className="px-2 py-0.5 bg-rose-100 text-rose-700 rounded-md text-[10px] font-bold">
                             Restricted
                           </span>
                         )}
-                        {passenger.canceledTrips === 2 && (
+                        {passengerPolicyCancellations === 2 && (
                           <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-md text-[10px] font-bold">
                             Warning
                           </span>
@@ -768,6 +780,7 @@ export default function ViewUserModal({
                       </div>
                     }
                   />
+                  <Field label="Driver Cancellations" value={`${driverCancellations} Cancelled`} />
                   <Field
                     label="Warning Status"
                     value={
@@ -835,7 +848,7 @@ export default function ViewUserModal({
                   <div className="col-span-2 flex flex-col gap-3 border-t border-slate-100 pt-4">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                       <div>
-                        <p className="font-bold text-[#000C7D]">{passenger.accountPassengerType || "Regular"} ID Document</p>
+                        <p className="font-bold text-[#000C7D]">Account Verification ID</p>
                         <p className="text-xs text-slate-500 font-semibold">Status: {passenger.discountDocumentStatus || "NOT_REQUIRED"}</p>
                       </div>
                       <button onClick={() => handleZoomClick("discount")} className="self-start sm:self-auto px-3 py-1.5 bg-white border border-blue-100 text-[#000C7D] rounded-lg text-xs font-bold hover:bg-blue-50 transition-all cursor-pointer">
@@ -944,7 +957,7 @@ export default function ViewUserModal({
               </div>
 
               <div className="flex gap-2 items-center flex-wrap">
-                {(isPassengerRestricted || passenger.canceledTrips > 0) && (
+                {(isPassengerRestricted || passengerPolicyCancellations > 0) && (
                   <button
                     type="button"
                     onClick={() =>
@@ -1036,7 +1049,7 @@ export default function ViewUserModal({
                 : zoomType === "franchise_back"
                 ? "Franchise Back Copy"
                 : zoomType === "discount"
-                ? "Passenger Discount ID"
+                ? "Passenger Verification ID"
                 : "Franchise Permit Copy"}
             </div>
           </div>

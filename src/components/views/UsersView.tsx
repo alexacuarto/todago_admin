@@ -296,24 +296,24 @@ export default function UsersView({
         "Passenger Name",
         "Contact Number",
         "Email",
-        "Passenger Type",
-        "Discount Verification Status",
-        "Discount Eligible",
+        "ID Verification Status",
         "Account Status",
         "Rides Taken",
         "Cancelled Trips",
+        "Passenger Cancellations (Policy)",
+        "Driver Cancellations",
         "Date Joined",
       ];
       const rows = sortedPassengers.map((p) => [
         p.name,
         p.contact,
         p.email || "",
-        p.accountPassengerType || "Regular",
         p.discountDocumentStatus || "NOT_REQUIRED",
-        p.discountEligible ? "Yes" : "No",
         p.status,
         p.ridesTaken,
         p.canceledTrips,
+        p.passengerCancelledTrips || 0,
+        p.driverCancelledTrips || 0,
         p.joinedDate,
       ]);
       exportToExcel(`todago_passengers_${dateStr}`, headers, rows);
@@ -640,8 +640,8 @@ export default function UsersView({
                   <tr className="border-b border-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider">
                     <th className="pb-3 pl-3">Name</th>
                     <th className="pb-3 px-3">Contact</th>
-                    <th className="pb-3 px-3">Type</th>
-                    <th className="pb-3 px-3">Cancellations</th>
+                    <th className="pb-3 px-3">ID Verification</th>
+                    <th className="pb-3 px-3">Cancelled Trips</th>
                     <th className="pb-3 px-3">Account Status</th>
                     <th className="pb-3 text-center pr-3">Details</th>
                   </tr>
@@ -658,7 +658,7 @@ export default function UsersView({
                       <tr key={passenger.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="py-4 pl-3 text-[#000C7D] font-bold">{passenger.name}</td>
                         <td className="py-4 px-3 text-slate-600">{passenger.contact}</td>
-                        <td className="py-4 px-3 text-slate-600">{passenger.accountPassengerType || "Regular"}</td>
+                        <td className="py-4 px-3 text-slate-600">{passenger.discountDocumentStatus || "NOT_REQUIRED"}</td>
                         <td className="py-4 px-3 text-slate-600">{passenger.canceledTrips}</td>
                         <td className="py-4 px-3">
                           <span className={`inline-block px-3 py-0.5 rounded-full text-[10px] font-bold ${statusClass}`}>

@@ -39,16 +39,22 @@ const DEFAULT_ROUND_TRIP: Omit<FareConfig, "id"> = {
 };
 
 function mapDbRow(row: any): FareConfig {
+  const rate = (field: string, percentage = false) => {
+    if (row[field] == null) throw new Error(`Missing fare setting: ${field}`);
+    const value = Number(row[field]);
+    if (!Number.isFinite(value) || value < 0 || (percentage && value > 100)) throw new Error(`Invalid fare setting: ${field}`);
+    return value;
+  };
   return {
     id: row.id,
     tripType: row.trip_type ?? "one_way",
     displayLabel: row.display_label ?? "One Way Trip",
-    baseFare: Number(row.base_fare ?? 25),
-    includedKm: Number(row.included_km ?? 1),
-    succeedingKmFare: Number(row.succeeding_km_fare ?? 2),
-    studentDiscount: Number(row.student_discount ?? 20),
-    pwdDiscount: Number(row.pwd_discount ?? 20),
-    seniorCitizenDiscount: Number(row.senior_citizen_discount ?? 20),
+    baseFare: rate('base_fare'),
+    includedKm: rate('included_km'),
+    succeedingKmFare: rate('succeeding_km_fare'),
+    studentDiscount: rate('student_discount', true),
+    pwdDiscount: rate('pwd_discount', true),
+    seniorCitizenDiscount: rate('senior_citizen_discount', true),
     lastUpdated: row.updated_at
       ? new Date(row.updated_at).toLocaleString()
       : new Date().toLocaleString(),
@@ -84,7 +90,7 @@ export default function FareSettingsView() {
 
       if (error) throw error;
 
-      if (data && data.length > 0) {
+      if (data?.some(row => row.trip_type === 'one_way') && data.some(row => row.trip_type === 'round_trip')) {
         for (const row of data) {
           const config = mapDbRow(row);
           if (config.tripType === "one_way") {
@@ -140,8 +146,10 @@ export default function FareSettingsView() {
 
       if (error) throw error;
 
-      const nowStr = new Date().toLocaleString();
-      const updated = { ...config, lastUpdated: nowStr };
+      const { data: saved, error: readError } = await supabase.from('fare_configurations')
+        .select('*').eq('id', config.id).single();
+      if (readError) throw readError;
+      const updated = mapDbRow(saved);
       setter(updated);
       localStorage.setItem(cacheKey, JSON.stringify(updated));
       setChangeMessage("");
@@ -168,6 +176,13 @@ export default function FareSettingsView() {
         <p className="text-xs font-bold uppercase tracking-wider">Loading Fare Settings...</p>
       </div>
     );
+  }
+
+  if (fetchError || !oneWay.id || !roundTrip.id) {
+    return <div role="alert" className="p-6 text-rose-800">
+      <p>{fetchError || 'Fare settings are unavailable.'}</p>
+      <button onClick={fetchFareSettings} className="mt-3 rounded border px-4 py-2">Retry</button>
+    </div>;
   }
 
   return (

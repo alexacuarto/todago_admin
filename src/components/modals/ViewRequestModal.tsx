@@ -170,11 +170,28 @@ export default function ViewRequestModal({
             <div>
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Fare Value</p>
               <p className="font-extrabold text-[#000C7D] text-lg mt-0.5">₱{viewingRequest.fare}</p>
+              {viewingRequest.regularFare != null && viewingRequest.regularFare !== viewingRequest.fare && (
+                <p className="text-[11px] text-slate-400 font-medium">Regular: ₱{viewingRequest.regularFare}</p>
+              )}
             </div>
             {viewingRequest.discountReviewStatus && (
               <div>
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Discount Review</p>
-                <p className="font-bold text-slate-700 mt-0.5">{viewingRequest.discountReviewStatus}</p>
+                <div className="mt-0.5">
+                  <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                    viewingRequest.discountReviewStatus === "APPROVED"
+                      ? "bg-emerald-100 text-emerald-800"
+                      : viewingRequest.discountReviewStatus === "REJECTED"
+                      ? "bg-rose-100 text-rose-800"
+                      : viewingRequest.discountReviewStatus === "PARTIALLY_APPROVED"
+                      ? "bg-amber-100 text-amber-800"
+                      : "bg-slate-100 text-slate-700"
+                  }`}>
+                    {viewingRequest.discountReviewStatus === "REJECTED"
+                      ? "Disapproved (Reverted)"
+                      : viewingRequest.discountReviewStatus.replace(/_/g, " ")}
+                  </span>
+                </div>
               </div>
             )}
             <div className="col-span-2 bg-slate-50 rounded-xl p-3 border border-slate-100">

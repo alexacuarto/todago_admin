@@ -85,6 +85,54 @@ const FilePicker = ({
   );
 };
 
+async function resolveStorageUrl(
+  rawUrl: string | null | undefined,
+  defaultBucket: string = "driver-documents"
+): Promise<string | null> {
+  if (!rawUrl) return null;
+  const bucketName = rawUrl.includes("/avatars/")
+    ? "avatars"
+    : rawUrl.includes("/discount-ids/")
+    ? "discount-ids"
+    : rawUrl.includes("/driver-documents/")
+    ? "driver-documents"
+    : rawUrl.includes("/licenses/")
+    ? "licenses"
+    : defaultBucket;
+
+  let path = rawUrl;
+  if (path.includes(`/${bucketName}/`)) {
+    path = path.split(`/${bucketName}/`).pop() || path;
+  } else if (path.startsWith("http://") || path.startsWith("https://")) {
+    try {
+      const u = new URL(path);
+      const parts = u.pathname.split(`/${bucketName}/`);
+      if (parts.length > 1) {
+        path = parts[1];
+      } else {
+        path = u.pathname.replace(/^\/+/, "");
+      }
+    } catch (_) {}
+  }
+  if (path.includes("?")) {
+    path = path.split("?")[0];
+  }
+  path = path.replace(/^\/+/, "");
+
+  try {
+    const { data, error } = await supabase.storage
+      .from(bucketName)
+      .createSignedUrl(decodeURIComponent(path), 600);
+    if (!error && data?.signedUrl) return data.signedUrl;
+    const pub = supabase.storage
+      .from(bucketName)
+      .getPublicUrl(decodeURIComponent(path));
+    return pub.data.publicUrl || rawUrl;
+  } catch (_) {
+    return rawUrl;
+  }
+}
+
 export default function ViewUserModal({
   isOpen,
   onClose,
@@ -101,7 +149,9 @@ export default function ViewUserModal({
   onReviewChangeRequest,
 }: ViewUserModalProps) {
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
-  const [zoomType, setZoomType] = useState<"front" | "back" | "franchise" | "franchise_back" | "discount" | null>(null);
+  const [zoomType, setZoomType] = useState<
+    "front" | "back" | "franchise" | "franchise_back" | "discount" | "selfie" | "passenger_selfie" | null
+  >(null);
   const [loadingSignedUrl, setLoadingSignedUrl] = useState(false);
   const [discountReviewReason, setDiscountReviewReason] = useState("");
   const [isReviewingDiscount, setIsReviewingDiscount] = useState(false);
@@ -121,6 +171,8 @@ export default function ViewUserModal({
   const [changeRequestReason, setChangeRequestReason] = useState("");
   const [ridePage, setRidePage] = useState(1);
   const [passengerIdPreviewUrl, setPassengerIdPreviewUrl] = useState<string | null>(null);
+  const [driverSelfiePreviewUrl, setDriverSelfiePreviewUrl] = useState<string | null>(null);
+  const [passengerSelfiePreviewUrl, setPassengerSelfiePreviewUrl] = useState<string | null>(null);
   const [selectedToda, setSelectedToda] = useState("");
   const [isUpdatingToda, setIsUpdatingToda] = useState(false);
   const [isDeletingUser, setIsDeletingUser] = useState(false);
@@ -129,6 +181,9 @@ export default function ViewUserModal({
   useEffect(() => {
     let active = true;
     setPassengerIdPreviewUrl(null);
+    setDriverSelfiePreviewUrl(null);
+    setPassengerSelfiePreviewUrl(null);
+
     if (viewingUser && viewingUserType === "driver") {
       const driver = viewingUser as Driver;
       setLicenseNo(driver.license || "");
@@ -143,32 +198,25 @@ export default function ViewUserModal({
       setActiveDriverAction(null);
       setDriverActionReason("");
       setPassengerIdPreviewUrl(null);
+
+      const driverSelfie = driver.selfiePhotoUrl || driver.avatarUrl;
+      if (driverSelfie) {
+        resolveStorageUrl(driverSelfie, "driver-documents").then((url) => {
+          if (active) setDriverSelfiePreviewUrl(url);
+        });
+      }
     } else if (viewingUser && viewingUserType === "passenger") {
       const p = viewingUser as Passenger;
+      const passSelfie = p.selfiePhotoUrl || p.avatarUrl;
+      if (passSelfie) {
+        resolveStorageUrl(passSelfie, "avatars").then((url) => {
+          if (active) setPassengerSelfiePreviewUrl(url);
+        });
+      }
       if (p.discountDocumentUrl) {
-        let path = p.discountDocumentUrl;
-        if (path.includes("/discount-ids/")) {
-          path = path.split("/discount-ids/").pop() || path;
-        } else if (path.startsWith("http://") || path.startsWith("https://")) {
-          try {
-            const u = new URL(path);
-            const parts = u.pathname.split("/discount-ids/");
-            if (parts.length > 1) path = parts[1];
-          } catch (_) {}
-        }
-        supabase.storage.from("discount-ids").createSignedUrl(decodeURIComponent(path), 600)
-          .then(({ data, error }) => {
-            if (!active) return;
-            if (!error && data?.signedUrl) {
-              setPassengerIdPreviewUrl(data.signedUrl);
-            } else {
-              const pub = supabase.storage.from("discount-ids").getPublicUrl(decodeURIComponent(path));
-              setPassengerIdPreviewUrl(pub.data.publicUrl || p.discountDocumentUrl || null);
-            }
-          })
-          .catch(() => {
-            if (active) setPassengerIdPreviewUrl(p.discountDocumentUrl || null);
-          });
+        resolveStorageUrl(p.discountDocumentUrl, "discount-ids").then((url) => {
+          if (active) setPassengerIdPreviewUrl(url);
+        });
       } else {
         setPassengerIdPreviewUrl(null);
       }
@@ -206,14 +254,64 @@ export default function ViewUserModal({
 
   const totalOnlineMins = (driver?.totalOnlineMinutes || 0) + (driver?.isOnline ? liveOnlineMins : 0);
 
+  // Directly fetch created_at from database if in-memory driver state lacked it
+  const [dbCreatedAt, setDbCreatedAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen || viewingUserType !== "driver" || !driver) {
+      setDbCreatedAt(null);
+      return;
+    }
+    const existing = driver.createdAt || (driver as any).created_at;
+    if (existing) {
+      setDbCreatedAt(existing);
+      return;
+    }
+
+    let isCancelled = false;
+    supabase
+      .from("drivers")
+      .select("created_at, profile_id")
+      .eq("id", driver.id)
+      .maybeSingle()
+      .then(async ({ data: driverRow }) => {
+        if (isCancelled) return;
+        if (driverRow?.created_at) {
+          setDbCreatedAt(driverRow.created_at);
+          return;
+        }
+        const profileId = driverRow?.profile_id || driver.profileId;
+        if (profileId) {
+          const { data: profileRow } = await supabase
+            .from("profiles")
+            .select("created_at")
+            .eq("id", profileId)
+            .maybeSingle();
+          if (!isCancelled && profileRow?.created_at) {
+            setDbCreatedAt(profileRow.created_at);
+          }
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isOpen, viewingUserType, driver?.id, driver?.createdAt, (driver as any)?.created_at]);
+
+  const effectiveCreatedAt = driver?.createdAt || (driver as any)?.created_at || dbCreatedAt;
+
   if (!isOpen || !viewingUser) return null;
 
-  const handleZoomClick = async (type: "front" | "back" | "franchise" | "franchise_back" | "discount") => {
+  const handleZoomClick = async (
+    type: "front" | "back" | "franchise" | "franchise_back" | "discount" | "selfie" | "passenger_selfie"
+  ) => {
     const url =
       type === "front" ? driver?.licenseFrontUrl || driver?.licensePhotoUrl || "" :
       type === "back" ? driver?.licenseBackUrl || "" :
       type === "franchise" ? driver?.franchiseUrl || "" :
       type === "franchise_back" ? driver?.franchiseBackUrl || "" :
+      type === "selfie" ? driver?.selfiePhotoUrl || driver?.avatarUrl || "" :
+      type === "passenger_selfie" ? passenger?.selfiePhotoUrl || passenger?.avatarUrl || "" :
       passenger?.discountDocumentUrl || "";
 
     if (!url) return;
@@ -221,33 +319,17 @@ export default function ViewUserModal({
     setLoadingSignedUrl(true);
 
     try {
-      const bucketName =
-        type === "discount"
+      const defaultBucket =
+        (type === "selfie" || type === "passenger_selfie")
+          ? "avatars"
+          : type === "discount"
           ? "discount-ids"
-          : url.includes("/licenses/")
+          : type === "front" || type === "back"
           ? "licenses"
           : "driver-documents";
 
-      let path = url;
-      if (url.includes(`/${bucketName}/`)) {
-        path = url.split(`/${bucketName}/`).pop() || url;
-      } else if (url.startsWith("http://") || url.startsWith("https://")) {
-        try {
-          const u = new URL(url);
-          const parts = u.pathname.split(`/${bucketName}/`);
-          if (parts.length > 1) {
-            path = parts[1];
-          }
-        } catch (_) {}
-      }
-
-      const { data, error } = await supabase.storage.from(bucketName).createSignedUrl(decodeURIComponent(path), 600);
-      if (!error && data?.signedUrl) {
-        setSignedUrl(data.signedUrl);
-      } else {
-        const pub = supabase.storage.from(bucketName).getPublicUrl(decodeURIComponent(path));
-        setSignedUrl(pub.data.publicUrl || url);
-      }
+      const resolved = await resolveStorageUrl(url, defaultBucket);
+      setSignedUrl(resolved || url);
     } catch (err) {
       console.error("Failed to generate signed URL:", err);
       setSignedUrl(url);
@@ -501,9 +583,16 @@ export default function ViewUserModal({
       <div className="bg-white rounded-3xl shadow-xl w-full max-w-2xl overflow-hidden border border-slate-100 flex flex-col animate-in zoom-in-95 max-h-[90vh]">
         <div className="bg-[#000C7D] text-white px-6 py-5 flex items-center justify-between">
           <div className="text-left">
-            <span className="text-xs font-bold uppercase tracking-wider text-sky-200">
-              {driver ? "Driver Account" : "Passenger Account"}
-            </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-bold uppercase tracking-wider text-sky-200">
+                {driver ? "Driver Account" : "Passenger Account"}
+              </span>
+              {driver && effectiveCreatedAt && (
+                <span className="text-[10px] text-sky-100 bg-white/10 px-2 py-0.5 rounded-full font-medium">
+                  Created: {new Date(effectiveCreatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} · {new Date(effectiveCreatedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })}
+                </span>
+              )}
+            </div>
             <h3 className="font-bold text-lg">Details</h3>
           </div>
           <button onClick={onClose} className="text-white/85 hover:text-white transition-colors cursor-pointer">
@@ -571,11 +660,68 @@ export default function ViewUserModal({
                   label="Last Completed Ride"
                   value={driver.lastCompletedRideAt ? new Date(driver.lastCompletedRideAt).toLocaleString() : "Never"}
                 />
+                <Field
+                  label="Account Created"
+                  value={
+                    effectiveCreatedAt ? (
+                      <span className="font-medium text-slate-700">
+                        {new Date(effectiveCreatedAt).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}{" "}
+                        ·{" "}
+                        {new Date(effectiveCreatedAt).toLocaleTimeString("en-US", {
+                          hour: "numeric",
+                          minute: "2-digit",
+                          second: "2-digit",
+                          hour12: true,
+                        })}
+                      </span>
+                    ) : (
+                      "N/A"
+                    )
+                  }
+                />
               </div>
 
               <div className="flex flex-col gap-4 border border-slate-100 p-4 rounded-2xl bg-slate-50/20">
-                <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider">Driver Documents</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider">Driver Documents & Verification</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Driver Verification Selfie Card */}
+                  <div className="bg-white p-4 rounded-xl border border-slate-200/60 flex flex-col gap-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-[#000C7D] uppercase">Verification Selfie</span>
+                    </div>
+                    <div
+                      onClick={() => (driver.selfiePhotoUrl || driver.avatarUrl) && handleZoomClick("selfie")}
+                      className={`relative w-full h-28 bg-slate-100 rounded-xl overflow-hidden border border-slate-200 flex items-center justify-center ${
+                        (driver.selfiePhotoUrl || driver.avatarUrl) ? "cursor-pointer group shadow-xs" : ""
+                      }`}
+                    >
+                      {driverSelfiePreviewUrl ? (
+                        <>
+                          <img
+                            src={driverSelfiePreviewUrl}
+                            alt="Driver Selfie Preview"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                          />
+                          <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[11px] font-bold">
+                            Click to enlarge
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-slate-400 p-2 text-center">
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mb-1 text-slate-300">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                            <circle cx="12" cy="13" r="4" />
+                          </svg>
+                          <span className="text-[10px] font-semibold">No selfie submitted yet</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="bg-white p-4 rounded-xl border border-slate-200/60 flex flex-col gap-2.5">
                     <span className="text-xs font-bold text-[#000C7D] uppercase">Driver License</span>
                     <Field label="License Number" value={driver.license || "N/A"} />
@@ -744,7 +890,8 @@ export default function ViewUserModal({
             const isPassengerRestricted = Boolean(
               passenger.bookingRestrictionUntil && new Date(passenger.bookingRestrictionUntil) > new Date()
             );
-            const passengerPolicyCancellations = passenger.passengerCancelledTrips ?? passenger.canceledTrips;
+            // passengerPolicyCancellations available if Passenger Cancellations (Max 3) field is re-enabled
+            // const passengerPolicyCancellations = passenger.passengerCancelledTrips ?? passenger.canceledTrips;
             const driverCancellations = passenger.driverCancelledTrips ?? 0;
             const restrictionDaysRemaining = isPassengerRestricted && passenger.bookingRestrictionUntil
               ? Math.max(1, Math.ceil((new Date(passenger.bookingRestrictionUntil).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
@@ -760,6 +907,7 @@ export default function ViewUserModal({
                   <Field label="ID Verification" value={passenger.discountDocumentStatus || "NOT_REQUIRED"} />
                   <Field label="Total Rides Taken" value={`${passenger.ridesTaken} Rides`} />
                   <Field label="Cancelled Trip History" value={`${passenger.canceledTrips} Cancelled`} />
+                  {/* Passenger Cancellations (Max 3) field — hidden for now
                   <Field
                     label="Passenger Cancellations (Max 3)"
                     value={
@@ -780,6 +928,7 @@ export default function ViewUserModal({
                       </div>
                     }
                   />
+                  */}
                   <Field label="Driver Cancellations" value={`${driverCancellations} Cancelled`} />
                   <Field
                     label="Warning Status"
@@ -844,66 +993,124 @@ export default function ViewUserModal({
                       </button>
                     </div>
                   )}
-                {passenger.discountDocumentUrl && (
-                  <div className="col-span-2 flex flex-col gap-3 border-t border-slate-100 pt-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                      <div>
-                        <p className="font-bold text-[#000C7D]">Account Verification ID</p>
-                        <p className="text-xs text-slate-500 font-semibold">Status: {passenger.discountDocumentStatus || "NOT_REQUIRED"}</p>
-                      </div>
-                      <button onClick={() => handleZoomClick("discount")} className="self-start sm:self-auto px-3 py-1.5 bg-white border border-blue-100 text-[#000C7D] rounded-lg text-xs font-bold hover:bg-blue-50 transition-all cursor-pointer">
-                        View Full Size
-                      </button>
-                    </div>
+                {/* 1. Account Verification ID Card (Uploaded Document) */}
+                <div className="col-span-2 flex flex-col gap-3 border-t border-slate-100 pt-4">
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                      Document Identification
+                    </span>
+                    <p className="font-bold text-[#000C7D]">Account Verification ID</p>
+                    <p className="text-xs text-slate-500 font-semibold">
+                      Status:{" "}
+                      <span className={`font-bold ${
+                        passenger.discountDocumentStatus === "VERIFIED"
+                          ? "text-emerald-600"
+                          : passenger.discountDocumentStatus === "REJECTED"
+                          ? "text-rose-600"
+                          : "text-amber-600"
+                      }`}>
+                        {passenger.discountDocumentStatus || (passenger.discountDocumentUrl ? "PENDING" : "NOT_SUBMITTED")}
+                      </span>
+                    </p>
+                  </div>
 
-                    <div
-                      onClick={() => handleZoomClick("discount")}
-                      className="relative w-full max-w-xs h-40 bg-slate-100 rounded-xl overflow-hidden border border-slate-200 cursor-pointer group shadow-sm"
-                    >
-                      {passengerIdPreviewUrl ? (
+                  <div
+                    onClick={() => passenger.discountDocumentUrl && handleZoomClick("discount")}
+                    className={`relative w-full max-w-xs h-40 bg-slate-100 rounded-xl overflow-hidden border border-slate-200 flex items-center justify-center ${
+                      passenger.discountDocumentUrl ? "cursor-pointer group shadow-xs" : ""
+                    }`}
+                  >
+                    {passengerIdPreviewUrl ? (
+                      <>
                         <img
                           src={passengerIdPreviewUrl}
                           alt="Uploaded ID Preview"
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                         />
-                      ) : (
-                        <div className="flex flex-col items-center justify-center h-full text-slate-400 p-4 text-center">
-                          <span className="text-xs font-semibold">Loading ID image preview...</span>
+                        <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold">
+                          Click to enlarge
                         </div>
-                      )}
-                      <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold">
-                        Click to enlarge
+                      </>
+                    ) : passenger.discountDocumentUrl ? (
+                      <div className="flex flex-col items-center justify-center h-full text-slate-400 p-4 text-center">
+                        <span className="text-xs font-semibold">Loading ID preview...</span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full text-slate-400 p-4 text-center">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mb-1 text-slate-300">
+                          <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+                          <circle cx="9" cy="9" r="2"/>
+                          <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                        </svg>
+                        <span className="text-xs font-semibold">No verification ID uploaded</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {passenger.discountDocumentStatus === "PENDING" && passenger.discountDocumentUrl && (
+                    <div className="flex flex-col gap-3 mt-1">
+                      <textarea
+                        value={discountReviewReason}
+                        onChange={(event) => setDiscountReviewReason(event.target.value)}
+                        rows={2}
+                        placeholder="Rejection reason, required only when rejecting."
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 resize-none"
+                      />
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleReviewDiscount("VERIFIED")}
+                          disabled={isReviewingDiscount}
+                          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold disabled:opacity-60 cursor-pointer shadow-sm"
+                        >
+                          {isReviewingDiscount ? "Processing..." : "Approve ID & Activate"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleReviewDiscount("REJECTED")}
+                          disabled={isReviewingDiscount}
+                          className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold disabled:opacity-60 cursor-pointer shadow-sm"
+                        >
+                          {isReviewingDiscount ? "Processing..." : "Reject ID"}
+                        </button>
                       </div>
                     </div>
+                  )}
+                </div>
+
+                {/* 2. Passenger Verification Selfie Card (Under the ID) */}
+                <div className="col-span-2 flex flex-col gap-3 border-t border-slate-100 pt-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-[#000C7D] uppercase">Verification Selfie</span>
                   </div>
-                )}
-                {passenger.discountDocumentStatus === "PENDING" && (
-                  <div className="col-span-2 flex flex-col gap-3">
-                    <textarea
-                      value={discountReviewReason}
-                      onChange={(event) => setDiscountReviewReason(event.target.value)}
-                      rows={2}
-                      placeholder="Rejection reason, required only when rejecting."
-                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 resize-none"
-                    />
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={() => handleReviewDiscount("VERIFIED")}
-                        disabled={isReviewingDiscount}
-                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold disabled:opacity-60 cursor-pointer shadow-sm"
-                      >
-                        {isReviewingDiscount ? "Processing..." : "Approve ID & Activate"}
-                      </button>
-                      <button
-                        onClick={() => handleReviewDiscount("REJECTED")}
-                        disabled={isReviewingDiscount}
-                        className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold disabled:opacity-60 cursor-pointer shadow-sm"
-                      >
-                        {isReviewingDiscount ? "Processing..." : "Reject ID"}
-                      </button>
-                    </div>
+                  <div
+                    onClick={() => (passenger.selfiePhotoUrl || passenger.avatarUrl) && handleZoomClick("passenger_selfie")}
+                    className={`relative w-full max-w-xs h-40 bg-slate-100 rounded-xl overflow-hidden border border-slate-200 flex items-center justify-center ${
+                      (passenger.selfiePhotoUrl || passenger.avatarUrl) ? "cursor-pointer group shadow-xs" : ""
+                    }`}
+                  >
+                    {passengerSelfiePreviewUrl ? (
+                      <>
+                        <img
+                          src={passengerSelfiePreviewUrl}
+                          alt="Passenger Selfie Preview"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                        />
+                        <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold">
+                          Click to enlarge
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center h-full text-slate-400 p-4 text-center">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mb-1 text-slate-300">
+                          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                          <circle cx="12" cy="13" r="4" />
+                        </svg>
+                        <span className="text-xs font-semibold">No selfie provided</span>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
 
               <div className="border-b border-slate-100 pb-5">
@@ -957,7 +1164,7 @@ export default function ViewUserModal({
               </div>
 
               <div className="flex gap-2 items-center flex-wrap">
-                {(isPassengerRestricted || passengerPolicyCancellations > 0) && (
+                {isPassengerRestricted && (
                   <button
                     type="button"
                     onClick={() =>
@@ -1050,6 +1257,10 @@ export default function ViewUserModal({
                 ? "Franchise Back Copy"
                 : zoomType === "discount"
                 ? "Passenger Verification ID"
+                : zoomType === "selfie"
+                ? "Driver Verification Selfie"
+                : zoomType === "passenger_selfie"
+                ? "Passenger Verification Selfie"
                 : "Franchise Permit Copy"}
             </div>
           </div>

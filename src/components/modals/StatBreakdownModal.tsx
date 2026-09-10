@@ -1,4 +1,5 @@
 import { Driver, Passenger, RideRequest } from "../../types";
+import { OFFICIAL_TODAS, normalizeToda, OfficialToda } from "../../lib/todaConstants";
 
 interface StatBreakdownModalProps {
   isOpen: boolean;
@@ -258,104 +259,158 @@ export default function StatBreakdownModal({
 
           {/* CONTENT FOR: total-earnings */}
           {activeStatModal === "total-earnings" && (() => {
-            const todaBreakdown: { [key: string]: number } = {};
+            const todaBreakdown: Record<OfficialToda, number> = {
+              "BYPASS ILAYANG BAGUIO-TODA": 0,
+              "CHOT-TODA": 0,
+              "LHITC-TODA": 0,
+            };
+
+            let totalCompletedEarnings = 0;
             rideRequests
               .filter(r => r.status === "Completed")
               .forEach(r => {
-                const todaName = r.toda || "Unassigned";
-                todaBreakdown[todaName] = (todaBreakdown[todaName] || 0) + r.fare;
+                const resolvedDriver = drivers.find(
+                  (d) =>
+                    d.id === r.driverId ||
+                    d.profileId === r.driverId ||
+                    (r.driver && d.name.toLowerCase() === r.driver.toLowerCase())
+                );
+                const todaName = normalizeToda(r.toda || resolvedDriver?.toda) || "LHITC-TODA";
+                if (todaName && todaBreakdown[todaName] !== undefined) {
+                  todaBreakdown[todaName] += (r.fare || 0);
+                }
+                totalCompletedEarnings += (r.fare || 0);
               });
 
             return (
               <div className="flex flex-col gap-4">
                 <div className="bg-[#000C7D] text-white p-5 rounded-2xl text-center">
                   <p className="text-xs text-sky-200 font-bold uppercase tracking-wider">
-                    Total Earnings
+                    Total Platform Earnings
                   </p>
-                  <p className="text-4xl font-extrabold mt-1">₱ {earningsToday.toLocaleString()}</p>
+                  <p className="text-4xl font-extrabold mt-1">₱ {totalCompletedEarnings.toLocaleString()}</p>
+                  <p className="text-xs text-sky-200/80 mt-1 font-medium">Today's Earnings: ₱ {earningsToday.toLocaleString()}</p>
                 </div>
                 <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider">TODA Earnings breakdown</h4>
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col gap-3 font-semibold text-slate-600 text-sm">
-                  {Object.keys(todaBreakdown).length === 0 ? (
-                    <div className="text-center py-4 text-slate-400 text-xs">No completed trips.</div>
-                  ) : (
-                    Object.entries(todaBreakdown).map(([todaName, amount]) => (
-                      <div key={todaName} className="flex justify-between border-b border-slate-100 last:border-0 pb-2 last:pb-0">
-                        <span>{todaName}</span>
-                        <span className="font-bold text-slate-800">
-                          ₱ {amount.toLocaleString()}
-                        </span>
-                      </div>
-                    ))
-                  )}
+                  {OFFICIAL_TODAS.map((todaName) => (
+                    <div key={todaName} className="flex justify-between border-b border-slate-100 last:border-0 pb-2 last:pb-0">
+                      <span>{todaName}</span>
+                      <span className="font-bold text-slate-800">
+                        ₱ {todaBreakdown[todaName].toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
             );
           })()}
 
           {/* CONTENT FOR: completed-rides */}
-          {activeStatModal === "completed-rides" && (
-            <div className="flex flex-col gap-4">
-              <div className="bg-[#000C7D] text-white p-5 rounded-2xl text-center">
-                <p className="text-xs text-sky-200 font-bold uppercase tracking-wider">Total Completed Rides</p>
-                <p className="text-4xl font-extrabold mt-1">1,250</p>
+          {activeStatModal === "completed-rides" && (() => {
+            const todaRides: Record<OfficialToda, number> = {
+              "BYPASS ILAYANG BAGUIO-TODA": 0,
+              "CHOT-TODA": 0,
+              "LHITC-TODA": 0,
+            };
+
+            let totalCompletedRides = 0;
+            rideRequests
+              .filter(r => r.status === "Completed")
+              .forEach(r => {
+                const resolvedDriver = drivers.find(
+                  (d) =>
+                    d.id === r.driverId ||
+                    d.profileId === r.driverId ||
+                    (r.driver && d.name.toLowerCase() === r.driver.toLowerCase())
+                );
+                const todaName = normalizeToda(r.toda || resolvedDriver?.toda) || "LHITC-TODA";
+                if (todaName && todaRides[todaName] !== undefined) {
+                  todaRides[todaName] += 1;
+                }
+                totalCompletedRides += 1;
+              });
+
+            return (
+              <div className="flex flex-col gap-4">
+                <div className="bg-[#000C7D] text-white p-5 rounded-2xl text-center">
+                  <p className="text-xs text-sky-200 font-bold uppercase tracking-wider">Total Completed Rides</p>
+                  <p className="text-4xl font-extrabold mt-1">{totalCompletedRides.toLocaleString()}</p>
+                </div>
+                <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider">
+                  completed transactions by association
+                </h4>
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col gap-3 font-semibold text-slate-600 text-sm">
+                  {OFFICIAL_TODAS.map((todaName) => (
+                    <div key={todaName} className="flex justify-between border-b border-slate-100 last:border-0 pb-2 last:pb-0">
+                      <span>{todaName}</span>
+                      <span className="font-bold text-slate-800">{todaRides[todaName].toLocaleString()} completed rides</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between border-t border-slate-200/50 pt-2 font-bold text-[#000C7D]">
+                    <span>Total platform rides</span>
+                    <span>{totalCompletedRides.toLocaleString()} Completed Rides</span>
+                  </div>
+                </div>
               </div>
-              <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider">
-                completed transactions by association
-              </h4>
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col gap-3 font-semibold text-slate-600 text-sm">
-                <div className="flex justify-between">
-                  <span>LHITC-TODA</span>
-                  <span className="font-bold text-slate-800">562 completed rides</span>
-                </div>
-                <div className="flex justify-between border-t border-slate-200/50 pt-2">
-                  <span>CHOT-TODA</span>
-                  <span className="font-bold text-slate-800">375 completed rides</span>
-                </div>
-                <div className="flex justify-between border-t border-slate-200/50 pt-2">
-                  <span>BYPASS ILAYANG BAGUIO-TODA</span>
-                  <span className="font-bold text-slate-800">313 completed rides</span>
-                </div>
-                <div className="flex justify-between border-t border-slate-200/50 pt-2 font-bold text-[#000C7D]">
-                  <span>Total platform rides</span>
-                  <span>1,250 Completed Rides</span>
-                </div>
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* CONTENT FOR: commission-earned */}
-          {activeStatModal === "commission-earned" && (
-            <div className="flex flex-col gap-4">
-              <div className="bg-[#000C7D] text-white p-5 rounded-2xl text-center">
-                <p className="text-xs text-sky-200 font-bold uppercase tracking-wider">
-                  Total Platform Commission (15%)
-                </p>
-                <p className="text-4xl font-extrabold mt-1">₱ 10,000</p>
+          {activeStatModal === "commission-earned" && (() => {
+            const todaBreakdown: Record<OfficialToda, number> = {
+              "BYPASS ILAYANG BAGUIO-TODA": 0,
+              "CHOT-TODA": 0,
+              "LHITC-TODA": 0,
+            };
+
+            let totalFare = 0;
+            rideRequests
+              .filter(r => r.status === "Completed")
+              .forEach(r => {
+                const resolvedDriver = drivers.find(
+                  (d) =>
+                    d.id === r.driverId ||
+                    d.profileId === r.driverId ||
+                    (r.driver && d.name.toLowerCase() === r.driver.toLowerCase())
+                );
+                const matched = normalizeToda(r.toda || resolvedDriver?.toda) || "LHITC-TODA";
+                if (matched && todaBreakdown[matched] !== undefined) {
+                  todaBreakdown[matched] += (r.fare || 0);
+                }
+                totalFare += (r.fare || 0);
+              });
+
+            const totalCommission = Math.round(totalFare * 0.15);
+
+            return (
+              <div className="flex flex-col gap-4">
+                <div className="bg-[#000C7D] text-white p-5 rounded-2xl text-center">
+                  <p className="text-xs text-sky-200 font-bold uppercase tracking-wider">
+                    Total Platform Commission (15%)
+                  </p>
+                  <p className="text-4xl font-extrabold mt-1">₱ {totalCommission.toLocaleString()}</p>
+                </div>
+                <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider">
+                  commission breakdown by association
+                </h4>
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col gap-3 font-semibold text-slate-600 text-sm">
+                  {OFFICIAL_TODAS.map((todaName) => (
+                    <div key={todaName} className="flex justify-between border-b border-slate-100 last:border-0 pb-2 last:pb-0">
+                      <span>{todaName} Commission Share</span>
+                      <span className="font-bold text-slate-800">
+                        ₱ {Math.round(todaBreakdown[todaName] * 0.15).toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between border-t border-slate-200/50 pt-2 font-bold text-[#000C7D]">
+                    <span>Total Platform Earnings Share</span>
+                    <span>₱ {totalCommission.toLocaleString()}</span>
+                  </div>
+                </div>
               </div>
-              <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider">
-                commission breakdown by association
-              </h4>
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col gap-3 font-semibold text-slate-600 text-sm">
-                <div className="flex justify-between">
-                  <span>LHITC-TODA Commission Share</span>
-                  <span className="font-bold text-slate-800">₱ 4,500</span>
-                </div>
-                <div className="flex justify-between border-t border-slate-200/50 pt-2">
-                  <span>CHOT-TODA Commission Share</span>
-                  <span className="font-bold text-slate-800">₱ 3,000</span>
-                </div>
-                <div className="flex justify-between border-t border-slate-200/50 pt-2">
-                  <span>BYPASS ILAYANG BAGUIO-TODA Commission Share</span>
-                  <span className="font-bold text-slate-800">₱ 2,500</span>
-                </div>
-                <div className="flex justify-between border-t border-slate-200/50 pt-2 font-bold text-[#000C7D]">
-                  <span>Total Platform Earnings Share</span>
-                  <span>₱ 10,000</span>
-                </div>
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* CONTENT FOR: active-passengers */}
           {activeStatModal === "active-passengers" && (

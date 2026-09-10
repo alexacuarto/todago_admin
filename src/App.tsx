@@ -3,7 +3,7 @@ import { fetchAllRows } from "./lib/databaseRows";
 import { createDriverAccount } from "./lib/driverService";
 import { getDriverActivityStatus } from "./lib/driverActivity";
 import { supabase } from "./lib/supabase";
-import { Driver, DriverProfileChangeRequest, FeedbackReport, Passenger, RideRequest } from "./types";
+import { BookingStop, Driver, DriverProfileChangeRequest, FeedbackReport, Passenger, RideRequest } from "./types";
 
 // Layout components
 import Header from "./components/Layout/Header";
@@ -176,6 +176,7 @@ export default function App() {
           booking_restriction_until,
           warning_status,
           account_passenger_type,
+          selfie_photo_url,
           discount_document_url,
           discount_document_status,
           discount_document_type,
@@ -196,6 +197,7 @@ export default function App() {
           status,
           license_number,
           license_photo_url,
+          selfie_photo_url,
           is_online,
           created_at,
           toda_association,
@@ -241,6 +243,9 @@ export default function App() {
           driver_id,
           status,
           trip_type,
+          stops,
+          total_stops,
+          current_stop_index,
           pickup_address,
           dropoff_address,
           return_address,
@@ -359,6 +364,8 @@ export default function App() {
           warningStatus,
           bookingRestrictionUntil,
           lastCancelDate,
+          avatarUrl: p?.avatar_url || pd?.selfie_photo_url || null,
+          selfiePhotoUrl: pd?.selfie_photo_url || p?.avatar_url || pd?.discount_document_url || null,
           accountPassengerType: pd?.account_passenger_type || "Regular",
           discountDocumentUrl: pd?.discount_document_url || null,
           discountDocumentStatus: pd?.discount_document_status || "NOT_REQUIRED",
@@ -400,7 +407,7 @@ export default function App() {
 
         return {
           id: d.id,
-          name: `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || "Unnamed Driver",
+          name: `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || profile.full_name || profile.email?.split("@")[0] || (d.license_number && d.license_number !== "PENDING" ? `Driver (${d.license_number})` : "") || `Driver (${d.id.slice(0, 6)})`,
           toda,
           // Status is derived from document_status + admin_action_type.
           // The legacy `status` column is kept for backward compat only.
@@ -412,12 +419,16 @@ export default function App() {
           phone: profile.phone_number || "No Contact",
           license: d.license_number || "PENDING",
           trips: tripsCount,
-          joinedDate: d.created_at ? d.created_at.split("T")[0] : new Date().toISOString().split("T")[0],
+          joinedDate: d.created_at ? d.created_at.split("T")[0] : (profile.created_at ? profile.created_at.split("T")[0] : "N/A"),
+          createdAt: d.created_at || profile.created_at || null,
+          created_at: d.created_at || profile.created_at || null,
           email: profile.email || "",
           address: profile.address || "",
           plateNumber: vehicle.plate_number || "No Plate",
           isOnline: !!d.is_online,
           licensePhotoUrl: d.license_photo_url || null,
+          avatarUrl: profile.avatar_url || d.selfie_photo_url || null,
+          selfiePhotoUrl: d.selfie_photo_url || profile.avatar_url || null,
           activityStatus,
           accountStatus: d.account_status || "PENDING",
           licenseFrontUrl: d.license_front_url || null,
@@ -471,16 +482,25 @@ export default function App() {
         const passengerName = `${passengerProfile.first_name || ""} ${passengerProfile.last_name || ""}`.trim() || passengerProfile.phone_number || passengerProfile.email || "Unknown Passenger";
 
         const driverObj = driversData.find((d: any) => d.id === b.driver_id || d.profile_id === b.driver_id);
-        const driverProfile: any = driverObj ? (profiles || []).find((p: any) => p.id === driverObj.profile_id) || {} : {};
-        const driverName = driverObj
-          ? `${driverProfile.first_name || ""} ${driverProfile.last_name || ""}`.trim() || "Assigned Driver"
-          : "Unassigned";
+        const driverProfile: any = driverObj
+          ? (profiles || []).find((p: any) => p.id === driverObj.profile_id) || {}
+          : (profiles || []).find((p: any) => p.id === b.driver_id) || {};
+
+        let driverName = "Unassigned";
+        if (driverObj || b.driver_id) {
+          const resolvedName = `${driverProfile.first_name || ""} ${driverProfile.last_name || ""}`.trim() ||
+            driverProfile.full_name ||
+            driverProfile.email?.split("@")[0] ||
+            (driverObj?.license_number && driverObj.license_number !== "PENDING" ? `Driver (${driverObj.license_number})` : "") ||
+            (b.driver_id ? `Driver (${String(b.driver_id).slice(0, 6)})` : "");
+          driverName = resolvedName || "Unassigned";
+        }
 
         let toda = "Unassigned";
-        if (driverObj) {
-          toda = (driverObj.toda_association && driverObj.toda_association.trim() && driverObj.toda_association !== "Not provided")
+        if (driverObj || b.driver_id) {
+          toda = (driverObj?.toda_association && driverObj.toda_association.trim() && driverObj.toda_association !== "Not provided")
             ? driverObj.toda_association.trim()
-            : "Not provided";
+            : "LHITC-TODA";
         }
 
         let uiStatus: RideRequest["status"] = "Pending";
@@ -498,6 +518,55 @@ export default function App() {
           uiStatus = "Cancelled";
         }
 
+        let rawStops: any[] = [];
+        if (Array.isArray(b.stops)) {
+          rawStops = b.stops;
+        } else if (typeof b.stops === "string" && b.stops.trim()) {
+          try {
+            let decoded = JSON.parse(b.stops);
+            if (typeof decoded === "string") {
+              try {
+                decoded = JSON.parse(decoded);
+              } catch (_) {}
+            }
+            if (Array.isArray(decoded)) {
+              rawStops = decoded;
+            } else if (decoded && typeof decoded === "object") {
+              if (Array.isArray(decoded.stops)) {
+                rawStops = decoded.stops;
+              } else {
+                rawStops = Object.values(decoded);
+              }
+            }
+          } catch (e) {
+            console.warn("Failed to parse stops JSON for booking", b.id, e);
+          }
+        } else if (b.stops && typeof b.stops === "object") {
+          if (Array.isArray(b.stops.stops)) {
+            rawStops = b.stops.stops;
+          } else {
+            rawStops = Object.values(b.stops);
+          }
+        }
+
+        const parsedStops: BookingStop[] = rawStops
+          .filter((stop: any) => stop && typeof stop === "object")
+          .map((stop: any, idx: number) => ({
+            stop_number: Number(stop.stop_number ?? stop.stopNumber ?? idx + 1),
+            address: String(stop.address || stop.name || stop.location || stop.dropoff_address || `Stop ${idx + 1}`),
+            sub_address: stop.sub_address || stop.subAddress ? String(stop.sub_address || stop.subAddress) : "",
+            latitude: Number(stop.latitude ?? stop.lat ?? 0),
+            longitude: Number(stop.longitude ?? stop.lng ?? stop.long ?? 0),
+            arrived_at: stop.arrived_at || stop.arrivedAt || null,
+            status: stop.status || "pending",
+          }));
+
+        const resolvedTotalStops = Math.max(
+          Number(b.total_stops || 0),
+          parsedStops.length,
+          1
+        );
+
         return {
           id: b.id,
           passenger: passengerName,
@@ -508,7 +577,7 @@ export default function App() {
           destination: b.dropoff_address || "Unknown Dropoff",
           returnLocation: b.return_address || null,
           status: uiStatus,
-          fare: Number(b.actual_fare ?? b.final_fare ?? b.estimated_fare ?? 0),
+          fare: Number(b.final_fare ?? b.actual_fare ?? b.estimated_fare ?? 0),
           pickupLatitude: b.pickup_latitude != null ? Number(b.pickup_latitude) : null,
           pickupLongitude: b.pickup_longitude != null ? Number(b.pickup_longitude) : null,
           dropoffLatitude: b.dropoff_latitude != null ? Number(b.dropoff_latitude) : null,
@@ -520,6 +589,9 @@ export default function App() {
           finalFare: b.final_fare != null ? Number(b.final_fare) : null,
           discountReviewStatus: b.discount_review_status || null,
           tripType: b.trip_type || null,
+          stops: parsedStops,
+          totalStops: resolvedTotalStops,
+          currentStopIndex: b.current_stop_index != null ? Number(b.current_stop_index) : 0,
           bookingDiscountRequests: Array.isArray(b.booking_discount_requests)
             ? b.booking_discount_requests.map((request: any) => ({
                 id: request.id,
@@ -923,45 +995,59 @@ export default function App() {
   const handleLiftPassengerRestriction = async (id: string) => {
     console.log("[Supabase Query] Lifting passenger restriction immediately for ID:", id);
     try {
-      // 1. Attempt stored procedure RPC first
+      // 1. Resolve passenger and profile records reliably
+      let passengerId = id;
+      let profileId = id;
+
+      const { data: passData } = await supabase
+        .from('passengers')
+        .select('id, profile_id')
+        .or(`id.eq.${id},profile_id.eq.${id}`)
+        .maybeSingle();
+
+      if (passData) {
+        passengerId = passData.id;
+        profileId = passData.profile_id;
+      }
+
+      // 2. Attempt stored procedure RPC first
       const { error: rpcError } = await supabase.rpc('admin_lift_passenger_restriction', {
-        p_passenger_id: id
+        p_passenger_id: passengerId
       });
 
       if (rpcError) {
-        console.warn("RPC admin_lift_passenger_restriction not available, falling back to direct table update:", rpcError);
-        const { error: updateError } = await supabase
-          .from('passengers')
-          .update({
-            booking_restriction_until: null,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', id);
+        console.warn("RPC admin_lift_passenger_restriction error or fallback needed:", rpcError);
+      }
 
-        if (updateError) throw updateError;
+      // 3. Direct table update guarantee
+      const { error: updateError } = await supabase
+        .from('passengers')
+        .update({
+          booking_restriction_until: null,
+          cancel_count: 0,
+          warning_status: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', passengerId);
 
-        const { data: passData } = await supabase
-          .from('passengers')
-          .select('profile_id')
-          .eq('id', id)
-          .maybeSingle();
-        const profileId = passData?.profile_id || id;
+      if (updateError) {
+        console.warn("Direct update on passengers table had error:", updateError);
+      }
 
-        await supabase
-          .from('profiles')
-          .update({ is_active: true })
-          .eq('id', profileId);
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          is_active: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', profileId);
+
+      if (profileError) {
+        console.warn("Direct update on profiles table had error:", profileError);
       }
 
       // Send in-app notification to passenger
       try {
-        const { data: passData } = await supabase
-          .from('passengers')
-          .select('profile_id')
-          .eq('id', id)
-          .maybeSingle();
-        const profileId = passData?.profile_id || id;
-
         await supabase.from("notifications").insert({
           recipient_id: profileId,
           type: "in_app",
@@ -978,10 +1064,13 @@ export default function App() {
       }
 
       // Update local modal state immediately if currently viewing this passenger
-      if (viewingUser && viewingUser.id === id && viewingUserType === "passenger") {
+      if (viewingUser && viewingUserType === "passenger" && (viewingUser.id === id || viewingUser.id === passengerId || (viewingUser as Passenger).profileId === profileId)) {
         setViewingUser(prev => prev ? {
           ...prev,
           bookingRestrictionUntil: null,
+          canceledTrips: 0,
+          passengerCancelledTrips: 0,
+          warningStatus: false,
           status: "Active"
         } as Passenger : null);
       }
@@ -999,37 +1088,47 @@ export default function App() {
     try {
       const restrictionDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
 
-      // 1. Attempt stored procedure RPC first
+      // 1. Resolve passenger and profile records reliably
+      let passengerId = id;
+      let profileId = id;
+
+      const { data: passData } = await supabase
+        .from('passengers')
+        .select('id, profile_id')
+        .or(`id.eq.${id},profile_id.eq.${id}`)
+        .maybeSingle();
+
+      if (passData) {
+        passengerId = passData.id;
+        profileId = passData.profile_id;
+      }
+
+      // 2. Attempt stored procedure RPC first
       const { error: rpcError } = await supabase.rpc('admin_restrict_passenger', {
-        p_passenger_id: id,
+        p_passenger_id: passengerId,
         p_days: days
       });
 
       if (rpcError) {
-        console.warn("RPC admin_restrict_passenger not available, falling back to direct table update:", rpcError);
-        const { error: updateError } = await supabase
-          .from('passengers')
-          .update({
-            booking_restriction_until: restrictionDate.toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', id);
-
-        if (updateError) throw updateError;
+        console.warn("RPC admin_restrict_passenger error or fallback needed:", rpcError);
       }
+
+      // 3. Direct table update guarantee
+      const { error: updateError } = await supabase
+        .from('passengers')
+        .update({
+          booking_restriction_until: restrictionDate.toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', passengerId);
+
+      if (updateError && rpcError) throw updateError;
 
       const options: Intl.DateTimeFormatOptions = { month: 'long', day: 'numeric', year: 'numeric' };
       const formattedDate = restrictionDate.toLocaleDateString('en-US', options);
 
       // Send in-app notification to passenger
       try {
-        const { data: passData } = await supabase
-          .from('passengers')
-          .select('profile_id')
-          .eq('id', id)
-          .maybeSingle();
-        const profileId = passData?.profile_id || id;
-
         await supabase.from("notifications").insert({
           recipient_id: profileId,
           type: "in_app",
@@ -1047,7 +1146,7 @@ export default function App() {
       }
 
       // Update local modal state immediately if currently viewing this passenger
-      if (viewingUser && viewingUser.id === id && viewingUserType === "passenger") {
+      if (viewingUser && viewingUserType === "passenger" && (viewingUser.id === id || viewingUser.id === passengerId || (viewingUser as Passenger).profileId === profileId)) {
         setViewingUser(prev => prev ? {
           ...prev,
           bookingRestrictionUntil: restrictionDate.toISOString(),
@@ -1055,7 +1154,7 @@ export default function App() {
         } as Passenger : null);
       }
 
-      alert(`Passenger restricted from booking for 31 days (until ${formattedDate}).`);
+      alert(`Passenger restricted from booking for ${days} days (until ${formattedDate}).`);
       fetchData(false);
     } catch (err: any) {
       console.error("[Supabase Error] Failed to restrict passenger:", err);
@@ -1361,7 +1460,8 @@ export default function App() {
       const matchSearch = r.passenger.toLowerCase().includes(requestSearch.toLowerCase()) ||
         r.driver.toLowerCase().includes(requestSearch.toLowerCase()) ||
         r.location.toLowerCase().includes(requestSearch.toLowerCase()) ||
-        r.destination.toLowerCase().includes(requestSearch.toLowerCase());
+        r.destination.toLowerCase().includes(requestSearch.toLowerCase()) ||
+        (r.stops && r.stops.some(s => s.address?.toLowerCase().includes(requestSearch.toLowerCase())));
       let matchStatus = false;
       if (statusFilter === "All") {
         matchStatus = true;
@@ -1504,6 +1604,7 @@ export default function App() {
                   rideRequests={rideRequests}
                   earningsTodaFilter={earningsTodaFilter}
                   setEarningsTodaFilter={setEarningsTodaFilter}
+                  setActiveTab={setActiveTab}
                 />
               )}
 

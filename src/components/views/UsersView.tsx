@@ -581,7 +581,6 @@ export default function UsersView({
                               </span>
                             )}
                           </div>
-                          <p className="text-[10px] text-slate-400 font-mono">{driver.plateNumber}</p>
                         </td>
                         <td className="py-4 px-3 text-slate-600">{driver.toda}</td>
                         <td className="py-4 px-3">

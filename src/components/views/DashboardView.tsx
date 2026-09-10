@@ -1,5 +1,5 @@
-import { useState } from "react";
 import { Driver, RideRequest } from "../../types";
+import { normalizeToda, OfficialToda } from "../../lib/todaConstants";
 
 interface DashboardViewProps {
   rideRequests: RideRequest[];
@@ -57,44 +57,7 @@ function getTodaStyle(toda: string, index: number) {
   return EXTRA_PALETTE[index % EXTRA_PALETTE.length];
 }
 
-function getDonutSlicePath(
-  cx: number,
-  cy: number,
-  rInner: number,
-  rOuter: number,
-  startAngle: number,
-  endAngle: number
-): string {
-  const diff = endAngle - startAngle;
-  if (diff <= 0.0001) return "";
 
-  if (diff >= 2 * Math.PI - 0.0001) {
-    const midAngle = startAngle + Math.PI;
-    const p1 = getDonutSlicePath(cx, cy, rInner, rOuter, startAngle, midAngle);
-    const p2 = getDonutSlicePath(cx, cy, rInner, rOuter, midAngle, endAngle);
-    return `${p1} ${p2}`;
-  }
-
-  const x1Outer = cx + rOuter * Math.cos(startAngle);
-  const y1Outer = cy + rOuter * Math.sin(startAngle);
-  const x2Outer = cx + rOuter * Math.cos(endAngle);
-  const y2Outer = cy + rOuter * Math.sin(endAngle);
-
-  const x1Inner = cx + rInner * Math.cos(endAngle);
-  const y1Inner = cy + rInner * Math.sin(endAngle);
-  const x2Inner = cx + rInner * Math.cos(startAngle);
-  const y2Inner = cy + rInner * Math.sin(startAngle);
-
-  const largeArcFlag = diff > Math.PI ? 1 : 0;
-
-  return [
-    `M ${x1Outer} ${y1Outer}`,
-    `A ${rOuter} ${rOuter} 0 ${largeArcFlag} 1 ${x2Outer} ${y2Outer}`,
-    `L ${x1Inner} ${y1Inner}`,
-    `A ${rInner} ${rInner} 0 ${largeArcFlag} 0 ${x2Inner} ${y2Inner}`,
-    "Z",
-  ].join(" ");
-}
 
 export default function DashboardView({
   rideRequests,
@@ -104,51 +67,54 @@ export default function DashboardView({
   totalEarnings,
   setActiveTab,
 }: DashboardViewProps) {
-  const todaEarnings = Object.values(
-    rideRequests
-      .filter((request) => request.status === "Completed")
-      .reduce<Record<string, { toda: string; rides: number; total: number }>>((groups, request) => {
-        const resolvedDriver = drivers.find(
-          (d) => d.id === request.driverId || d.profileId === request.driverId || (request.driver && d.name === request.driver)
-        );
-        const toda = (request.toda && request.toda !== "Not provided" && request.toda !== "Unassigned")
-          ? request.toda
-          : resolvedDriver?.toda && resolvedDriver.toda !== "Not provided"
-            ? resolvedDriver.toda
-            : "Not provided";
+  const baseTodaMap: Record<OfficialToda, { toda: OfficialToda; rides: number; total: number }> = {
+    "BYPASS ILAYANG BAGUIO-TODA": { toda: "BYPASS ILAYANG BAGUIO-TODA", rides: 0, total: 0 },
+    "CHOT-TODA": { toda: "CHOT-TODA", rides: 0, total: 0 },
+    "LHITC-TODA": { toda: "LHITC-TODA", rides: 0, total: 0 },
+  };
 
-        groups[toda] ??= { toda, rides: 0, total: 0 };
-        groups[toda].rides += 1;
-        groups[toda].total += request.fare || 0;
-        return groups;
-      }, {})
-  ).sort((a, b) => b.total - a.total);
+  rideRequests
+    .filter((request) => request.status === "Completed")
+    .forEach((request) => {
+      const resolvedDriver = drivers.find(
+        (d) =>
+          d.id === request.driverId ||
+          d.profileId === request.driverId ||
+          (request.driver && d.name.toLowerCase() === request.driver.toLowerCase())
+      );
+      const rawToda = request.toda || resolvedDriver?.toda;
+      const matchedToda = normalizeToda(rawToda) || "LHITC-TODA";
+      if (matchedToda && baseTodaMap[matchedToda]) {
+        baseTodaMap[matchedToda].rides += 1;
+        baseTodaMap[matchedToda].total += request.fare || 0;
+      }
+    });
 
-  const [hoveredToda, setHoveredToda] = useState<string | null>(null);
+  const todaEarnings = Object.values(baseTodaMap).sort((a, b) => {
+    if (b.total !== a.total) return b.total - a.total;
+    return a.toda.localeCompare(b.toda);
+  });
+
 
   const todaSum = todaEarnings.reduce((sum, item) => sum + item.total, 0);
+  const todaRidesSum = todaEarnings.reduce((sum, item) => sum + item.rides, 0);
+  const maxEarning = Math.max(...todaEarnings.map((t) => t.total), 0);
 
-  let currentAngle = -Math.PI / 2;
-  const pieSlices = todaEarnings.map((record, idx) => {
+  const todaBars = todaEarnings.map((record, idx) => {
     const share = todaSum > 0 ? record.total / todaSum : 0;
-    const angleDelta = share * 2 * Math.PI;
-    const start = currentAngle;
-    const end = currentAngle + angleDelta;
-    currentAngle += angleDelta;
+    const percentageStr = todaSum > 0 ? `${(share * 100).toFixed(1)}%` : "0.0%";
+    const barWidthPercent = maxEarning > 0 ? (record.total / maxEarning) * 100 : 0;
 
     return {
       toda: record.toda,
       rides: record.rides,
       total: record.total,
       share,
-      percentageStr: `${(share * 100).toFixed(1)}%`,
-      startAngle: start,
-      endAngle: end,
+      percentageStr,
+      barWidthPercent,
       style: getTodaStyle(record.toda, idx),
     };
   });
-
-  const activeHoveredSlice = pieSlices.find((s) => s.toda === hoveredToda);
 
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto">
@@ -191,7 +157,7 @@ export default function DashboardView({
                   <th className="pb-3 pl-3">Passenger</th>
                   <th className="pb-3 px-3">Driver</th>
                   <th className="pb-3 px-3">Location</th>
-                  <th className="pb-3 text-right pr-3">Status</th>
+                  <th className="pb-3 px-3">Status</th>
                 </tr>
               </thead>
               <tbody className="text-sm font-semibold divide-y divide-slate-50">
@@ -200,10 +166,14 @@ export default function DashboardView({
                     <td className="py-3.5 pl-3 text-slate-700">{request.passenger}</td>
                     <td className="py-3.5 px-3 text-slate-600">{request.driver}</td>
                     <td className="py-3.5 px-3 text-slate-600 min-w-[220px]">
-                      <p className="font-bold">{request.location}</p>
-                      <p className="text-xs text-slate-400">{request.destination}</p>
+                      <p className="font-bold text-slate-800 mb-0.5">{request.location}</p>
+                      <p className="text-xs text-slate-400">
+                        {request.stops && request.stops.length > 0
+                          ? `${request.totalStops || request.stops.length} stops (${request.stops[0].address.split(',')[0]}...)`
+                          : request.destination}
+                      </p>
                     </td>
-                    <td className="py-3.5 text-right pr-3">
+                    <td className="py-3.5 px-3">
                       <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${statusClass(request.status)}`}>
                         {request.status}
                       </span>
@@ -243,7 +213,7 @@ export default function DashboardView({
                   <tr className="border-b border-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider">
                     <th className="pb-3 pl-3">Driver</th>
                     <th className="pb-3 px-3">TODA</th>
-                    <th className="pb-3 text-right pr-3">Status</th>
+                    <th className="pb-3 px-3">Status</th>
                   </tr>
                 </thead>
                 <tbody className="text-sm font-semibold divide-y divide-slate-50">
@@ -253,7 +223,7 @@ export default function DashboardView({
                       <td className="py-3.5 px-3 text-slate-600 max-w-[180px] truncate" title={driver.toda}>
                         {driver.toda}
                       </td>
-                      <td className="py-3.5 pr-3 text-right">
+                      <td className="py-3.5 px-3">
                         <span
                           className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                             driver.status === "Active"
@@ -278,149 +248,72 @@ export default function DashboardView({
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-[#000C7D] font-bold text-lg">TODA Earnings Breakdown</h2>
-                <p className="text-xs text-slate-400 font-semibold mt-0.5">Distribution by tricycle association</p>
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h2 className="text-[#000C7D] font-bold text-lg">TODA Earnings Breakdown</h2>
+                  <p className="text-xs text-slate-400 font-semibold mt-0.5">
+                    Revenue: <span className="font-bold text-[#000C7D]">{money(todaSum)}</span> • {todaRidesSum} completed {todaRidesSum === 1 ? "ride" : "rides"}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setActiveTab("earnings")}
+                  className="text-xs text-blue-600 font-bold hover:underline cursor-pointer shrink-0"
+                >
+                  View Details
+                </button>
               </div>
-              <button
-                onClick={() => setActiveTab("earnings")}
-                className="text-xs text-blue-600 font-bold hover:underline cursor-pointer shrink-0"
-              >
-                View Details
-              </button>
+
+              {/* Compact Horizontal Bar Chart */}
+              <div className="flex flex-col gap-2.5 mt-2">
+                {todaBars.map((item) => (
+                  <div key={item.toda} className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span
+                          className="w-2.5 h-2.5 rounded-full shrink-0"
+                          style={{ backgroundColor: item.style.fill }}
+                        />
+                        <span className="font-bold text-slate-700 text-xs truncate" title={item.toda}>
+                          {item.toda}
+                        </span>
+                        <span className="text-[11px] text-slate-400 font-medium shrink-0">
+                          ({item.rides} {item.rides === 1 ? "ride" : "rides"})
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                          {item.percentageStr}
+                        </span>
+                        <span className={`text-xs font-bold ${item.style.text}`}>
+                          {money(item.total)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Compact Bar Track */}
+                    <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-500 ease-out"
+                        style={{
+                          width: `${item.barWidthPercent}%`,
+                          backgroundColor: item.style.fill,
+                          minWidth: item.total > 0 ? "6px" : "0px",
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {todaSum > 0 ? (
-              <div className="flex flex-col sm:flex-row items-center gap-6 pt-2">
-                {/* SVG Donut / Pie Chart */}
-                <div className="relative shrink-0 flex items-center justify-center">
-                  <svg
-                    width="190"
-                    height="190"
-                    viewBox="0 0 210 210"
-                    className="overflow-visible select-none"
-                  >
-                    <defs>
-                      <filter id="pie-glow" x="-20%" y="-20%" width="140%" height="140%">
-                        <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.18" />
-                      </filter>
-                    </defs>
-
-                    {pieSlices.map((slice) => {
-                      const isHovered = hoveredToda === slice.toda;
-                      const rOuter = isHovered ? 88 : 82;
-                      const rInner = isHovered ? 49 : 52;
-                      const pathData = getDonutSlicePath(
-                        105,
-                        105,
-                        rInner,
-                        rOuter,
-                        slice.startAngle,
-                        slice.endAngle
-                      );
-
-                      if (!pathData) return null;
-
-                      return (
-                        <path
-                          key={slice.toda}
-                          d={pathData}
-                          fill={slice.style.fill}
-                          stroke="#ffffff"
-                          strokeWidth={isHovered ? 2.5 : 1.5}
-                          className="transition-all duration-200 cursor-pointer"
-                          style={{
-                            filter: isHovered ? "url(#pie-glow)" : "none",
-                            transformOrigin: "105px 105px",
-                          }}
-                          onMouseEnter={() => setHoveredToda(slice.toda)}
-                          onMouseLeave={() => setHoveredToda(null)}
-                        >
-                          <title>{`${slice.toda}: ${money(slice.total)} (${slice.percentageStr})`}</title>
-                        </path>
-                      );
-                    })}
-                  </svg>
-
-                  {/* Centered Donut Content */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center px-4">
-                    {activeHoveredSlice ? (
-                      <>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate max-w-[100px]">
-                          {activeHoveredSlice.toda.replace(/-TODA$/, "")}
-                        </span>
-                        <span className="text-base font-extrabold text-[#000C7D] leading-tight mt-0.5">
-                          {money(activeHoveredSlice.total)}
-                        </span>
-                        <span className="text-[10px] font-extrabold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full mt-1">
-                          {activeHoveredSlice.percentageStr}
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                          Total
-                        </span>
-                        <span className="text-base font-extrabold text-[#000C7D] leading-tight mt-0.5">
-                          {money(todaSum)}
-                        </span>
-                        <span className="text-[10px] font-semibold text-slate-400 mt-0.5">
-                          All TODAs
-                        </span>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Legend & Breakdown Cards */}
-                <div className="flex flex-col gap-2 w-full flex-1">
-                  {pieSlices.map((slice) => {
-                    const isHovered = hoveredToda === slice.toda;
-                    return (
-                      <div
-                        key={slice.toda}
-                        onMouseEnter={() => setHoveredToda(slice.toda)}
-                        onMouseLeave={() => setHoveredToda(null)}
-                        className={`flex items-center justify-between gap-3 p-2.5 rounded-xl border transition-all cursor-pointer ${
-                          isHovered
-                            ? "bg-slate-50 border-slate-300 shadow-xs scale-[1.01]"
-                            : "bg-slate-50/50 border-slate-100 hover:bg-slate-50"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <span
-                            className="w-3 h-3 rounded-full shrink-0 shadow-xs"
-                            style={{ backgroundColor: slice.style.fill }}
-                          />
-                          <div className="min-w-0">
-                            <p className="text-slate-800 text-xs font-bold truncate" title={slice.toda}>
-                              {slice.toda}
-                            </p>
-                            <p className="text-[11px] text-slate-400 font-semibold">
-                              {slice.rides} rides • <span className="font-bold text-slate-600">{slice.percentageStr}</span>
-                            </p>
-                          </div>
-                        </div>
-                        <p className={`text-sm font-extrabold shrink-0 ${slice.style.text}`}>
-                          {money(slice.total)}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-8 gap-3">
-                <svg width="120" height="120" viewBox="0 0 120 120" className="text-slate-200">
-                  <circle cx="60" cy="60" r="45" fill="none" stroke="currentColor" strokeWidth="16" />
-                </svg>
-                <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">
-                  No completed earnings yet
-                </p>
-              </div>
-            )}
+            {/* Subtle Scale at bottom */}
+            <div className="pt-2.5 mt-3 border-t border-slate-100 flex justify-between text-[10px] font-medium text-slate-400">
+              <span>₱0 (0%)</span>
+              <span>50%</span>
+              <span>{maxEarning > 0 ? money(maxEarning) : "100%"}</span>
+            </div>
           </div>
         </div>
       </div>

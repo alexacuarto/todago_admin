@@ -15,12 +15,15 @@ export interface Driver {
   bodyNumber?: string;
   trips: number;
   joinedDate: string;
+  createdAt?: string | null;
+  created_at?: string | null;
   email: string;
   address?: string;
   plateNumber: string;
   isOnline: boolean;
   licensePhotoUrl?: string | null;
   avatarUrl?: string;
+  selfiePhotoUrl?: string | null;
   licenseImageUrl?: string;
   licenseImageName?: string;
   activityStatus: "ACTIVE" | "INACTIVE";
@@ -97,6 +100,7 @@ export interface Passenger {
   bookingRestrictionUntil?: string | null;
   lastCancelDate?: string | null;
   avatarUrl?: string;
+  selfiePhotoUrl?: string | null;
   accountPassengerType?: string;
   discountDocumentUrl?: string | null;
   discountDocumentStatus?: "NOT_REQUIRED" | "PENDING" | "VERIFIED" | "REJECTED" | string;
@@ -144,7 +148,20 @@ export interface RideRequest {
   provisionalDiscountedFare?: number | null;
   finalFare?: number | null;
   discountReviewStatus?: string | null;
+  stops?: BookingStop[];
+  totalStops?: number;
+  currentStopIndex?: number;
   bookingDiscountRequests?: BookingDiscountRequest[];
+}
+
+export interface BookingStop {
+  stop_number: number;
+  address: string;
+  sub_address?: string;
+  latitude: number;
+  longitude: number;
+  arrived_at?: string | null;
+  status?: string;
 }
 
 export interface BookingDiscountRequest {
